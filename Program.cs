@@ -1,8 +1,13 @@
 ﻿using Capstone.Database;
+using Capstone.Model;
+using Capstone.Repositories;
+using Capstone.Security;
+using Capstone.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -65,12 +70,30 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
-
-
-
+//
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+var redisSettings = new RedisSetting();
+builder.Configuration.GetSection("Redis").Bind(redisSettings);
+
+// Tạo cấu hình Redis
+var redisOptions = new ConfigurationOptions
+{
+    EndPoints = { $"{redisSettings.Host}:{redisSettings.Port}" },
+    Password = string.IsNullOrEmpty(redisSettings.Password) ? null : redisSettings.Password,
+    DefaultDatabase = redisSettings.DefaultDatabase,
+    AbortOnConnectFail = false
+};
+var redisConnection = ConnectionMultiplexer.Connect(redisOptions);
+
+
+// Đăng ký các dịch vụ cần thiết
+builder.Services.AddScoped<Token>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<IAuthRepository, AuthService>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
+builder.Services.AddSingleton<Redis>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

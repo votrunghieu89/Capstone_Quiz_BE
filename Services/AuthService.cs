@@ -14,11 +14,15 @@ namespace Capstone.Services
         public readonly AppDbContext _context;
         public readonly string _connection;
         public readonly ILogger<AuthService> _logger;
-        public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger)
+        public readonly Token _token;
+        private readonly Redis _redis;
+        public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger, Token token, Redis redis)
         {
             _context = context;
             _connection = configuration.GetConnectionString("DefaultConnection") ?? "";
             _logger = logger;
+            _token = token;
+            _redis = redis;
         }
         // Kiểm tra kết nối cơ sở dữ liệu
         public async Task<bool> checkConnection()
@@ -34,25 +38,25 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<bool> isEmailExist(string email)
+        public async Task<int> isEmailExist(string email)
         {
             try
             {
-                bool isEmail = await _context.authModels.AnyAsync(u => u.Email == email);
-                if (isEmail)
+                var isEmail = await _context.authModels.FirstOrDefaultAsync(u => u.Email == email);
+                if (isEmail != null)
                 {
                     // Email tồn tại
                     _logger.LogInformation("Email already exists");
-                    return false;
+                    return isEmail.AccountId;
                 }
                 // Email chưa tồn tại
                 _logger.LogInformation("Email does not exist");
-                return true;
+                return 0;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking if email exists");
-                return false;
+                return 0;
             }
         }
         public async Task<bool> RegisterCandidate(AuthRegisterDTO authRegisterDTO)
@@ -99,7 +103,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<AuthLoginResponse> LoginResponse(AuthLoginDTO authLoginDTO)
+        public async Task<AuthLoginResponse> Login(AuthLoginDTO authLoginDTO)
         {
             try
             {
@@ -115,14 +119,15 @@ namespace Capstone.Services
                     _logger.LogWarning("Invalid password for email ");
                     return null;
                 }
-                // Sẽ có hàm sinh AccessToken và RefreshToken ở đây
+                var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
+                var refreshToken = _token.generateRefreshToken();
                 AuthLoginResponse response = new AuthLoginResponse
                 {
                     AccountId = user.AccountId,
                     Email = user.Email,
                     Role = user.Role,
-                    AccesToken = "access_token_placeholder",
-                    RefreshToken = "refresh_token_placeholder",
+                    AccesToken = accessToken,
+                    RefreshToken = refreshToken,
 
                 };
                 _logger.LogInformation("User {Email} logged in successfully", authLoginDTO.Email);
@@ -175,10 +180,6 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public Task<bool> ForgotPassword(string email)
-        {
-            throw new NotImplementedException();
-        }
 
         public async Task<bool> RegisterRecruiter(AuthRegisterRecruiterDTO authRegisterDTO)
         {
@@ -223,6 +224,49 @@ namespace Capstone.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error registering user");
+                return false;
+            }
+        }
+
+        public async Task<bool> verifyOTP(int accountId, string otp)
+        {
+            string? OTP = await _redis.GetStringAsync("OTP_" + accountId);
+            if (OTP == null)
+            {
+                _logger.LogWarning("OTP expired or not found  ");
+                return false;
+            }
+            bool checkOTP = Hash.VerifyPassword(otp,OTP);
+           
+            if(!checkOTP)
+            {
+                _logger.LogWarning("Invalid OTP for AccountId ");
+                return false;
+            }
+            _logger.LogInformation("OTP verified successfully }");
+            return true;
+        }
+
+        public async Task<bool> updateNewPassword(int accountId, string newPassword)
+        {
+            try
+            {
+                string newHashedPassword = Hash.HashPassword(newPassword);
+                int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword));
+                if(updated > 0)
+                {
+                    _logger.LogInformation("Password updated successfully for AccountId {AccountId}", accountId);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("No records updated for AccountId {AccountId}", accountId);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking database connection");
                 return false;
             }
         }
