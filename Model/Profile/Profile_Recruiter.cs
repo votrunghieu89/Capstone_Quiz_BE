@@ -1,10 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Capstone.Model.Profile
 {
     [Table("Profile_Recruiter")]
     public class Profile_Recruiter
     {
+        [Key]
         [Column("ProfileId")]
         public int ProfileId { get; set; }
         [Column("AccountId")]

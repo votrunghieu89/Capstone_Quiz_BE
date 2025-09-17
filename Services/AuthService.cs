@@ -5,6 +5,7 @@ using Capstone.Model.Profile;
 using Capstone.Repositories;
 using Capstone.Security;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Capstone.Services
@@ -81,7 +82,7 @@ namespace Capstone.Services
                         {
                             AccountId = authModel.AccountId,
                             FullName = authRegisterDTO.FullName
-                           
+
                         };
                         await _context.profile_CDD_Admins.AddAsync(profile_CDD_Admin);
                         await _context.SaveChangesAsync();
@@ -107,20 +108,21 @@ namespace Capstone.Services
         {
             try
             {
-                AuthModel? user =  await _context.authModels.FirstOrDefaultAsync(u => u.Email == authLoginDTO.Email);
+                AuthModel? user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == authLoginDTO.Email);
                 if (user == null)
                 {
                     _logger.LogWarning("Login failed for email");
                     return null;
                 }
                 bool checkPassword = Hash.VerifyPassword(authLoginDTO.Password, user.Password);
-                if(!checkPassword)
+                if (!checkPassword)
                 {
                     _logger.LogWarning("Invalid password for email ");
                     return null;
                 }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
+                bool setRefresh = await _redis.SetStringAsync($"RT_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
                 AuthLoginResponse response = new AuthLoginResponse
                 {
                     AccountId = user.AccountId,
@@ -139,9 +141,19 @@ namespace Capstone.Services
                 return null;
             }
         }
-        public Task<bool> Logout(int accountId)
+        public async Task<bool> Logout(int accountId)
         {
-            throw new NotImplementedException();
+            bool deleted = await _redis.DeleteKeyAsync($"RT_{accountId}");
+            if (deleted)
+            {
+                _logger.LogInformation("User with AccountId {AccountId} logged out successfully", accountId);
+                return true;
+            }
+            else
+            {
+                _logger.LogWarning("No refresh token found to delete for AccountId {AccountId}", accountId);
+                return false;
+            }
         }
         public async Task<bool> ChangePassword(AuthChangePasswordDTO changePasswordDTO)
         {
@@ -236,14 +248,15 @@ namespace Capstone.Services
                 _logger.LogWarning("OTP expired or not found  ");
                 return false;
             }
-            bool checkOTP = Hash.VerifyPassword(otp,OTP);
-           
-            if(!checkOTP)
+            bool checkOTP = Hash.VerifyPassword(otp, OTP);
+
+            if (!checkOTP)
             {
                 _logger.LogWarning("Invalid OTP for AccountId ");
                 return false;
             }
             _logger.LogInformation("OTP verified successfully }");
+            bool deleted = await _redis.DeleteKeyAsync($"OTP_{accountId}");
             return true;
         }
 
@@ -253,7 +266,7 @@ namespace Capstone.Services
             {
                 string newHashedPassword = Hash.HashPassword(newPassword);
                 int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword));
-                if(updated > 0)
+                if (updated > 0)
                 {
                     _logger.LogInformation("Password updated successfully for AccountId {AccountId}", accountId);
                     return true;
@@ -268,6 +281,31 @@ namespace Capstone.Services
             {
                 _logger.LogError(ex, "Error checking database connection");
                 return false;
+            }
+        }
+        public async Task<string> getNewAccessToken(GetNewATDTO tokenDTO)
+        {
+            try
+            {
+                string? refreshTokenInDb = await _redis.GetStringAsync($"RT_{tokenDTO.AccountId}");
+                if (refreshTokenInDb == null || refreshTokenInDb != tokenDTO.RefreshToken)
+                {
+                    _logger.LogWarning("Invalid or expired refresh token for AccountId");
+                    return null;
+                }
+                var user = await _context.authModels.FirstOrDefaultAsync(u => u.AccountId == tokenDTO.AccountId);
+                if (user == null)
+                {
+                    _logger.LogWarning("AccountId not found");
+                    return null;
+                }
+                var newAccessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
+                return newAccessToken;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during getNewAccessToken");
+                return null;
             }
         }
     }

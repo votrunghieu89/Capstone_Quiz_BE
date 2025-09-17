@@ -3,6 +3,7 @@ using Capstone.Model;
 using Capstone.Repositories;
 using Capstone.Security;
 using Capstone.Services;
+using Capstone.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;

@@ -13,5 +13,6 @@ namespace Capstone.Repositories
         Task<bool> Logout(int accountId);
         Task<bool> verifyOTP(int accountId, string otp);
         Task<bool> updateNewPassword(int accountId, string newPassword);
+        Task<string> getNewAccessToken(GetNewATDTO tokenDTO);
     }
 }

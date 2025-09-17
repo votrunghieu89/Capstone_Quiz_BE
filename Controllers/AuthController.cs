@@ -29,36 +29,37 @@ namespace Capstone.Controllers
             if (length <= 0) throw new ArgumentException("Length must be positive", nameof(length));
 
             using var rng = RandomNumberGenerator.Create();
-            var bytes = new byte[4]; // dùng để sinh số
+            var bytes = new byte[4];
             rng.GetBytes(bytes);
-            int number = BitConverter.ToInt32(bytes, 0) & 0x7FFFFFFF; // đảm bảo số dương
+            int number = BitConverter.ToInt32(bytes, 0) & 0x7FFFFFFF;
             int otp = number % (int)Math.Pow(10, length);
-            return otp.ToString($"D{length}"); // pad 0 nếu cần
+            return otp.ToString($"D{length}");
         }
-        // 1 Chuỗi API Quên mật khẩu
+
+        // 1. Forgot Password APIs
         [HttpPost("checkEmail")]
         public async Task<ActionResult> isEmailExist([FromBody] string email)
         {
             try
             {
-                var isExist = await _authRepository.isEmailExist(email); // trả về accountId
+                var isExist = await _authRepository.isEmailExist(email);
                 if (isExist == 0)
                 {
-                    return NotFound(new { message = "Email không tồn tại trong hệ thống." });
+                    return NotFound(new { message = "Email does not exist in the system." });
                 }
-               
+
                 var otp = GenerateOTP();
                 var otpHash = Hash.HashPassword(otp);
-                await _redis.SetStringAsync($"OTP_{isExist}" , otpHash, TimeSpan.FromMinutes(5));
-                // Gửi email chứa mã OTP
-                string subject = "Mã OTP của bạn";
+                await _redis.SetStringAsync($"OTP_{isExist}", otpHash, TimeSpan.FromMinutes(5));
+
+                string subject = "Your OTP Code";
                 await _emailService.SendEmailAsync(email, subject, otp);
-                return Ok(new { message = "Mã OTP đã được gửi đến email của bạn." });
+                return Ok(new { message = "OTP has been sent to your email." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi kiểm tra email hoặc gửi OTP.");
-                return StatusCode(500, new { message = "Đã xảy ra lỗi trong quá trình xử lý." });
+                _logger.LogError(ex, "Error while checking email or sending OTP.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
@@ -67,17 +68,17 @@ namespace Capstone.Controllers
         {
             try
             {
-              bool checkOTP = await _authRepository.verifyOTP(verifyOTP.AccountId, verifyOTP.OTP);
+                bool checkOTP = await _authRepository.verifyOTP(verifyOTP.AccountId, verifyOTP.OTP);
                 if (!checkOTP)
                 {
-                    return BadRequest(new { message = "Mã OTP không hợp lệ hoặc đã hết hạn." });
+                    return BadRequest(new { message = "Invalid or expired OTP." });
                 }
-                return Ok(new { message = "Xác thực OTP thành công. Bạn có thể đặt lại mật khẩu mới." });
+                return Ok(new { message = "OTP verification successful. You can now reset your password." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi xác thực OTP.");
-                return StatusCode(500, new { message = "Đã xảy ra lỗi trong quá trình xử lý." });
+                _logger.LogError(ex, "Error while verifying OTP.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
@@ -89,16 +90,145 @@ namespace Capstone.Controllers
                 bool isReset = await _authRepository.updateNewPassword(resetPasswordDTO.accountId, resetPasswordDTO.PasswordReset);
                 if (!isReset)
                 {
-                    return BadRequest(new { message = "Không thể đặt lại mật khẩu. Vui lòng thử lại." });
+                    return BadRequest(new { message = "Failed to reset password. Please try again." });
                 }
-                // Xóa OTP sau khi đặt lại mật khẩu thành công
                 await _redis.DeleteKeyAsync($"OTP_{resetPasswordDTO.accountId}");
-                return Ok(new { message = "Đặt lại mật khẩu thành công." });
+                return Ok(new { message = "Password has been reset successfully." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Lỗi khi đặt lại mật khẩu.");
-                return StatusCode(500, new { message = "Đã xảy ra lỗi trong quá trình xử lý." });
+                _logger.LogError(ex, "Error while resetting password.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Login API
+        [HttpPost("login")]
+        public async Task<ActionResult> Login([FromBody] AuthLoginDTO authLoginDTO)
+        {
+            try
+            {
+                var loginResponse = await _authRepository.Login(authLoginDTO);
+                if (loginResponse == null)
+                {
+                    return Unauthorized(new { message = "Invalid email or password." });
+                }
+                return Ok(loginResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while logging in.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Register Candidate API
+        [HttpPost("registerCandidate")]
+        public async Task<ActionResult> RegisterCandidate([FromBody] AuthRegisterDTO authRegisterDTO)
+        {
+            try
+            {
+                int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
+                if (checkEmail != 0)
+                {
+                    return BadRequest(new { message = "Email already exists. Please use a different email." });
+                }
+                var isRegistered = await _authRepository.RegisterCandidate(authRegisterDTO);
+                if (!isRegistered)
+                {
+                    return BadRequest(new { message = "Registration failed. Please try again." });
+                }
+                return Ok(new { message = "Candidate registered successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while registering candidate.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Register Recruiter API
+        [HttpPost("registerRecruiter")]
+        public async Task<ActionResult> RegisterRecruiter([FromBody] AuthRegisterRecruiterDTO authRegisterDTO)
+        {
+            try
+            {
+                int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
+                if (checkEmail != 0)
+                {
+                    return BadRequest(new { message = "Email already exists. Please use a different email." });
+                }
+                var isRegistered = await _authRepository.RegisterRecruiter(authRegisterDTO);
+                if (!isRegistered)
+                {
+                    return BadRequest(new { message = "Registration failed. Please try again." });
+                }
+                return Ok(new { message = "Recruiter registered successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while registering recruiter.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Change Password API
+        [HttpPost("changePassword")]
+        public async Task<ActionResult> ChangePassword([FromBody] AuthChangePasswordDTO changePasswordDTO)
+        {
+            try
+            {
+                var isChanged = await _authRepository.ChangePassword(changePasswordDTO);
+                if (!isChanged)
+                {
+                    return BadRequest(new { message = "Failed to change password. Please try again." });
+                }
+                return Ok(new { message = "Password changed successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while changing password.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Logout API
+        [HttpPost("logout/{accountId}")]
+        public async Task<ActionResult> Logout(int accountId)
+        {
+            try
+            {
+                var isLoggedOut = await _authRepository.Logout(accountId);
+                if (!isLoggedOut)
+                {
+                    return BadRequest(new { message = "Failed to logout. Please try again." });
+                }
+                return Ok(new { message = "Logout successful." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while logging out.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Get New Access Token API
+        [HttpPost("accessToken")]
+        public async Task<ActionResult> GetNewAccessToken([FromBody] GetNewATDTO tokenDTO)
+        {
+            try
+            {
+                var newAccessToken = await _authRepository.getNewAccessToken(tokenDTO);
+                if (newAccessToken == null)
+                {
+                    return BadRequest(new { message = "Failed to generate a new Access Token. Please try again." });
+                }
+                return Ok(new { AccessToken = newAccessToken });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while generating new Access Token.");
+                return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
     }

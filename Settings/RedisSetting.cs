@@ -1,4 +1,4 @@
-﻿namespace Capstone.Model
+﻿namespace Capstone.Settings
 {
     public class RedisSetting
     {
