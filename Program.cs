@@ -98,6 +98,7 @@ builder.Services.AddScoped<Token>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<GoogleService>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
+builder.Services.AddScoped<IDashboardAccountRepository, DashboardAccountServices>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 var app = builder.Build();

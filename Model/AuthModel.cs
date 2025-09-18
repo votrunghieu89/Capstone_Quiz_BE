@@ -15,13 +15,21 @@ namespace Capstone.Model
         public string Password { get; set; } = string.Empty;
         [Column("Role")]
         public string Role { get; set; } = string.Empty;
+        [Column("CreateAt")]
+        public DateTime CreateAt { get; set; } = DateTime.Now;
+
+        [Column("UpdateAt")]
+        public DateTime UpdateAt { get; set; } = DateTime.Now;
+
         public AuthModel() { }
-        public AuthModel(int accountId, string email, string password, string role)
+        public AuthModel(int accountId, string email, string password, string role, DateTime createAt, DateTime updateAt)
         {
             AccountId = accountId;
             Email = email;
             Password = password;
             Role = role;
+            CreateAt = createAt;
+            UpdateAt = updateAt;
         }
     }
 }

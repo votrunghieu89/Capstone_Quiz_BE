@@ -104,6 +104,52 @@ namespace Capstone.Services
                 return false;
             }
         }
+        public async Task<bool> RegisterRecruiter(AuthRegisterRecruiterDTO authRegisterDTO)
+        {
+            try
+            {
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        AuthModel authModel = new AuthModel
+                        {
+                            Email = authRegisterDTO.Email,
+                            Password = Hash.HashPassword(authRegisterDTO.Password),
+                            Role = "Recruiter"
+                        };
+
+                        await _context.authModels.AddAsync(authModel);
+                        await _context.SaveChangesAsync();
+
+                        Profile_Recruiter profile_Recruiter = new Profile_Recruiter
+                        {
+                            AccountId = authModel.AccountId,
+                            FullName = authRegisterDTO.FullName,
+                            CompanyName = authRegisterDTO.CompanyName,
+                            CompanyLocation = authRegisterDTO.CompanyLocation
+
+                        };
+                        await _context.profile_Recruiters.AddAsync(profile_Recruiter);
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                        _logger.LogInformation("Recruiter registered successfully with AccountId {AccountId}", authModel.AccountId);
+                        return true;
+                    }
+                    catch (Exception)
+                    {
+                        _logger.LogError("Error registering Recruiter, rolling back transaction");
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error registering user");
+                return false;
+            }
+        }
         public async Task<AuthLoginResponse> Login(AuthLoginDTO authLoginDTO)
         {
             try
@@ -174,8 +220,11 @@ namespace Capstone.Services
                 }
                 string newHashedPassword = Hash.HashPassword(changePasswordDTO.newPassword);
                 int updated = await _context.authModels
-                .Where(u => u.Email == changePasswordDTO.Email)
-                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword));
+                                     .Where(u => u.Email == changePasswordDTO.Email)
+                                     .ExecuteUpdateAsync(s => s
+                                         .SetProperty(u => u.Password, newHashedPassword)
+                                         .SetProperty(u => u.UpdateAt, DateTime.Now)
+                                     );
                 _logger.LogInformation("Password changed successfully");
                 if (updated > 0)
                 {
@@ -192,54 +241,6 @@ namespace Capstone.Services
                 return false;
             }
         }
-
-        public async Task<bool> RegisterRecruiter(AuthRegisterRecruiterDTO authRegisterDTO)
-        {
-            try
-            {
-                using (var transaction = await _context.Database.BeginTransactionAsync())
-                {
-                    try
-                    {
-                        AuthModel authModel = new AuthModel
-                        {
-                            Email = authRegisterDTO.Email,
-                            Password = Hash.HashPassword(authRegisterDTO.Password),
-                            Role = "Recruiter"
-                        };
-
-                        await _context.authModels.AddAsync(authModel);
-                        await _context.SaveChangesAsync();
-
-                        Profile_Recruiter profile_Recruiter = new Profile_Recruiter
-                        {
-                            AccountId = authModel.AccountId,
-                            FullName = authRegisterDTO.FullName,
-                            CompanyName = authRegisterDTO.CompanyName,
-                            CompanyLocation = authRegisterDTO.CompanyLocation
-
-                        };
-                        await _context.profile_Recruiters.AddAsync(profile_Recruiter);
-                        await _context.SaveChangesAsync();
-                        await transaction.CommitAsync();
-                        _logger.LogInformation("Recruiter registered successfully with AccountId {AccountId}", authModel.AccountId);
-                        return true;
-                    }
-                    catch (Exception)
-                    {
-                        _logger.LogError("Error registering Recruiter, rolling back transaction");
-                        await transaction.RollbackAsync();
-                        throw;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error registering user");
-                return false;
-            }
-        }
-
         public async Task<bool> verifyOTP(int accountId, string otp)
         {
             string? OTP = await _redis.GetStringAsync("OTP_" + accountId);
@@ -259,13 +260,13 @@ namespace Capstone.Services
             bool deleted = await _redis.DeleteKeyAsync($"OTP_{accountId}");
             return true;
         }
-
         public async Task<bool> updateNewPassword(int accountId, string newPassword)
         {
             try
             {
                 string newHashedPassword = Hash.HashPassword(newPassword);
-                int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword));
+                int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword)
+                                                                                                                      .SetProperty(u => u.UpdateAt, DateTime.Now));
                 if (updated > 0)
                 {
                     _logger.LogInformation("Password updated successfully for AccountId {AccountId}", accountId);
