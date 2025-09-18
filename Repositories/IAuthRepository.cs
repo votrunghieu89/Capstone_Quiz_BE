@@ -14,5 +14,6 @@ namespace Capstone.Repositories
         Task<bool> verifyOTP(int accountId, string otp);
         Task<bool> updateNewPassword(int accountId, string newPassword);
         Task<string> getNewAccessToken(GetNewATDTO tokenDTO);
+        Task<AuthLoginResponse> LoginGoogle(string email);
     }
 }

@@ -308,5 +308,35 @@ namespace Capstone.Services
                 return null;
             }
         }
+        public async Task<AuthLoginResponse> LoginGoogle(string email)
+        {
+            try
+            {
+                var user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == email);
+                if (user == null)
+                {
+                    _logger.LogWarning("Email not found");
+                    return null;
+                }
+                var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
+                var refreshToken = _token.generateRefreshToken();
+                bool setRefresh = await _redis.SetStringAsync($"RT_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
+                AuthLoginResponse response = new AuthLoginResponse
+                {
+                    AccountId = user.AccountId,
+                    Email = user.Email,
+                    Role = user.Role,
+                    AccesToken = accessToken,
+                    RefreshToken = refreshToken,
+                };
+                _logger.LogInformation("User with email {Email} logged in successfully via Google", email);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during Google login for email {Email}", email);
+                return null;
+            }
+        }
     }
 }

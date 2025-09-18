@@ -3,7 +3,9 @@ using Capstone.DTOs.Auth;
 using Capstone.Repositories;
 using Capstone.Security;
 using Capstone.Services;
+using Capstone.Settings;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using System.Security.Cryptography;
 
@@ -17,12 +19,15 @@ namespace Capstone.Controllers
         public readonly Redis _redis;
         public readonly ILogger<AuthController> _logger;
         public readonly EmailService _emailService;
-        public AuthController(IAuthRepository authRepository, Redis redis, ILogger<AuthController> logger, EmailService service)
+        private readonly GoogleService _googleService;
+
+        public AuthController(IAuthRepository authRepository, Redis redis, ILogger<AuthController> logger, EmailService service, GoogleService googleService)
         {
             _authRepository = authRepository;
             _redis = redis;
             _logger = logger;
             _emailService = service;
+            _googleService = googleService;
         }
         public static string GenerateOTP(int length = 6)
         {
@@ -229,6 +234,45 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error while generating new Access Token.");
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
+            }
+        }
+
+        // Google Login API
+        [HttpPost("googleLogin")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto request)
+        {
+            if (string.IsNullOrEmpty(request.IdToken))
+            {
+                return BadRequest(new { message = "Missing IdToken." });
+            }
+            try
+            {
+                var googleResponse = await _googleService.checkIdToken(request.IdToken); // return Email, name, and avartarURL
+                if (googleResponse == null)
+                {
+                    return BadRequest(new { message = "Invalid IdToken." });
+                }
+                var checkIsEmail =  await _authRepository.isEmailExist(googleResponse.Email);
+                if(checkIsEmail == 0)
+                {
+                    var newAccout = new AuthRegisterDTO
+                    {
+                        Email = googleResponse.Email,
+                        Password = Guid.NewGuid().ToString(),
+                        FullName = googleResponse.Name
+                    };
+                    var isRegistered = await _authRepository.RegisterCandidate(newAccout);
+                }
+                var loginResponse = await _authRepository.LoginGoogle(googleResponse.Email); // có trả về accessTOken và refreshToken
+                if (loginResponse == null)
+                {
+                    return Unauthorized(new { message = "Login failed. Please try again." });
+                }
+                return Ok(loginResponse);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
             }
         }
     }

@@ -75,6 +75,10 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.Configure<GoogleSetting>(
+    builder.Configuration.GetSection("GoogleAuth"));
+
+// Đọc cấu hình Redis từ appsettings.json
 var redisSettings = new RedisSetting();
 builder.Configuration.GetSection("Redis").Bind(redisSettings);
 
@@ -92,6 +96,7 @@ var redisConnection = ConnectionMultiplexer.Connect(redisOptions);
 // Đăng ký các dịch vụ cần thiết
 builder.Services.AddScoped<Token>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<GoogleService>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
