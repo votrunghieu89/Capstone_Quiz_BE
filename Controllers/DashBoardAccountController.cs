@@ -1,5 +1,5 @@
 ﻿using Capstone.DTOs.Dashboard;
-using Capstone.Repositories;
+using Capstone.Repositories.Dashboard;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Capstone.Controllers

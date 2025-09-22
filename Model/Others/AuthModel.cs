@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Capstone.Model
+namespace Capstone.Model.Others
 {
     [Table("Accounts")]
     public class AuthModel
@@ -15,11 +15,11 @@ namespace Capstone.Model
         public string Password { get; set; } = string.Empty;
         [Column("Role")]
         public string Role { get; set; } = string.Empty;
-        [Column("CreateAt")]
-        public DateTime CreateAt { get; set; } = DateTime.Now;
+        [Column("CreatedAt")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        [Column("UpdateAt")]
-        public DateTime UpdateAt { get; set; } = DateTime.Now;
+        [Column("UpdatedAt")]
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public AuthModel() { }
         public AuthModel(int accountId, string email, string password, string role, DateTime createAt, DateTime updateAt)
@@ -28,8 +28,8 @@ namespace Capstone.Model
             Email = email;
             Password = password;
             Role = role;
-            CreateAt = createAt;
-            UpdateAt = updateAt;
+            CreatedAt = createAt;
+            UpdatedAt = updateAt;
         }
     }
 }

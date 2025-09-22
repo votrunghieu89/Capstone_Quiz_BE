@@ -2,5 +2,7 @@
 {
     public interface IAIRepository
     {
+        // Extract skills
+        // Score
     }
 }

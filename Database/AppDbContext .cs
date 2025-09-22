@@ -1,4 +1,4 @@
-﻿using Capstone.Model;
+﻿using Capstone.Model.Others;
 using Capstone.Model.Profile;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -12,8 +12,8 @@ namespace Capstone.Database
         {
         }
         public DbSet<AuthModel> authModels { get; set; }
-        public DbSet<Profile_CDD_Admin> profile_CDD_Admins { get; set; }
-        public DbSet<Profile_Recruiter> profile_Recruiters { get; set; }
+        public DbSet<ProfileCandidate> profileCandidates { get; set; }
+        public DbSet<ProfileCompany> profileCompanies { get; set; }
 
     }
 }

@@ -87,7 +87,7 @@ namespace Capstone.Controllers
             }
         }
 
-        [HttpPost("resetPassword")]
+        [HttpPost("resetPasswordGoogle")]
         public async Task<ActionResult> resetPassword([FromBody] ResetPasswordDTO resetPasswordDTO)
         {
             try

@@ -1,6 +1,6 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Dashboard;
-using Capstone.Repositories;
+using Capstone.Repositories.Dashboard;
 using Microsoft.EntityFrameworkCore;
 
 namespace Capstone.Services
@@ -51,13 +51,13 @@ namespace Capstone.Services
                         }
                         if (authModel.Role == "Candidate")
                         {
-                            int deletedProfileCount = await _context.profile_CDD_Admins
+                            int deletedProfileCount = await _context.profileCandidates
                                 .Where(p => p.AccountId == accountId)
                                 .ExecuteDeleteAsync();
                         }
                         if (authModel.Role == "Recruiter")
                         {
-                            int deletedProfileCount = await _context.profile_Recruiters
+                            int deletedProfileCount = await _context.profileCompanies
                                 .Where(p => p.AccountId == accountId)
                                 .ExecuteDeleteAsync();
                         }
@@ -95,17 +95,17 @@ namespace Capstone.Services
                 }
                 // Cách 1 
                 var query = from a in _context.authModels
-                            join pca in _context.profile_CDD_Admins on a.AccountId equals pca.AccountId into pcaGroup
+                            join pca in _context.profileCandidates on a.AccountId equals pca.AccountId into pcaGroup
                             from pca in pcaGroup.DefaultIfEmpty()
-                            join pr in _context.profile_Recruiters on a.AccountId equals pr.AccountId into prGroup
+                            join pr in _context.profileCompanies on a.AccountId equals pr.AccountId into prGroup
                             from pr in prGroup.DefaultIfEmpty()
-                            orderby a.CreateAt descending, a.AccountId descending
+                            orderby a.CreatedAt descending, a.AccountId descending
                             select new DashboardAccountDTO
                             {
                                 Email = a.Email,
                                 Role = a.Role,
-                                CreatedAt = a.CreateAt,
-                                FullName = pca != null ? pca.FullName : pr.FullName
+                                CreatedAt = a.CreatedAt,
+                                FullName = pca != null ? pca.FullName : pr.CompanyName
                             };
                 var dashboardAccountDTOs = await query
                                            .Skip((pageNumber - 1) * pageSize)
@@ -161,7 +161,7 @@ namespace Capstone.Services
                     return 0; // or handle the error as needed
                 }
                 int isTotalAccount = await _context.authModels
-                    .Where(a => a.CreateAt.Month == month && a.CreateAt.Year == year)
+                    .Where(a => a.CreatedAt.Month == month && a.CreatedAt.Year == year)
                     .CountAsync();
                 return isTotalAccount;
             }
@@ -182,7 +182,7 @@ namespace Capstone.Services
                     return 0; // or handle the error as needed
                 }
                 int isTotalAccount = await _context.authModels
-                    .Where(a => a.CreateAt.Month == month && a.CreateAt.Year == year && a.Role == "Candidate")
+                    .Where(a => a.CreatedAt.Month == month && a.CreatedAt.Year == year && a.Role == "Candidate")
                     .CountAsync();
                 return isTotalAccount;
             }
@@ -204,7 +204,7 @@ namespace Capstone.Services
                     return 0; // or handle the error as needed
                 }
                 int isTotalAccount = await _context.authModels
-                    .Where(a => a.CreateAt.Month == month && a.CreateAt.Year == year && a.Role == "Recruiter")
+                    .Where(a => a.CreatedAt.Month == month && a.CreatedAt.Year == year && a.Role == "Recruiter")
                     .CountAsync();
                 return isTotalAccount;
             }

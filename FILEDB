@@ -1,0 +1,175 @@
+﻿use Capstone;
+
+-- Bảng Accounts
+CREATE TABLE Accounts (
+    AccountId INT PRIMARY KEY IDENTITY(1,1),
+    Email NVARCHAR(255) NOT NULL UNIQUE,
+    Password NVARCHAR(255) NOT NULL,
+    Role NVARCHAR(20) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL,
+    CONSTRAINT CK_Accounts_Role CHECK (Role IN ('Candidate', 'Recruiter', 'Admin'))
+);
+
+-- Bảng ProfileCandidate
+CREATE TABLE ProfileCandidate (
+    PCAId INT PRIMARY KEY IDENTITY(1,1),
+    AccountId INT NOT NULL,
+    FullName NVARCHAR(200) NOT NULL,
+    PhoneNumber NVARCHAR(20),
+    AvatarURL NVARCHAR(255),
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL,
+    FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId)
+);
+
+-- Bảng ProfileCompany
+CREATE TABLE ProfileCompany (
+    PCId INT PRIMARY KEY IDENTITY(1,1),
+    AccountId INT NOT NULL,
+    PhoneNumber NVARCHAR(15),
+    AvatarURL NVARCHAR(255),
+    CompanyName NVARCHAR(200) NOT NULL,
+    CompanyAddress NVARCHAR(200) NOT NULL,
+    ComnpanyIntroduction NVARCHAR(max) NOT NULL,
+    CompanyLink NVARCHAR(255),
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL,
+    FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId)
+);
+
+-- Bảng Notifications
+CREATE TABLE Notifications (
+    NotificationId INT PRIMARY KEY IDENTITY(1,1),
+    Message NVARCHAR(MAX) NOT NULL,
+    Type NVARCHAR(50) NOT NULL CHECK (Type IN ('SubmitCV','Result')),
+    IsFavourite int CHECK (IsFavourite IN (1,2)),
+    SenderId INT NOT NULL,
+    ReceiverId INT NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL,
+    FOREIGN KEY (SenderId) REFERENCES Accounts(AccountId),
+    FOREIGN KEY (ReceiverId) REFERENCES Accounts(AccountId)
+);
+
+-- Bảng CVs
+CREATE TABLE CVs (
+    CVId INT PRIMARY KEY IDENTITY(1,1),
+    PCAId INT NOT NULL,
+    FileName NVARCHAR(500) NOT NULL,
+    FilePath NVARCHAR(500) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (PCAId) REFERENCES ProfileCandidate(PCAId)
+);
+
+-- Bảng CVFavourite
+CREATE TABLE CVFavourite (
+    CVFavouriteId INT PRIMARY KEY IDENTITY(1,1),
+    PCId INT NOT NULL,
+    CVId INT NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId),
+    FOREIGN KEY (CVId) REFERENCES CVs(CVId)
+);
+
+-- Bảng CompanyFavourite
+CREATE TABLE CompanyFavourite (
+    CompanyFavouriteId INT PRIMARY KEY IDENTITY(1,1),
+    PCAId INT NOT NULL,
+    PCId INT NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (PCAId) REFERENCES ProfileCandidate(PCAId),
+    FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId)
+);
+
+-- Bảng JDs
+CREATE TABLE JDs (
+    JDId INT PRIMARY KEY IDENTITY(1,1),
+    PCId INT NOT NULL,
+    JDTitle NVARCHAR(200) NOT NULL,
+    JDSalary NVARCHAR(200),
+    JDLocation NVARCHAR(200) NOT NULL,
+    JDExperience NVARCHAR(200) NOT NULL,
+    JDExpiredTime NVARCHAR(200) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL,
+    FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId)
+);
+
+-- Bảng JDDetail
+CREATE TABLE JDDetail (
+    JDDetailId INT PRIMARY KEY IDENTITY(1,1),
+    JDId INT NOT NULL,
+    Description NVARCHAR(MAX),
+    Requirement NVARCHAR(MAX),
+    Benefits NVARCHAR(MAX),
+    Location NVARCHAR(MAX),
+    WorkingTime NVARCHAR(MAX),
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL,
+    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+);
+
+-- Bảng Position
+CREATE TABLE Position (
+    PositionId INT PRIMARY KEY IDENTITY(1,1),
+    PositionName NVARCHAR(200) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    UpdatedAt DATETIME NULL
+);
+-- Bảng JDPosition
+CREATE TABLE JDPosition (
+    JDPositionId INT PRIMARY KEY IDENTITY(1,1),
+    JDId INT NOT NULL,
+    PositionId INT NOT NULL,
+    CreatedAt DATETIME NOT NULL,   
+    FOREIGN KEY (JDId) REFERENCES JDs(JDId),
+    FOREIGN KEY (PositionId) REFERENCES Position(PositionId)
+);
+
+
+-- Bảng JDFavourite
+CREATE TABLE JDFavourite (
+    FavouriteId INT PRIMARY KEY IDENTITY(1,1),
+    PCAId INT NOT NULL,
+    JDId INT NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (PCAId) REFERENCES ProfileCandidate(PCAId),
+    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+);
+
+-- Bảng CV_JD_Apply
+CREATE TABLE CV_JD_Apply (
+    ApplyId INT PRIMARY KEY IDENTITY(1,1),
+    CVId INT NOT NULL,
+    JDId INT NOT NULL,
+    Status NVARCHAR(10) CHECK (Status IN ('Reject', 'Approve')),
+    ReviewedDate DATETIME,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (CVId) REFERENCES CVs(CVId),
+    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+);
+
+-- Bảng CV_JD_Score
+CREATE TABLE CV_JD_Score (
+    ScoreId INT PRIMARY KEY IDENTITY(1,1),
+    CVId INT NOT NULL,
+    JDId INT NOT NULL,
+    Score DECIMAL(5,2) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (CVId) REFERENCES CVs(CVId),
+    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+);
+
+-- Bảng CVExtraction
+CREATE TABLE CVExtraction (
+    ExtractionId INT PRIMARY KEY IDENTITY(1,1),
+    CVId INT NOT NULL,
+    School NVARCHAR(255) NOT NULL,
+    Skills NVARCHAR(max) NOT NULL,
+    Certifications NVARCHAR(max) NOT NULL,
+    Experiences INT NOT NULL,
+    GPA DECIMAL(5,2) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    FOREIGN KEY (CVId) REFERENCES CVs(CVId)
+);

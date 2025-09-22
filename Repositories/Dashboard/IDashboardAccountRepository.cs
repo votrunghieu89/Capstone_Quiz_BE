@@ -1,6 +1,6 @@
 ﻿using Capstone.DTOs.Dashboard;
 
-namespace Capstone.Repositories
+namespace Capstone.Repositories.Dashboard
 {
     public interface IDashboardAccountRepository
     {

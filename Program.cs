@@ -1,6 +1,7 @@
 ﻿using Capstone.Database;
 using Capstone.Model;
 using Capstone.Repositories;
+using Capstone.Repositories.Dashboard;
 using Capstone.Security;
 using Capstone.Services;
 using Capstone.Settings;

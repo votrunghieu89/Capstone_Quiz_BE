@@ -1,6 +1,6 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Auth;
-using Capstone.Model;
+using Capstone.Model.Others;
 using Capstone.Model.Profile;
 using Capstone.Repositories;
 using Capstone.Security;
@@ -78,13 +78,13 @@ namespace Capstone.Services
                         await _context.authModels.AddAsync(authModel);
                         await _context.SaveChangesAsync();
 
-                        Profile_CDD_Admin profile_CDD_Admin = new Profile_CDD_Admin
+                        ProfileCandidate profile_CDD_Admin = new ProfileCandidate
                         {
                             AccountId = authModel.AccountId,
                             FullName = authRegisterDTO.FullName
 
                         };
-                        await _context.profile_CDD_Admins.AddAsync(profile_CDD_Admin);
+                        await _context.profileCandidates.AddAsync(profile_CDD_Admin);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
                         _logger.LogInformation("Candidate registered successfully with AccountId {AccountId}", authModel.AccountId);
@@ -122,15 +122,13 @@ namespace Capstone.Services
                         await _context.authModels.AddAsync(authModel);
                         await _context.SaveChangesAsync();
 
-                        Profile_Recruiter profile_Recruiter = new Profile_Recruiter
+                        ProfileCompany profile_Recruiter = new ProfileCompany
                         {
                             AccountId = authModel.AccountId,
-                            FullName = authRegisterDTO.FullName,
                             CompanyName = authRegisterDTO.CompanyName,
-                            CompanyLocation = authRegisterDTO.CompanyLocation
-
+                            CompanyAddress = authRegisterDTO.CompanyAddress
                         };
-                        await _context.profile_Recruiters.AddAsync(profile_Recruiter);
+                        await _context.profileCompanies.AddAsync(profile_Recruiter);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
                         _logger.LogInformation("Recruiter registered successfully with AccountId {AccountId}", authModel.AccountId);
@@ -178,6 +176,7 @@ namespace Capstone.Services
                     RefreshToken = refreshToken,
 
                 };
+                bool  setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
                 _logger.LogInformation("User {Email} logged in successfully", authLoginDTO.Email);
                 return response;
             }
@@ -190,6 +189,7 @@ namespace Capstone.Services
         public async Task<bool> Logout(int accountId)
         {
             bool deleted = await _redis.DeleteKeyAsync($"RT_{accountId}");
+            bool deleteOnline = await _redis.DeleteKeyAsync($"Online_{accountId}");
             if (deleted)
             {
                 _logger.LogInformation("User with AccountId {AccountId} logged out successfully", accountId);
@@ -223,7 +223,7 @@ namespace Capstone.Services
                                      .Where(u => u.Email == changePasswordDTO.Email)
                                      .ExecuteUpdateAsync(s => s
                                          .SetProperty(u => u.Password, newHashedPassword)
-                                         .SetProperty(u => u.UpdateAt, DateTime.Now)
+                                         .SetProperty(u => u.UpdatedAt, DateTime.Now)
                                      );
                 _logger.LogInformation("Password changed successfully");
                 if (updated > 0)
@@ -266,7 +266,7 @@ namespace Capstone.Services
             {
                 string newHashedPassword = Hash.HashPassword(newPassword);
                 int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword)
-                                                                                                                      .SetProperty(u => u.UpdateAt, DateTime.Now));
+                                                                                                                      .SetProperty(u => u.UpdatedAt, DateTime.Now));
                 if (updated > 0)
                 {
                     _logger.LogInformation("Password updated successfully for AccountId {AccountId}", accountId);
@@ -322,6 +322,7 @@ namespace Capstone.Services
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
                 bool setRefresh = await _redis.SetStringAsync($"RT_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
+                bool setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
                 AuthLoginResponse response = new AuthLoginResponse
                 {
                     AccountId = user.AccountId,
