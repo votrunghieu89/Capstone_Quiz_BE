@@ -41,9 +41,11 @@ CREATE TABLE ProfileCompany (
 -- Bảng Notifications
 CREATE TABLE Notifications (
     NotificationId INT PRIMARY KEY IDENTITY(1,1),
+    Title NVARCHAR(255) NOT NULL,
     Message NVARCHAR(MAX) NOT NULL,
     Type NVARCHAR(50) NOT NULL CHECK (Type IN ('SubmitCV','Result')),
-    IsFavourite int CHECK (IsFavourite IN (1,2)),
+    IsFavourite int CHECK (IsFavourite IN (0,1)),
+    IsRead int CHECK (IsRead IN (0,1)),
     SenderId INT NOT NULL,
     ReceiverId INT NOT NULL,
     CreatedAt DATETIME NOT NULL,

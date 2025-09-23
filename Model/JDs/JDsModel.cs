@@ -37,7 +37,7 @@ namespace Capstone.Model
         [Column("JDExpiredTime")]
         [Required]
         [MaxLength(200)]
-        public string JDExpiredTime { get; set; } = string.Empty;
+        public DateTime JDExpiredTime { get; set; } 
 
         [Column("CreatedAt")]
         [Required]
@@ -48,14 +48,14 @@ namespace Capstone.Model
 
         public JDsModel() { }
         public JDsModel(int pcId, string jdTitle, string jdSalary, string jdLocation,
-            string jdExperience, string jdExpiredTime, DateTime createAt, DateTime updateAt)
+            string jdExperience, DateTime jdExpiredTime, DateTime createAt, DateTime updateAt)
         {
             PCId = pcId;
             JDTitle = jdTitle ?? string.Empty;
             JDSalary = jdSalary ?? string.Empty;
             JDLocation = jdLocation ?? string.Empty;
             JDExperience = jdExperience ?? string.Empty;
-            JDExpiredTime = jdExpiredTime ?? string.Empty;
+            JDExpiredTime = jdExpiredTime;
             CreatedAt = createAt;
             UpdatedAt = updateAt;
         }

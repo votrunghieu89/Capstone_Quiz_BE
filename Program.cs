@@ -1,11 +1,13 @@
 ﻿using Capstone.Database;
 using Capstone.Model;
+using Capstone.Notification;
 using Capstone.Repositories;
 using Capstone.Repositories.Dashboard;
 using Capstone.Security;
 using Capstone.Services;
 using Capstone.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -51,7 +53,7 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
-
+builder.Services.AddSignalR();
 
 // 2. Cấu hình Authentication với JWT
 builder.Services.AddAuthentication(options =>
@@ -102,6 +104,9 @@ builder.Services.AddScoped<IAuthRepository, AuthService>();
 builder.Services.AddScoped<IDashboardAccountRepository, DashboardAccountServices>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
+builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
+builder.Services.AddScoped<INotificationRepository, NotificationService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -112,9 +117,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseRouting();
 app.UseAuthorization();
 
 app.MapControllers();
-
+app.MapHub<NotificationHub>("/notificationHub");
 app.Run();

@@ -1,4 +1,5 @@
-﻿using Capstone.Model.Others;
+﻿using Capstone.Model;
+using Capstone.Model.Others;
 using Capstone.Model.Profile;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -11,9 +12,32 @@ namespace Capstone.Database
           : base(options)
         {
         }
+
         public DbSet<AuthModel> authModels { get; set; }
         public DbSet<ProfileCandidate> profileCandidates { get; set; }
         public DbSet<ProfileCompany> profileCompanies { get; set; }
+
+        // CVs
+        public DbSet<CVsModel> cVsModels { get; set; }
+        public DbSet<CVExtractionModel> cVExtractionModels { get; set; }
+
+        // JDs and related
+        public DbSet<JDsModel> jDsModel { get; set; }
+        public DbSet<JDDetailModel> jDDetailModels { get; set; }
+        public DbSet<PositionModel> positions { get; set; }
+        public DbSet<JDPositionModel> jDPositions { get; set; }
+
+        // Favourites
+        public DbSet<CVFavouriteModel> cVFavouriteModels { get; set; }
+        public DbSet<CompanyFavouriteModel> companyFavourites { get; set; }
+        public DbSet<JDFavouriteModel> jDFavourites { get; set; }
+
+        // CV <-> JD
+        public DbSet<CV_JD_ApplyModel> cV_JD_Applies { get; set; }
+        public DbSet<CV_JD_ScoreModel> cV_JD_Scores { get; set; }
+
+        // Notifications
+        public DbSet<NotificationsModel> notificationsModels{ get; set; }
 
     }
 }

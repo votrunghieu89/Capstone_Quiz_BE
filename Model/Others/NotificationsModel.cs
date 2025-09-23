@@ -12,6 +12,12 @@ namespace Capstone.Model.Others
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int NotificationId { get; set; }
 
+        [Column("Title")]
+        [Required]
+        [StringLength(255)]
+        public string Title { get; set; } = string.Empty;
+
+
         [Column("Message")]
         [Required]
         public string Message { get; set; } = string.Empty;
@@ -23,6 +29,9 @@ namespace Capstone.Model.Others
 
         [Column("IsFavourite")]
         public int? IsFavourite { get; set; }
+
+        [Column("IsRead")]
+        public int? IsRead { get; set; }
 
         [Column("SenderId")]
         public int SenderId { get; set; }
@@ -38,16 +47,19 @@ namespace Capstone.Model.Others
         public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
 
         public NotificationsModel() { }
-        public NotificationsModel(string message, string type, 
-            int? isFavourite, int senderId, int receiverId, DateTime createdAt, DateTime updatedAt)
+        public NotificationsModel(string tittle, string message, string type, 
+            int? isFavourite, int isRead,int senderId, int receiverId, DateTime createdAt, DateTime updatedAt)
         {
+            Title = tittle;
             Message = message;
             Type = type;
             IsFavourite = isFavourite;
+            IsRead = isRead;
             SenderId = senderId;
             ReceiverId = receiverId;
             CreatedAt = createdAt;
             UpdatedAt = updatedAt;
+          
         }
     }
 }
