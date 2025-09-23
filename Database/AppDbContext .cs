@@ -17,6 +17,7 @@ namespace Capstone.Database
         public DbSet<ProfileCandidate> profileCandidates { get; set; }
         public DbSet<ProfileCompany> profileCompanies { get; set; }
 
+<<<<<<< Updated upstream
         // CVs
         public DbSet<CVsModel> cVsModels { get; set; }
         public DbSet<CVExtractionModel> cVExtractionModels { get; set; }
@@ -39,5 +40,10 @@ namespace Capstone.Database
         // Notifications
         public DbSet<NotificationsModel> notificationsModels{ get; set; }
 
+=======
+        public DbSet<JDDetailModel> jdDetailModels { get; set; }
+        public DbSet<JDsModel> jdsModels { get; set; }
+        
+>>>>>>> Stashed changes
     }
 }
