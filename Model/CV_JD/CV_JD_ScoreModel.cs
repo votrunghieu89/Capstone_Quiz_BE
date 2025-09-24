@@ -23,7 +23,7 @@ namespace Capstone.Model
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public CV_JD_ScoreModel() { }
         public CV_JD_ScoreModel(int cvId, int jdId, decimal score)
@@ -31,7 +31,7 @@ namespace Capstone.Model
             CVId = cvId;
             JDId = jdId;
             Score = score;
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.Now;
         }
 
     }

@@ -20,14 +20,14 @@ namespace Capstone.Model
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public CVFavouriteModel() { }
         public CVFavouriteModel(int pcId, int cvId)
         {
             PCId = pcId;
             CVId = cvId;
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.Now;
         }
     }
 }

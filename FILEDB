@@ -92,7 +92,7 @@ CREATE TABLE JDs (
     JDSalary NVARCHAR(200),
     JDLocation NVARCHAR(200) NOT NULL,
     JDExperience NVARCHAR(200) NOT NULL,
-    JDExpiredTime NVARCHAR(200) NOT NULL,
+    JDExpiredTime Datetime NOT NULL,
     CreatedAt DATETIME NOT NULL,
     UpdatedAt DATETIME NULL,
     FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId)
@@ -145,7 +145,7 @@ CREATE TABLE CV_JD_Apply (
     ApplyId INT PRIMARY KEY IDENTITY(1,1),
     CVId INT NOT NULL,
     JDId INT NOT NULL,
-    Status NVARCHAR(10) CHECK (Status IN ('Reject', 'Approve')),
+    Status NVARCHAR(10) CHECK (Status IN ('Pending','Reject', 'Approve')),
     ReviewedDate DATETIME,
     CreatedAt DATETIME NOT NULL,
     FOREIGN KEY (CVId) REFERENCES CVs(CVId),
@@ -175,3 +175,4 @@ CREATE TABLE CVExtraction (
     CreatedAt DATETIME NOT NULL,
     FOREIGN KEY (CVId) REFERENCES CVs(CVId)
 );
+

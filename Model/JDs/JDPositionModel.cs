@@ -20,7 +20,7 @@ namespace Capstone.Model
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public JDPositionModel() { }
         public JDPositionModel(int jdId, int positionId, DateTime createAt)

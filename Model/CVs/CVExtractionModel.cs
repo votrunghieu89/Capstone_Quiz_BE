@@ -36,7 +36,7 @@ namespace Capstone.Model
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public CVExtractionModel() { }
         public CVExtractionModel(int cvId, string school, string skills, string certifications, int experiences, decimal gpa)
@@ -47,7 +47,7 @@ namespace Capstone.Model
             Certifications = certifications ?? string.Empty;
             Experiences = experiences;
             GPA = gpa;
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.Now;
         }
     }
 }

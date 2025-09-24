@@ -95,6 +95,14 @@ var redisOptions = new ConfigurationOptions
 };
 var redisConnection = ConnectionMultiplexer.Connect(redisOptions);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+        policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials());
+});
 
 // Đăng ký các dịch vụ cần thiết
 builder.Services.AddScoped<Token>();
@@ -106,6 +114,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
 builder.Services.AddScoped<INotificationRepository, NotificationService>();
+builder.Services.AddScoped<ISupportRepository, SupportService>();
 
 var app = builder.Build();
 
@@ -118,7 +127,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors("AllowFrontend");
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");

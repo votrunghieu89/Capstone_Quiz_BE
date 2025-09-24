@@ -27,7 +27,7 @@ namespace Capstone.Model
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public CVsModel() { }
         public CVsModel(int pcaId, string fileName, string filePath)
@@ -35,7 +35,7 @@ namespace Capstone.Model
             PCAId = pcaId;
             FileName = fileName ?? string.Empty;
             FilePath = filePath ?? string.Empty;
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.Now;
         }
 
     }

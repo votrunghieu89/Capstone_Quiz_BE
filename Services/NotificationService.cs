@@ -37,7 +37,7 @@ namespace Capstone.Services
                 int updatedCount = await _context.notificationsModels
                     .Where(n => n.ReceiverId == accountId && n.NotificationId == notificationId)
                     .ExecuteUpdateAsync(n => n.SetProperty(n => n.IsFavourite, 1)
-                                            .SetProperty(n => n.UpdatedAt, DateTime.UtcNow));
+                                            .SetProperty(n => n.UpdatedAt, DateTime.Now));
                 if (updatedCount > 0)
                 {
                     _logger.LogInformation($"Added notification ID {notificationId} to favourites for account ID {accountId}");
@@ -117,7 +117,7 @@ namespace Capstone.Services
                 int updatedCount = await _context.notificationsModels
                     .Where(n => n.ReceiverId == accountId)
                     .ExecuteUpdateAsync(n => n.SetProperty(n => n.IsRead, 1)
-                                            .SetProperty(n => n.UpdatedAt, DateTime.UtcNow));
+                                            .SetProperty(n => n.UpdatedAt, DateTime.Now));
                 if (updatedCount > 0)
                 {
                     _logger.LogInformation($"Marked {updatedCount} notifications as read for account ID {accountId}");
@@ -143,7 +143,7 @@ namespace Capstone.Services
                 int updatedCount = await _context.notificationsModels
                     .Where(n => n.ReceiverId == accountId && n.NotificationId == notificationId)
                     .ExecuteUpdateAsync(n => n.SetProperty(n => n.IsRead, 1)
-                                            .SetProperty(n => n.UpdatedAt, DateTime.UtcNow));
+                                            .SetProperty(n => n.UpdatedAt, DateTime.Now));
                 if (updatedCount > 0)
                 {
                     _logger.LogInformation($"Marked notification ID {notificationId} as read for account ID {accountId}");
@@ -170,7 +170,7 @@ namespace Capstone.Services
                 int updatedCount = await _context.notificationsModels
                     .Where(n => n.ReceiverId == accountId && n.NotificationId == notificationId)
                     .ExecuteUpdateAsync(n => n.SetProperty(n => n.IsFavourite, 0)
-                                            .SetProperty(n => n.UpdatedAt, DateTime.UtcNow));
+                                            .SetProperty(n => n.UpdatedAt, DateTime.Now));
                 if (updatedCount > 0)
                 {
                     _logger.LogInformation($"Removed notification ID {notificationId} from favourites for account ID {accountId}");
@@ -189,42 +189,6 @@ namespace Capstone.Services
                 return false;
             }
         }
-
-        public async Task<bool> SaveNotification(NotificationSaveModel notificationSaveModel)
-        {
-            try
-            {
-                await _context.notificationsModels.AddAsync(new NotificationsModel
-                {
-                    Title = notificationSaveModel.Title,
-                    Message = notificationSaveModel.Message,
-                    Type = notificationSaveModel.Type,
-                    IsFavourite = 0,
-                    IsRead = 0,
-                    SenderId = notificationSaveModel.SenderId,
-                    ReceiverId = notificationSaveModel.ReceiverId, // trong DB lưu kiểu số
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                });
-                int result = await _context.SaveChangesAsync();
-                if (result > 0)
-                {
-                    _logger.LogInformation("Notification saved successfully");
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("No changes were made to the database when saving notification");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error saving notification");
-                return false;
-            }
-        }
-
         public async Task<List<NotificationsModel>> GetFavouriteNotifications(int accountId)
         {
             try
@@ -270,100 +234,6 @@ namespace Capstone.Services
                 return 0;
             }
         }
-
-        public async Task<SubmitResult> SubmitCV(CV_JD_ApplyModel cV_JD_ApplyModel)
-        {
-            try
-            {
-                var existingApply = await _context.cV_JD_Applies
-                                   .Where(x => x.CVId == cV_JD_ApplyModel.CVId && x.JDId == cV_JD_ApplyModel.JDId)
-                                   .OrderByDescending(x => x.CreatedAt)
-                                   .FirstOrDefaultAsync();
-                if (existingApply.Status == "Pending")
-                {
-                    _logger.LogInformation($"Cannot reject CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} because it is still pending");
-                    return SubmitResult.AlreadyPending;
-                }
-
-                if (existingApply.Status == "Approve")
-                {
-                    _logger.LogInformation($"Cannot reject CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} because it has been approved");
-                    return SubmitResult.AlreadyApproved;
-                }
-                await _context.cV_JD_Applies.AddAsync(cV_JD_ApplyModel);
-                int result = await _context.SaveChangesAsync();
-                if (result > 0)
-                {
-                    _logger.LogInformation("CV submitted successfully");
-                    return SubmitResult.Success;
-                }
-                else
-                {
-                    _logger.LogWarning("No changes were made to the database when submitting CV");
-                    return SubmitResult.Error;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error submitting CV");
-                return SubmitResult.Error;
-            }
-        }
-
-        public async Task<bool> ApproveCV(CV_JD_ApplyModel cV_JD_ApplyModel)
-        {
-            try
-            {
-                int updatedCount = await _context.cV_JD_Applies
-                    .Where(c => c.ApplyId == cV_JD_ApplyModel.ApplyId && c.CVId == cV_JD_ApplyModel.CVId)
-                    .ExecuteUpdateAsync(c => c.SetProperty(c => c.Status, "Approve")
-                                              .SetProperty(c => c.ReviewedDate, DateTime.UtcNow));
-                if (updatedCount > 0)
-                {
-                    _logger.LogInformation($"Approved CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId}");
-                    return true;
-                }
-                else
-                {
-                    _logger.LogInformation($"No CV found with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} to approve");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error approving CV");
-                return false;
-            }
-        }
-
-        public async Task<bool> RejectCV(CV_JD_ApplyModel cV_JD_ApplyModel)
-        {
-            try
-            {
-
-                int updatedCount = await _context.cV_JD_Applies
-                    .Where(c => c.ApplyId == cV_JD_ApplyModel.ApplyId && c.CVId == cV_JD_ApplyModel.CVId)
-                    .ExecuteUpdateAsync(c => c.SetProperty(c => c.Status, "Reject")
-                                              .SetProperty(c => c.ReviewedDate, DateTime.UtcNow));
-                if (updatedCount > 0)
-                {
-                    _logger.LogInformation($"Rejected CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId}");
-                    return true;
-                }
-                else
-                {
-                    _logger.LogInformation($"No CV found with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} to reject");
-                    return false;
-                }
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error rejecting CV");
-                return false;
-            }
-        }
-
         public async Task<bool> Unmark(int accountId, int notificationId)
         {
             try
@@ -371,7 +241,7 @@ namespace Capstone.Services
                 int updatedCount = await _context.notificationsModels
                     .Where(n => n.ReceiverId == accountId && n.NotificationId == notificationId)
                     .ExecuteUpdateAsync(n => n.SetProperty(n => n.IsRead, 0)
-                                            .SetProperty(n => n.UpdatedAt, DateTime.UtcNow));
+                                            .SetProperty(n => n.UpdatedAt, DateTime.Now));
                 if (updatedCount > 0)
                 {
                     _logger.LogInformation($"Unmarked notification ID {notificationId} as read for account ID {accountId}");
@@ -398,7 +268,7 @@ namespace Capstone.Services
                 int updatedCount = await _context.notificationsModels
                     .Where(n => n.ReceiverId == accountId)
                     .ExecuteUpdateAsync(n => n.SetProperty(n => n.IsRead, 0)
-                                            .SetProperty(n => n.UpdatedAt, DateTime.UtcNow));
+                                            .SetProperty(n => n.UpdatedAt, DateTime.Now));
                 if (updatedCount > 0)
                 {
                     _logger.LogInformation($"Unmarked {updatedCount} notifications as read for account ID {accountId}");
@@ -417,5 +287,136 @@ namespace Capstone.Services
                 return false;
             }
         }
+        public async Task<SubmitResult> SubmitCV(CV_JD_ApplyModel cV_JD_ApplyModel)
+        {
+            try
+            {
+                var existingApply = await _context.cV_JD_Applies
+                                   .Where(x => x.CVId == cV_JD_ApplyModel.CVId && x.JDId == cV_JD_ApplyModel.JDId)
+                                   .OrderByDescending(x => x.CreatedAt)
+                                   .FirstOrDefaultAsync();
+                if (existingApply != null)
+                {
+                    if (existingApply.Status == "Pending")
+                    {
+                        _logger.LogInformation($"Cannot reject CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} because it is still pending");
+                        return SubmitResult.AlreadyPending;
+                    }
+
+                    if (existingApply.Status == "Approve")
+                    {
+                        _logger.LogInformation($"Cannot reject CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} because it has been approved");
+                        return SubmitResult.AlreadyApproved;
+                    }
+                }
+                await _context.cV_JD_Applies.AddAsync(cV_JD_ApplyModel);
+                int result = await _context.SaveChangesAsync();
+                if (result > 0)
+                {
+                    _logger.LogInformation("CV submitted successfully");
+                    return SubmitResult.Success;
+                }
+                else
+                {
+                    _logger.LogWarning("No changes were made to the database when submitting CV");
+                    return SubmitResult.Error;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting CV");
+                return SubmitResult.Error;
+            }
+        }
+
+        public async Task<bool> ApproveCV(CV_JD_ApplyModel cV_JD_ApplyModel)
+        {
+            try
+            {
+                int updatedCount = await _context.cV_JD_Applies
+                    .Where(c => c.JDId == cV_JD_ApplyModel.JDId && c.CVId == cV_JD_ApplyModel.CVId)
+                    .ExecuteUpdateAsync(c => c.SetProperty(c => c.Status, "Approve")
+                                              .SetProperty(c => c.ReviewedDate, DateTime.Now));
+                if (updatedCount > 0)
+                {
+                    _logger.LogInformation($"Approved CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId}");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogInformation($"No CV found with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} to approve");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error approving CV");
+                return false;
+            }
+        }
+
+        public async Task<bool> RejectCV(CV_JD_ApplyModel cV_JD_ApplyModel)
+        {
+            try
+            {
+
+                int updatedCount = await _context.cV_JD_Applies
+                    .Where(c => c.JDId == cV_JD_ApplyModel.JDId && c.CVId == cV_JD_ApplyModel.CVId)
+                    .ExecuteUpdateAsync(c => c.SetProperty(c => c.Status, "Reject")
+                                              .SetProperty(c => c.ReviewedDate, DateTime.Now));
+                if (updatedCount > 0)
+                {
+                    _logger.LogInformation($"Rejected CV with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId}");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogInformation($"No CV found with Apply ID {cV_JD_ApplyModel.ApplyId} and CV ID {cV_JD_ApplyModel.CVId} to reject");
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rejecting CV");
+                return false;
+            }
+        }
+
+        public async Task<bool> SaveNotification(NotificationSaveModel notificationSaveModel)
+        {
+            try
+            {
+                await _context.notificationsModels.AddAsync(new NotificationsModel
+                {
+                    Title = notificationSaveModel.Title,
+                    Message = notificationSaveModel.Message,
+                    Type = notificationSaveModel.Type,
+                    IsFavourite = 0,
+                    IsRead = 0,
+                    SenderId = notificationSaveModel.SenderId,
+                    ReceiverId = notificationSaveModel.ReceiverId, // trong DB lưu kiểu số
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                });
+                int result = await _context.SaveChangesAsync();
+                if (result > 0)
+                {
+                    _logger.LogInformation("Notification saved successfully");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("No changes were made to the database when saving notification");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving notification");
+                return false;
+            }
+        }
+
     }
 }

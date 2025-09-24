@@ -41,10 +41,10 @@ namespace Capstone.Model.Others
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         [Column("UpdatedAt")]
-        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
 
         public NotificationsModel() { }
         public NotificationsModel(string tittle, string message, string type, 

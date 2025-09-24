@@ -27,7 +27,7 @@ namespace Capstone.Model
 
         [Column("CreatedAt")]
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public CV_JD_ApplyModel() { }
         public CV_JD_ApplyModel(int cvId, int jdId, string? status, DateTime? reviewedDate)
@@ -36,7 +36,7 @@ namespace Capstone.Model
             JDId = jdId;
             Status = status;
             ReviewedDate = reviewedDate;
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.Now;
         }
     }
 }

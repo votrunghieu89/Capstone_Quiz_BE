@@ -35,7 +35,7 @@ namespace Capstone.Model
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Column("UpdatedAt")]
-        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
 
         public JDDetailModel() { }
         public JDDetailModel(int jdId, string? description, string? requirement,

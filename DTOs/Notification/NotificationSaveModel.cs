@@ -12,8 +12,8 @@ namespace Capstone.DTOs.Notification
         public int? IsRead { get; set; } 
         public int SenderId { get; set; }
         public int ReceiverId { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
         public NotificationSaveModel() { }
         public NotificationSaveModel(string tittle, string message, string type, int? isFavourite, int? isRead, int senderId, int receiverId, DateTime createdAt, DateTime? updatedAt)
         {

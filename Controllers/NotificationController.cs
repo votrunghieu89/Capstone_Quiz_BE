@@ -16,11 +16,14 @@ namespace Capstone.Controllers
         private readonly ILogger<NotificationController> _logger;
         private readonly INotificationRepository _notificationRepository;
         private readonly IHubContext<NotificationHub> _hub;
-        public NotificationController(ILogger<NotificationController> logger, INotificationRepository notificationRepository, IHubContext<NotificationHub> hub)
+        private readonly ISupportRepository _supportRepository;
+        public NotificationController(ILogger<NotificationController> logger,
+            INotificationRepository notificationRepository, IHubContext<NotificationHub> hub, ISupportRepository supportRepository)
         {
             _logger = logger;
             _notificationRepository = notificationRepository;
             _hub = hub;
+            _supportRepository = supportRepository;
         }
         // Get all notifications for an account
         [HttpGet("account/{accountId}")]
@@ -338,19 +341,33 @@ namespace Capstone.Controllers
                     JDId = submitCV.JDId,
                     Status = "Pending",
                     ReviewedDate = null,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.Now,
                 };
 
                 var result = await _notificationRepository.SubmitCV(cV_JD_ApplyModel);
                 switch (result)
                 {
                     case SubmitResult.Success:
-                        // Sẽ có 1 hàm lấy AccountID từ CVId
-                        // AccoutId sẽ truyền vào User
-                        // Sẽ có 1 hàm lấy tên Ứng viên từ CVId
-                        // Sẽ có 1 hàm lấy Tittle của JD từ JDId
-                        await _hub.Clients.User(submitCV.CVId.ToString()).SendAsync(
-                            "ReceiveNotification", "New CV Submission", $"A new CV from ( tên ứng viên)  has been submitted for your job posting (JD tittle: Tittle ở đây).");
+                        var companyInfo = await _supportRepository.NotificationEvaluateCVModel(submitCV.JDId); // trả về AccountId, Title và CompanyName
+                        var candidateInfo = await _supportRepository.NotificationSubmitCVModel(submitCV.CVId); // trả về AccountId và FullName
+                        var saveNotify = new NotificationSaveModel
+                        {
+                           Title = "New CV Submission",
+                           Message = $"A new CV from {candidateInfo.FullName} has been submitted for your job posting {companyInfo.Title}.",
+                           Type = "SubmitCV",
+                           IsFavourite = 0,
+                           IsRead = 0,
+                           SenderId = candidateInfo.AccountId,
+                           ReceiverId = companyInfo.AccountId,
+                        };
+                        var isSaveNotify = await _notificationRepository.SaveNotification(saveNotify);
+                        if (!isSaveNotify)
+                        {
+                            _logger.LogError("Failed to save notification to database for companyId: {CompanyId}", companyInfo.AccountId);
+                            return StatusCode(500, "Failed to save notification to database");
+                        }
+                        await _hub.Clients.User(saveNotify.ReceiverId.ToString()).SendAsync(
+                            "ReceiveNotification",saveNotify.Title, saveNotify.Message);
 
                         return Ok(new { message = "CV submitted successfully" });
 
@@ -389,17 +406,32 @@ namespace Capstone.Controllers
                 {
                     CVId = rejectCV.CVId,
                     JDId = rejectCV.JDId,
-                    Status = "Rejected",
-                    ReviewedDate = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
+                    Status = "Reject",
+                    ReviewedDate = DateTime.Now,
                 };
                 var result = await _notificationRepository.RejectCV(cV_JD_ApplyModel);
                 if (result)
                 {
-                    // Sẽ có 1 hàm lấy tittle JD từ JDId
-                    await _hub.Clients.User(rejectCV.CVId.ToString()).SendAsync(
-                        "ReceiveNotification", "Nhà tuyển dụng đã đánh giá hồ sơ của bạn",
-                        $"Your CV for the job posting (JD tittle: Tittle ở đây) has been rejected.");
+                    var companyInfo = await _supportRepository.NotificationEvaluateCVModel(rejectCV.JDId); // trả về AccountId, Title và CompanyName
+                    var candidateInfo = await _supportRepository.NotificationSubmitCVModel(rejectCV.CVId); // trả về AccountId và FullName
+                    var saveNotify = new NotificationSaveModel
+                    {
+                        Title = "The employer has reviewed your profile.",
+                        Message = $"Your CV for the job posting {companyInfo.Title} from {companyInfo.CompanyName} has been rejected.",
+                        Type = "Result",
+                        IsFavourite = 0,
+                        IsRead = 0,
+                        SenderId = companyInfo.AccountId,
+                        ReceiverId = candidateInfo.AccountId,
+                    };
+                    var isSaveNotify = await _notificationRepository.SaveNotification(saveNotify);
+                    if (!isSaveNotify)
+                    {
+                        _logger.LogError("Failed to save notification to database for companyId: {CompanyId}", companyInfo.AccountId);
+                        return StatusCode(500, "Failed to save notification to database");
+                    }
+                    await _hub.Clients.User(saveNotify.ReceiverId.ToString()).SendAsync(
+                        "ReceiveNotification", saveNotify.Title,saveNotify.Message);
                     return Ok(new { message = "CV rejected successfully" });
                 }
                 else
@@ -431,17 +463,33 @@ namespace Capstone.Controllers
                 {
                     CVId = approveCV.CVId,
                     JDId = approveCV.JDId,
-                    Status = "Approved",
-                    ReviewedDate = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
+                    Status = "Approve",
+                    ReviewedDate = DateTime.Now,
                 };
                 var result = await _notificationRepository.ApproveCV(cV_JD_ApplyModel);
                 if (result)
                 {
+                    var companyInfo = await _supportRepository.NotificationEvaluateCVModel(approveCV.JDId); // trả về AccountId, Title và CompanyName
+                    var candidateInfo = await _supportRepository.NotificationSubmitCVModel(approveCV.CVId); // trả về AccountId và FullName
+                    var saveNotify = new NotificationSaveModel
+                    {
+                        Title = "The employer has reviewed your profile.",
+                        Message = $"Your CV for the job posting {companyInfo.Title} from {companyInfo.CompanyName} has been approved.",
+                        Type = "Result",
+                        IsFavourite = 0,
+                        IsRead = 0,
+                        SenderId = companyInfo.AccountId,
+                        ReceiverId = candidateInfo.AccountId,
+                    };
+                    var isSaveNotify = await _notificationRepository.SaveNotification(saveNotify);
+                    if (!isSaveNotify)
+                    {
+                        _logger.LogError("Failed to save notification to database for companyId: {CompanyId}", companyInfo.AccountId);
+                        return StatusCode(500, "Failed to save notification to database");
+                    }
                     // Sẽ có 1 hàm lấy tittle JD từ JDId
-                    await _hub.Clients.User(approveCV.CVId.ToString()).SendAsync(
-                        "ReceiveNotification", "Nhà tuyển dụng đã đánh giá hồ sơ của bạn",
-                        $"Congratulations! Your CV for the job posting (JD tittle: Tittle ở đây) has been approved.");
+                    await _hub.Clients.User(saveNotify.ReceiverId.ToString()).SendAsync(
+                        "ReceiveNotification", saveNotify.Title, saveNotify.Message);
                     return Ok(new { message = "CV approved successfully" });
                 }
                 else
