@@ -10,40 +10,40 @@ namespace Capstone.DTOs.RecruiterProfile
 
         [Required]
         [MaxLength(200)]
-        public string? JDTitle { get; set; }
+        public string JDTitle { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
-        public string? JDSalary { get; set; }
+        public string JDSalary { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
-        public string? JDLocation {get; set; }
+        public string JDLocation {get; set; } = string.Empty;
 
         [Required]
         [MaxLength(200)]
-        public string? JDExperience { get; set; }
+        public string JDExperience { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(200)]
-        public string JDExpiredTime { get; set; } // sau khi model sua lai datetime thi sua lai datetime
+
+        public DateTime JDExpiredTime { get; set; } // sau khi model sua lai datetime thi sua lai datetime
 
         [Required]
-        public string? Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         [Required]
-        public string? Requirement { get; set; }
+        public string Requirement { get; set; } = string.Empty;
 
         [Required]
-        public string? Benefits { get; set; }
+        public string Benefits { get; set; } = string.Empty; 
 
         [Required]
-        public string? Location { get; set; }
+        public string Location { get; set; } = string.Empty;
 
         [Required]
-        public string? WorkingTime { get; set; }
+        public string WorkingTime { get; set; } = string.Empty;
 
 
-        
+
     }
 }

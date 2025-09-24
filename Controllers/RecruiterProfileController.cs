@@ -1,4 +1,4 @@
-﻿using Capstone.DTOs.RecruiterProfile;
+﻿ using Capstone.DTOs.RecruiterProfile;
 using Capstone.Repositories.Profile;
 using Capstone.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,10 +23,32 @@ namespace Capstone.Controllers
             var result = await _service.CreateJD(recruterProfileCreateJDDTO);
             if(!result)
             {
-                return BadRequest("Can not create JDs");
+                return BadRequest(result);
             }
             return Ok(result); 
 
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteJD(int JDid)
+        {
+            var result = await _service.DeleteJD(JDid);
+            if (!result)
+            {
+                return BadRequest(result);
+            }
+            return Ok(result);
+        }
+
+        [HttpPatch]
+        public async Task<IActionResult> UpdateJD(RecruiterProfileUpdateJDDTO recruterProfileUpdateJDDTO)
+        {
+            var result = await _service.UpdateJD(recruterProfileUpdateJDDTO);
+            if (!result)
+            {
+                return BadRequest(result);
+            }
+            return(Ok(result));
         }
     }
 }

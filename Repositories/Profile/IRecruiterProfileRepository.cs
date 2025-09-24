@@ -12,7 +12,7 @@ namespace Capstone.Repositories.Profile
         // update profile
         Task<bool> CreateJD(RecruiterProfileCreateJDDTO createDTO);
 
-        Task<bool> UpdateJD(int ID);
+        Task<bool> UpdateJD(RecruiterProfileUpdateJDDTO updateJDDTO);
         Task<bool> DeleteJD(int ID);
         
         // Viewing score between CV and JD,
