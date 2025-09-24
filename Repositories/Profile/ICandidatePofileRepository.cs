@@ -1,4 +1,7 @@
-﻿using StackExchange.Redis;
+﻿using Capstone.DTOs.CandidateProfile;
+using Capstone.Model;
+using Capstone.Model.Profile;
+using StackExchange.Redis;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Capstone.Repositories.Profile
@@ -17,6 +20,14 @@ namespace Capstone.Repositories.Profile
         // Thêm công ty yêu thích ( candidate)
         // Xoá công ty yêu thích ( candidate)
         // Lấy danh sách công ty yêu thích ( candidate)
+        public Task<bool> checkConnection();
+        public Task<ProfileCandidateResDTO> getProfileCandidateByAccountId(int accountId);
+        public Task<bool> UpdateProfileCandidate(ProfileCandidate profileCandidate);
+        public Task<bool> uploadCV(CVsModel cVModel);
+        public Task<bool> deleteCV(int CVId);
+        public Task<List<CVsModel>> getListCVByAccountID(int accountId);  
+
+
 
     }
 }

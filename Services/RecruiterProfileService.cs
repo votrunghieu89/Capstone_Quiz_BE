@@ -37,29 +37,31 @@ namespace Capstone.Services
                     return false;
                 }
 
-                var jd = new JDsModel(
-                    createDTO.PCId,
-                    createDTO.JDTitle,
-                    createDTO.JDSalary,
-                    createDTO.JDLocation,
-                    createDTO.JDExperience,
-                    createDTO.JDExpiredTime,
-                    DateTime.Now,
-                    DateTime.Now
-                );
+                var jd = new JDsModel()
+                {
+                    PCId = createDTO.PCId,
+                    JDTitle = createDTO.JDTitle,
+                    JDSalary = createDTO.JDSalary,
+                    JDLocation = createDTO.JDLocation,
+                    JDExperience = createDTO.JDExperience,
+                    JDExpiredTime = createDTO.JDExpiredTime,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = null
+                };
                 await _dbContext.jDsModel.AddAsync(jd);
                 int checkjd = await _dbContext.SaveChangesAsync();
 
-                var jdDetail = new JDDetailModel(
-                    jd.JDId,
-                    createDTO.Description,
-                    createDTO.Requirement,
-                    createDTO.Benefits,
-                    createDTO.Location,
-                    createDTO.WorkingTime,
-                    DateTime.Now,
-                    DateTime.Now
-                );
+                var jdDetail = new JDDetailModel()
+                {
+                    JDId = jd.JDId,
+                    Description = createDTO.Description,
+                    Requirement = createDTO.Requirement,
+                    Benefits = createDTO.Benefits,
+                    Location = createDTO.Location,
+                    WorkingTime = createDTO.WorkingTime,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = null
+                };
                 await _dbContext.jDDetailModels.AddAsync(jdDetail);
                 int checkdt = await _dbContext.SaveChangesAsync();
 
