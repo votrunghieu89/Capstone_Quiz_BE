@@ -14,6 +14,10 @@ namespace Capstone.Database
         }
 
         public DbSet<AuthModel> authModels { get; set; }
+        
+   
+
+
         public DbSet<ProfileCandidate> profileCandidates { get; set; }
         public DbSet<ProfileCompany> profileCompanies { get; set; }
 

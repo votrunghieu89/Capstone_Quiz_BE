@@ -1,4 +1,6 @@
-﻿namespace Capstone.Repositories.Profile
+﻿using Capstone.DTOs.RecruiterProfile;
+
+namespace Capstone.Repositories.Profile
 {
     public interface IRecruiterProfileRepository
     {
@@ -8,8 +10,11 @@
         // Hiẻn thị toàn bộ JD đã tạo
         // Hiển thị toàn bộ Cvs đã apply vào JD (recruiter) ( nằm bên trong 1 JD)
         // update profile
+        Task<bool> CreateJD(RecruiterProfileCreateJDDTO createDTO);
 
-
+        Task<bool> UpdateJD(RecruiterProfileUpdateJDDTO updateJDDTO);
+        Task<bool> DeleteJD(int ID);
+        
         // Viewing score between CV and JD,
         // accept or reject CV
 
