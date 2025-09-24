@@ -14,7 +14,7 @@ CREATE TABLE Accounts (
 -- Bảng ProfileCandidate
 CREATE TABLE ProfileCandidate (
     PCAId INT PRIMARY KEY IDENTITY(1,1),
-    AccountId INT NOT NULL,
+    AccountId INT NOT NULL UNIQUE,
     FullName NVARCHAR(200) NOT NULL,
     PhoneNumber NVARCHAR(20),
     AvatarURL NVARCHAR(255),
@@ -26,7 +26,7 @@ CREATE TABLE ProfileCandidate (
 -- Bảng ProfileCompany
 CREATE TABLE ProfileCompany (
     PCId INT PRIMARY KEY IDENTITY(1,1),
-    AccountId INT NOT NULL,
+    AccountId INT NOT NULL UNIQUE,
     PhoneNumber NVARCHAR(15),
     AvatarURL NVARCHAR(255),
     CompanyName NVARCHAR(200) NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE JDs (
 -- Bảng JDDetail
 CREATE TABLE JDDetail (
     JDDetailId INT PRIMARY KEY IDENTITY(1,1),
-    JDId INT NOT NULL,
+    JDId INT NOT NULL UNIQUE,
     Description NVARCHAR(MAX),
     Requirement NVARCHAR(MAX),
     Benefits NVARCHAR(MAX),
@@ -160,13 +160,14 @@ CREATE TABLE CV_JD_Score (
     Score DECIMAL(5,2) NOT NULL,
     CreatedAt DATETIME NOT NULL,
     FOREIGN KEY (CVId) REFERENCES CVs(CVId),
-    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+    FOREIGN KEY (JDId) REFERENCES JDs(JDId),
+
 );
 
 -- Bảng CVExtraction
 CREATE TABLE CVExtraction (
     ExtractionId INT PRIMARY KEY IDENTITY(1,1),
-    CVId INT NOT NULL,
+    CVId INT NOT NULL UNIQUE,
     School NVARCHAR(255) NOT NULL,
     Skills NVARCHAR(max) NOT NULL,
     Certifications NVARCHAR(max) NOT NULL,
