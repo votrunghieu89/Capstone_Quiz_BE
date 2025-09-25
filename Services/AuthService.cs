@@ -78,7 +78,7 @@ namespace Capstone.Services
                         await _context.authModels.AddAsync(authModel);
                         await _context.SaveChangesAsync();
 
-                        ProfileCandidate profile_CDD_Admin = new ProfileCandidate
+                        ProfileCandidateModel profile_CDD_Admin = new ProfileCandidateModel
                         {
                             AccountId = authModel.AccountId,
                             FullName = authRegisterDTO.FullName
@@ -122,7 +122,7 @@ namespace Capstone.Services
                         await _context.authModels.AddAsync(authModel);
                         await _context.SaveChangesAsync();
 
-                        ProfileCompany profile_Recruiter = new ProfileCompany
+                        ProfileCompanyModel profile_Recruiter = new ProfileCompanyModel
                         {
                             AccountId = authModel.AccountId,
                             CompanyName = authRegisterDTO.CompanyName,

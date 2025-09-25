@@ -18,8 +18,8 @@ namespace Capstone.Database
    
 
 
-        public DbSet<ProfileCandidate> profileCandidates { get; set; }
-        public DbSet<ProfileCompany> profileCompanies { get; set; }
+        public DbSet<ProfileCandidateModel> profileCandidates { get; set; }
+        public DbSet<ProfileCompanyModel> profileCompanies { get; set; }
 
         // CVs
         public DbSet<CVsModel> cVsModels { get; set; }

@@ -16,7 +16,7 @@ namespace Capstone.Services
             _dbContext = dbContext;
             _logger = logger;
         }
-
+      
         public async Task<bool> CreateJD(RecruiterProfileCreateJDDTO createDTO)
         {
             bool connection = _dbContext.Database.CanConnect();

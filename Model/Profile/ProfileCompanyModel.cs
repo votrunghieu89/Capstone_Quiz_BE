@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Capstone.Model.Profile
 {
     [Table("ProfileCompany")]
-    public class ProfileCompany
+    public class ProfileCompanyModel
     {
         [Key]
         [Column("PCId")]
@@ -49,12 +49,12 @@ namespace Capstone.Model.Profile
         [Column("UpdatedAt")]
         public DateTime? UpdatedAt { get; set; } = DateTime.Now;
 
-        public ProfileCompany()
+        public ProfileCompanyModel()
         {
           
         }
 
-        public ProfileCompany(int accountId, string phoneNumber, string avatarURL, 
+        public ProfileCompanyModel(int accountId, string phoneNumber, string avatarURL, 
             string companyName, string companyAddress, string companyIntroduction,
             string companyLink, DateTime createAt, DateTime updateAt)
         {

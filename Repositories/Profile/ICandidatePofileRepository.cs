@@ -22,10 +22,11 @@ namespace Capstone.Repositories.Profile
         // Lấy danh sách công ty yêu thích ( candidate)
         public Task<bool> checkConnection();
         public Task<ProfileCandidateResDTO> getProfileCandidateByAccountId(int accountId);
-        public Task<bool> UpdateProfileCandidate(ProfileCandidate profileCandidate);
+        public Task<ProfileCandidateUpdateDTO> UpdateProfileCandidate(ProfileCandidateModel profileCandidate);
         public Task<bool> uploadCV(CVsModel cVModel);
-        public Task<bool> deleteCV(int CVId);
-        public Task<List<CVsModel>> getListCVByAccountID(int accountId);  
+        public Task<CVsModel> deleteCV(int CVId);
+        public Task<List<CVsModel>> getListCVByAccountID(int accountId);
+        public Task<int> getPACIDbyAccountId(int accountId);
 
 
 

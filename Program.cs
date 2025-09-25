@@ -10,6 +10,7 @@ using Capstone.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
@@ -112,6 +113,7 @@ builder.Services.AddScoped<GoogleService>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
 builder.Services.AddScoped<IDashboardAccountRepository, DashboardAccountServices>();
 builder.Services.AddScoped<IRecruiterProfileRepository, RecruiterProfileService>();
+builder.Services.AddScoped<ICandidatePofileRepository,CandidateProfileService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
@@ -120,7 +122,7 @@ builder.Services.AddScoped<ISupportRepository, SupportService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Swagger chỉ nên bật khi dev
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -128,11 +130,27 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
+    RequestPath = "/ProfileImage"
+});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\CVPDF"),
+    RequestPath = "/CVPDF"
+});
 app.UseRouting();
+
 app.UseCors("AllowFrontend");
-app.UseAuthorization();
+
+// Authentication trước Authorization
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
+
 app.Run();

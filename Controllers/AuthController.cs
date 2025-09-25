@@ -47,6 +47,9 @@ namespace Capstone.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(email))
+                    return BadRequest(new { message = "Email is required." });
+
                 var isExist = await _authRepository.isEmailExist(email);
                 if (isExist == 0)
                 {
@@ -73,6 +76,15 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (verifyOTP == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                //if (verifyOTP.AccountId <= 0)
+                //    return BadRequest(new { message = "AccountId is required." });
+
+                if (string.IsNullOrWhiteSpace(verifyOTP.OTP))
+                    return BadRequest(new { message = "OTP is required." });
+
                 bool checkOTP = await _authRepository.verifyOTP(verifyOTP.AccountId, verifyOTP.OTP);
                 if (!checkOTP)
                 {
@@ -92,6 +104,15 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (resetPasswordDTO == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                //if (resetPasswordDTO.accountId <= 0)
+                //    return BadRequest(new { message = "AccountId is required." });
+
+                if (string.IsNullOrWhiteSpace(resetPasswordDTO.PasswordReset))
+                    return BadRequest(new { message = "PasswordReset is required." });
+
                 bool isReset = await _authRepository.updateNewPassword(resetPasswordDTO.accountId, resetPasswordDTO.PasswordReset);
                 if (!isReset)
                 {
@@ -113,6 +134,12 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (authLoginDTO == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                if (string.IsNullOrWhiteSpace(authLoginDTO.Email) || string.IsNullOrWhiteSpace(authLoginDTO.Password))
+                    return BadRequest(new { message = "Email and Password are required." });
+
                 var loginResponse = await _authRepository.Login(authLoginDTO);
                 if (loginResponse == null)
                 {
@@ -133,6 +160,15 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (authRegisterDTO == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.Password))
+                    return BadRequest(new { message = "Email and Password are required." });
+                if(string.IsNullOrWhiteSpace( authRegisterDTO.FullName))
+                {
+                   return BadRequest(new { message = "FullName is required." });
+                }
                 int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
                 if (checkEmail != 0)
                 {
@@ -158,6 +194,15 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (authRegisterDTO == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.Password)
+                    || string.IsNullOrWhiteSpace(authRegisterDTO.CompanyName) || string.IsNullOrWhiteSpace(authRegisterDTO.CompanyAddress))
+                {
+                    return BadRequest(new { message = "Email, Password, CompanyName and CompanyAddress are required." });
+                }
+
                 int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
                 if (checkEmail != 0)
                 {
@@ -183,6 +228,16 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (changePasswordDTO == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                if (string.IsNullOrWhiteSpace(changePasswordDTO.Email)
+                    || string.IsNullOrWhiteSpace(changePasswordDTO.oldPassword)
+                    || string.IsNullOrWhiteSpace(changePasswordDTO.newPassword))
+                {
+                    return BadRequest(new { message = "Email, oldPassword and newPassword are required." });
+                }
+
                 var isChanged = await _authRepository.ChangePassword(changePasswordDTO);
                 if (!isChanged)
                 {
@@ -203,6 +258,9 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (accountId <= 0)
+                //    return BadRequest(new { message = "AccountId is required." });
+
                 var isLoggedOut = await _authRepository.Logout(accountId);
                 if (!isLoggedOut)
                 {
@@ -223,6 +281,12 @@ namespace Capstone.Controllers
         {
             try
             {
+                //if (tokenDTO == null)
+                //    return BadRequest(new { message = "Request body is required." });
+
+                //if (tokenDTO.AccountId <= 0 || string.IsNullOrWhiteSpace(tokenDTO.RefreshToken))
+                //    return BadRequest(new { message = "AccountId and RefreshToken are required." });
+
                 var newAccessToken = await _authRepository.getNewAccessToken(tokenDTO);
                 if (newAccessToken == null)
                 {
@@ -241,9 +305,9 @@ namespace Capstone.Controllers
         [HttpPost("googleLogin")]
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto request)
         {
-            if (string.IsNullOrEmpty(request.IdToken))
+            if (request == null || string.IsNullOrWhiteSpace(request.IdToken))
             {
-                return BadRequest(new { message = "Missing IdToken." });
+                return BadRequest(new { message = "IdToken is required." });
             }
             try
             {
