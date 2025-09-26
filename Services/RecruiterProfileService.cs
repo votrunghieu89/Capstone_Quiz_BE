@@ -4,7 +4,6 @@ using Capstone.Model;
 using Capstone.Repositories.Profile;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace Capstone.Services
 {
     public class RecruiterProfileService : IRecruiterProfileRepository
@@ -16,15 +15,31 @@ namespace Capstone.Services
             _dbContext = dbContext;
             _logger = logger;
         }
-      
-        public async Task<bool> CreateJD(RecruiterProfileCreateJDDTO createDTO)
+        public async Task<bool> checkConnection()
         {
-            bool connection = _dbContext.Database.CanConnect();
-            if (!connection)
+            try
             {
-                _logger.LogError("Can not connection server ");
+                bool canConnect = await _dbContext.Database.CanConnectAsync();
+                if (canConnect)
+                {
+                    _logger.LogInformation("Database connection successful.");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogError("Database connection failed.");
+                    return false;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred in checkConnection");
                 return false;
             }
+        }
+        public async Task<bool> CreateJD(RecruiterProfileCreateJDDTO createDTO)
+        {
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
@@ -63,6 +78,18 @@ namespace Capstone.Services
                     UpdatedAt = null
                 };
                 await _dbContext.jDDetailModels.AddAsync(jdDetail);
+
+                foreach (var positionId in createDTO.PositionIds ?? new List<int>())
+                {
+                    var position = new JDPositionModel()
+                    {
+                        JDId = jd.JDId,
+                        PositionId = positionId,
+                        CreatedAt = DateTime.Now
+                    };
+                    await _dbContext.jDPositionsModel.AddAsync(position);
+                }
+
                 int checkdt = await _dbContext.SaveChangesAsync();
 
                 await transaction.CommitAsync();
@@ -82,122 +109,185 @@ namespace Capstone.Services
 
             return false;
         }
-
-
         public async Task<bool> DeleteJD(int ID)
         {
-            bool connection = _dbContext.Database.CanConnect();
-            if (!connection)
-            {
-                _logger.LogError("Can not connection server ");
-                return false;
-            }
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                int checkDeleteJDDetail = await _dbContext.jDDetailModels.Where(jdd => jdd.JDId == ID).ExecuteDeleteAsync();
-                int checkDeleteJD = await _dbContext.jDsModel.Where(jd => jd.JDId == ID).ExecuteDeleteAsync();
+                int checkDeleteJDDetail = await _dbContext.jDDetailModels
+                    .Where(jdd => jdd.JDId == ID)
+                    .ExecuteDeleteAsync();
+
+                int checkDeleteJDPosition = await _dbContext.jDPositionsModel
+                    .Where(jdp => jdp.JDId == ID)
+                    .ExecuteDeleteAsync();
+
+                int checkDeleteJD = await _dbContext.jDsModel
+                    .Where(jd => jd.JDId == ID)
+                    .ExecuteDeleteAsync();
 
                 if (checkDeleteJD > 0)
                 {
-                    _logger.LogInformation($"Deleted {checkDeleteJD} read JD \n " +
-                                           $"Deleteted {checkDeleteJDDetail} read JD Detail ");
+                    _logger.LogInformation(
+                        "Deleted JDId {ID}: {JDCount} JD(s), {JDDetailCount} JDDetail(s), {JDPositionCount} JDPosition(s)",
+                        ID, checkDeleteJD, checkDeleteJDDetail, checkDeleteJDPosition
+                    );
+
                     await transaction.CommitAsync();
                     return true;
                 }
                 else
                 {
-                    _logger.LogError("JD with JDId {ID} not found ", ID);
+                    _logger.LogWarning("JD with JDId {ID} not found", ID);
                     await transaction.RollbackAsync();
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting read JD ");
-            }
-            return false;
-
-        }
-
-        public async Task<bool> UpdateJD(RecruiterProfileUpdateJDDTO updateJDDTO)
-        {
-            bool connection = _dbContext.Database.CanConnect();
-            if (!connection)
-            {
-                _logger.LogError("Can not connection server ");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error deleting JD with ID {ID}", ID);
                 return false;
             }
+        }
+        public async Task<bool> UpdateJD(RecruiterProfileUpdateJDDTO updateDTO)
+        {
             using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                var JD = await _dbContext.jDsModel.FirstOrDefaultAsync(jd => jd.JDId == updateJDDTO.JDId);
-                if (JD == null)
+                // Update JD (batch update)
+                int jdUpdated = await _dbContext.jDsModel
+                    .Where(jd => jd.JDId == updateDTO.JDId)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(jd => jd.JDTitle, updateDTO.JDTitle)
+                        .SetProperty(jd => jd.JDSalary, updateDTO.JDSalary)
+                        .SetProperty(jd => jd.JDLocation, updateDTO.JDLocation)
+                        .SetProperty(jd => jd.JDExperience, updateDTO.JDExperience)
+                        .SetProperty(jd => jd.JDExpiredTime, updateDTO.JDExpiredTime)
+                        .SetProperty(jd => jd.UpdatedAt, DateTime.Now)
+                    );
+
+                if (jdUpdated == 0) return false; // JD không tồn tại
+
+                // Update JDDetail (batch update)
+                await _dbContext.jDDetailModels
+                    .Where(d => d.JDId == updateDTO.JDId)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(d => d.Description, updateDTO.Description)
+                        .SetProperty(d => d.Requirement, updateDTO.Requirement)
+                        .SetProperty(d => d.Benefits, updateDTO.Benefits)
+                        .SetProperty(d => d.Location, updateDTO.Location)
+                        .SetProperty(d => d.WorkingTime, updateDTO.WorkingTime)
+                        .SetProperty(d => d.UpdatedAt, DateTime.Now)
+                    );
+
+                // Đồng bộ Position
+                var oldList = await _dbContext.jDPositionsModel
+                    .Where(jdp => jdp.JDId == updateDTO.JDId)
+                    .Select(jdp => jdp.PositionId)
+                    .ToListAsync();
+               
+                var newList = updateDTO.PositionIds ?? new List<int>();
+
+                // Xoá những cái có trong oldList mà không có trong newList
+                var toDelete = oldList.Except(newList).ToList();
+                if (toDelete.Any())
                 {
-                    _logger.LogWarning("JD {JDId} not found", updateJDDTO.JDId);
-                    return false;
+                    await _dbContext.jDPositionsModel
+                        .Where(jdp => jdp.JDId == updateDTO.JDId && toDelete.Contains(jdp.PositionId))
+                        .ExecuteDeleteAsync();
                 }
 
-                if (updateJDDTO.JDTitle != null)
+                // xoá những cái có trong newList mà không có trong oldList
+                var toInsert = newList.Except(oldList).ToList();
+                if (toInsert.Any())
                 {
-                    JD.JDTitle = updateJDDTO.JDTitle;
-                }
-                if (updateJDDTO.JDSalary != null)
-                {
-                    JD.JDSalary = updateJDDTO.JDSalary;
-                }
-                if (updateJDDTO.JDLocation != null)
-                {
-                    JD.JDLocation = updateJDDTO.JDLocation;
-                }
-                if (updateJDDTO.JDExperience != null)
-                {
-                    JD.JDExperience = updateJDDTO.JDExperience;
-                }
-                if (updateJDDTO.JDExpiredTime.HasValue)
-                {
-                    JD.JDExpiredTime = updateJDDTO.JDExpiredTime.Value;
-                }
-                JD.UpdatedAt = DateTime.Now;
+                    var newEntities = toInsert.Select(pid => new JDPositionModel
+                    {
+                        JDId = updateDTO.JDId,
+                        PositionId = pid,
+                        CreatedAt = DateTime.Now
+                    }).ToList();
 
-
-                var JDD = await _dbContext.jDDetailModels.FirstOrDefaultAsync(jdd => jdd.JDId == updateJDDTO.JDId);
-                if (JDD != null)
-                {
-                    if (updateJDDTO.Description != null)
-                    {
-                        JDD.Description = updateJDDTO.Description;
-                    }
-                    if (updateJDDTO.Requirement != null)
-                    {
-                        JDD.Requirement = updateJDDTO.Requirement;
-                    }
-                    if (updateJDDTO.Benefits != null)
-                    {
-                        JDD.Benefits = updateJDDTO.Benefits;
-                    }
-                    if (updateJDDTO.Location != null)
-                    {
-                        JDD.Location = updateJDDTO.Location;
-                    }
-                    if (updateJDDTO.WorkingTime != null)
-                    {
-                        JDD.WorkingTime = updateJDDTO.WorkingTime;
-                    }
-                    JDD.UpdatedAt = DateTime.Now;
+                    await _dbContext.jDPositionsModel.AddRangeAsync(newEntities);
+                    await _dbContext.SaveChangesAsync();
                 }
-                _logger.LogInformation("Updated JD {JDId} successfully", updateJDDTO.JDId);
-                await _dbContext.SaveChangesAsync();
+
                 await transaction.CommitAsync();
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating JD {JDId}", updateJDDTO.JDId);
                 await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error updating JD with ID {JDId}", updateDTO.JDId);
                 return false;
             }
+        }
+        public async Task<List<PositionModel>> getAllPosition()
+        {
+            try
+            {
+                var positions = await _dbContext.positionsModel.ToListAsync();
 
+                if (positions != null && positions.Count > 0)
+                {
+                    _logger.LogInformation("getAllPosition successful");
+                    return positions;
+                }
+                else
+                {
+                    _logger.LogWarning("No positions found");
+                    return new List<PositionModel>();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred in getAllPosition");
+                return new List<PositionModel>();
+            }
+        }
+
+        public async Task<List<RecruiterProfileShowJDDTO>> GetAllJD(int accountId)
+        {
+            try
+            {
+                var query = from pc in _dbContext.profileCompanies
+                            join jd in _dbContext.jDsModel on pc.PCId equals jd.PCId
+                            join jdd in _dbContext.jDDetailModels on jd.JDId equals jdd.JDId into jddg
+                            from jdd in jddg.DefaultIfEmpty()
+                            where pc.AccountId == accountId
+                            select new RecruiterProfileShowJDDTO
+                            {
+                                PCId = pc.PCId,
+                                CompanyName = pc.CompanyName,
+                                AvatarURL = pc.AvatarURL,
+                                CompanyAddress = pc.CompanyAddress,
+                                JDTitle = jd.JDTitle,
+                                JDSalary = jd.JDSalary,
+                                JDLocation = jd.JDLocation,
+                                JDExperience = jd.JDExperience,
+                                JDExpiredTime = jd.JDExpiredTime,
+                                Description = jdd != null ? jdd.Description ?? string.Empty : string.Empty,
+                                Requirement = jdd != null ? jdd.Requirement ?? string.Empty : string.Empty,
+                                Benefits = jdd != null ? jdd.Benefits ?? string.Empty : string.Empty,
+                                Location = jdd != null ? jdd.Location ?? string.Empty : string.Empty,
+                                WorkingTime = jdd != null ? jdd.WorkingTime ?? string.Empty : string.Empty,
+                                PositionName = (from jdp in _dbContext.jDPositionsModel
+                                                join p in _dbContext.positionsModel on jdp.PositionId equals p.PositionId
+                                                where jdp.JDId == jd.JDId
+                                                select p.PositionName).ToList()
+                            };
+
+                var result = await query
+                                .ToListAsync();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception occurred in GetAllJD");
+                return new List<RecruiterProfileShowJDDTO>();
+            }
         }
     }
 }

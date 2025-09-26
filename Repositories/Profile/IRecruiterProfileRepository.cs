@@ -1,4 +1,5 @@
 ﻿using Capstone.DTOs.RecruiterProfile;
+using Capstone.Model;
 
 namespace Capstone.Repositories.Profile
 {
@@ -10,11 +11,16 @@ namespace Capstone.Repositories.Profile
         // Hiẻn thị toàn bộ JD đã tạo
         // Hiển thị toàn bộ Cvs đã apply vào JD (recruiter) ( nằm bên trong 1 JD)
         // update profile
+        public Task<bool> checkConnection();
         Task<bool> CreateJD(RecruiterProfileCreateJDDTO createDTO);
 
         Task<bool> UpdateJD(RecruiterProfileUpdateJDDTO updateJDDTO);
         Task<bool> DeleteJD(int ID);
-        
+        Task<List<RecruiterProfileShowJDDTO>> GetAllJD(int accountId);
+
+        // lấy toàn bộ Position
+        public Task<List<PositionModel>> getAllPosition();
+
         // Viewing score between CV and JD,
         // accept or reject CV
 

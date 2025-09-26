@@ -4,27 +4,48 @@ namespace Capstone.DTOs.RecruiterProfile
 {
     public class RecruiterProfileUpdateJDDTO
     {
-        [Required]
+      
         public int JDId { get; set; }
 
-        [MaxLength(200)]
-        public string? JDTitle { get; set; }
+        public string JDTitle { get; set; } = string.Empty;
 
-        [MaxLength(200)]
-        public string? JDSalary { get; set; }
+        public string JDSalary { get; set; } = string.Empty;
 
-        [MaxLength(200)]
-        public string? JDLocation { get; set; }
+        public string JDLocation { get; set; } = string.Empty;
 
-        [MaxLength(200)]
-        public string? JDExperience { get; set; }
+        public string JDExperience { get; set; } = string.Empty;
 
-        public DateTime? JDExpiredTime { get; set; }
+        public DateTime JDExpiredTime { get; set; } // sau khi model sua lai datetime thi sua lai datetime
 
-        public string? Description { get; set; }
-        public string? Requirement { get; set; }
-        public string? Benefits { get; set; }
-        public string? Location { get; set; }
-        public string? WorkingTime { get; set; }
+        public string Description { get; set; } = string.Empty;
+
+        public string Requirement { get; set; } = string.Empty;
+
+
+        public string Benefits { get; set; } = string.Empty;
+
+        public string Location { get; set; } = string.Empty;
+
+        public string WorkingTime { get; set; } = string.Empty;
+
+        public List<int>? PositionIds { get; set; }
+        public RecruiterProfileUpdateJDDTO() { }
+        public RecruiterProfileUpdateJDDTO( int jdId, string jdTitle, string jdSalary,
+            string jdLocation, string jdExperience, DateTime jdExpiredTime, string description,
+            string requirement, string benefits, string location, string workingTime, List<int>? positionIds)
+        {
+            JDId = jdId;
+            JDTitle = jdTitle;
+            JDSalary = jdSalary;
+            JDLocation = jdLocation;
+            JDExperience = jdExperience;
+            JDExpiredTime = jdExpiredTime;
+            Description = description;
+            Requirement = requirement;
+            Benefits = benefits;
+            Location = location;
+            WorkingTime = workingTime;
+            PositionIds = positionIds;
+        }
     }
 }

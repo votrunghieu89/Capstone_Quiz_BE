@@ -28,8 +28,8 @@ namespace Capstone.Database
         // JDs and related
         public DbSet<JDsModel> jDsModel { get; set; }
         public DbSet<JDDetailModel> jDDetailModels { get; set; }
-        public DbSet<PositionModel> positions { get; set; }
-        public DbSet<JDPositionModel> jDPositions { get; set; }
+        public DbSet<PositionModel> positionsModel { get; set; }
+        public DbSet<JDPositionModel> jDPositionsModel { get; set; }
 
         // Favourites
         public DbSet<CVFavouriteModel> cVFavouriteModels { get; set; }
