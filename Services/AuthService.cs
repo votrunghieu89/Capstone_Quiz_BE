@@ -1,11 +1,12 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Auth;
-using Capstone.Model.Others;
-using Capstone.Model.Profile;
+using Capstone.ENUMs;
+using Capstone.Model;
 using Capstone.Repositories;
 using Capstone.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
+using StackExchange.Redis;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Capstone.Services
@@ -25,19 +26,10 @@ namespace Capstone.Services
             _token = token;
             _redis = redis;
         }
-        // Kiểm tra kết nối cơ sở dữ liệu
-        public async Task<bool> checkConnection()
+        public static string GenerateIdUnique(int accountId, DateTime createAt)
         {
-            try
-            {
-                bool isConn = await _context.Database.CanConnectAsync();
-                return isConn;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking database connection");
-                return false;
-            }
+            string dateCode = createAt.ToString("yyyyMMdd"); // lấy ngày-tháng-năm
+            return $"{accountId}{dateCode}"; // ghép thành chuỗi
         }
         public async Task<int> isEmailExist(string email)
         {
@@ -46,21 +38,19 @@ namespace Capstone.Services
                 var isEmail = await _context.authModels.FirstOrDefaultAsync(u => u.Email == email);
                 if (isEmail != null)
                 {
-                    // Email tồn tại
-                    _logger.LogInformation("Email already exists");
+                    _logger.LogInformation("Email '{Email}' already exists (AccountId={AccountId}).", email, isEmail.AccountId);
                     return isEmail.AccountId;
                 }
-                // Email chưa tồn tại
-                _logger.LogInformation("Email does not exist");
+                _logger.LogInformation("Email '{Email}' does not exist in the system.", email);
                 return 0;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking if email exists");
+                _logger.LogError(ex, "Error checking if email exists for '{Email}'.", email);
                 return 0;
             }
         }
-        public async Task<bool> RegisterCandidate(AuthRegisterDTO authRegisterDTO)
+        public async Task<bool> RegisterStudent(AuthRegisterStudentDTO authRegisterDTO)
         {
             try
             {
@@ -71,28 +61,29 @@ namespace Capstone.Services
                         AuthModel authModel = new AuthModel
                         {
                             Email = authRegisterDTO.Email,
-                            Password = Hash.HashPassword(authRegisterDTO.Password),
-                            Role = "Candidate"
+                            PasswordHash = Hash.HashPassword(authRegisterDTO.PasswordHash),
+                            Role = AuthEnum.Role.Student.ToString(),
+                            CreateAt = DateTime.Now
                         };
-
                         await _context.authModels.AddAsync(authModel);
                         await _context.SaveChangesAsync();
 
-                        ProfileCandidateModel profile_CDD_Admin = new ProfileCandidateModel
+                        string uniqueId = GenerateIdUnique(authModel.AccountId, authModel.CreateAt);
+                        StudentProfileModel studentProfile = new StudentProfileModel
                         {
-                            AccountId = authModel.AccountId,
-                            FullName = authRegisterDTO.FullName
-
+                            StudentId = authModel.AccountId,
+                            FullName = authRegisterDTO.FullName,
+                            IdUnique = uniqueId,
                         };
-                        await _context.profileCandidates.AddAsync(profile_CDD_Admin);
+                        await _context.studentProfiles.AddAsync(studentProfile);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
-                        _logger.LogInformation("Candidate registered successfully with AccountId {AccountId}", authModel.AccountId);
+                        _logger.LogInformation("Student registered successfully. AccountId={AccountId}, Email={Email}", authModel.AccountId, authModel.Email);
                         return true;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        _logger.LogError("Error registering candidate, rolling back transaction");
+                        _logger.LogError(ex, "Error registering student for Email={Email}. Rolling back transaction.", authRegisterDTO?.Email);
                         await transaction.RollbackAsync();
                         throw;
                     }
@@ -100,11 +91,11 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error registering user");
+                _logger.LogError(ex, "Unhandled error registering student for Email={Email}.", authRegisterDTO?.Email);
                 return false;
             }
         }
-        public async Task<bool> RegisterRecruiter(AuthRegisterRecruiterDTO authRegisterDTO)
+        public async Task<bool> RegisterTeacher(AuthRegisterTeacherDTO authRegisterDTO)
         {
             try
             {
@@ -115,28 +106,43 @@ namespace Capstone.Services
                         AuthModel authModel = new AuthModel
                         {
                             Email = authRegisterDTO.Email,
-                            Password = Hash.HashPassword(authRegisterDTO.Password),
-                            Role = "Recruiter"
+                            PasswordHash = Hash.HashPassword(authRegisterDTO.PasswordHash),
+                            Role = AuthEnum.Role.Teacher.ToString(),
+                            CreateAt = DateTime.Now
                         };
 
                         await _context.authModels.AddAsync(authModel);
                         await _context.SaveChangesAsync();
+                        string uniqueId = GenerateIdUnique(authModel.AccountId, authModel.CreateAt);
 
-                        ProfileCompanyModel profile_Recruiter = new ProfileCompanyModel
+                        TeacherProfileModel teacherProfile = new TeacherProfileModel
                         {
-                            AccountId = authModel.AccountId,
-                            CompanyName = authRegisterDTO.CompanyName,
-                            CompanyAddress = authRegisterDTO.CompanyAddress
+                            TeacherId = authModel.AccountId,
+                            FullName = authRegisterDTO.FullName,
+                            IdUnique = uniqueId,
+                            OrganizationName = authRegisterDTO.OrganizationName,
+                            OrganizationAddress = authRegisterDTO.OrganizationAddress,
                         };
-                        await _context.profileCompanies.AddAsync(profile_Recruiter);
+                        await _context.teacherProfiles.AddAsync(teacherProfile);
+                        await _context.SaveChangesAsync();
+
+                        QuizzFolderModel defaultFolder = new QuizzFolderModel
+                        {
+                            TeacherId = authModel.AccountId,
+                            FolderName = "Default",
+                            ParentFolderId = null,
+                            CreateAt = DateTime.Now
+                        };
+                        // Associate folder with teacher via separate property if needed; currently Folder model doesn't include TeacherId in schema
+                        await _context.quizzFolders.AddAsync(defaultFolder);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
-                        _logger.LogInformation("Recruiter registered successfully with AccountId {AccountId}", authModel.AccountId);
+                        _logger.LogInformation("Teacher registered successfully. AccountId={AccountId}, Email={Email}", authModel.AccountId, authModel.Email);
                         return true;
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        _logger.LogError("Error registering Recruiter, rolling back transaction");
+                        _logger.LogError(ex, "Error registering teacher for Email={Email}. Rolling back transaction.", authRegisterDTO?.Email);
                         await transaction.RollbackAsync();
                         throw;
                     }
@@ -144,7 +150,7 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error registering user");
+                _logger.LogError(ex, "Unhandled error registering teacher for Email={Email}.", authRegisterDTO?.Email);
                 return false;
             }
         }
@@ -155,18 +161,18 @@ namespace Capstone.Services
                 AuthModel? user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == authLoginDTO.Email);
                 if (user == null)
                 {
-                    _logger.LogWarning("Login failed for email");
+                    _logger.LogWarning("Login attempt failed: email not found '{Email}'.", authLoginDTO.Email);
                     return null;
                 }
-                bool checkPassword = Hash.VerifyPassword(authLoginDTO.Password, user.Password);
+                bool checkPassword = Hash.VerifyPassword(authLoginDTO.Password, user.PasswordHash);
                 if (!checkPassword)
                 {
-                    _logger.LogWarning("Invalid password for email ");
+                    _logger.LogWarning("Login attempt failed: invalid password for Email='{Email}'.", authLoginDTO.Email);
                     return null;
                 }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
-                bool setRefresh = await _redis.SetStringAsync($"RT_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
+                bool setRefresh = await _redis.SetStringAsync($"RefressToken_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
                 AuthLoginResponse response = new AuthLoginResponse
                 {
                     AccountId = user.AccountId,
@@ -177,27 +183,35 @@ namespace Capstone.Services
 
                 };
                 bool  setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
-                _logger.LogInformation("User {Email} logged in successfully", authLoginDTO.Email);
+                _logger.LogInformation("User logged in successfully. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
                 return response;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during login");
+                _logger.LogError(ex, "Error during login for Email={Email}.", authLoginDTO?.Email);
                 return null;
             }
         }
         public async Task<bool> Logout(int accountId)
         {
-            bool deleted = await _redis.DeleteKeyAsync($"RT_{accountId}");
-            bool deleteOnline = await _redis.DeleteKeyAsync($"Online_{accountId}");
-            if (deleted)
+            try
             {
-                _logger.LogInformation("User with AccountId {AccountId} logged out successfully", accountId);
-                return true;
+                bool deleted = await _redis.DeleteKeyAsync($"RefressToken_{accountId}");
+                bool deleteOnline = await _redis.DeleteKeyAsync($"Online_{accountId}");
+                if (deleted)
+                {
+                    _logger.LogInformation("User logged out. AccountId={AccountId}", accountId);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("Logout: no refresh token found for AccountId={AccountId}", accountId);
+                    return false;
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning("No refresh token found to delete for AccountId {AccountId}", accountId);
+                _logger.LogError(ex, "Error during logout for AccountId={AccountId}", accountId);
                 return false;
             }
         }
@@ -209,103 +223,113 @@ namespace Capstone.Services
 
                 if (user == null)
                 {
-                    _logger.LogWarning("Email not found");
+                    _logger.LogWarning("ChangePassword: email not found '{Email}'.", changePasswordDTO.Email);
                     return false;
                 }
-                bool checkOldPassword = Hash.VerifyPassword(changePasswordDTO.oldPassword, user.Password);
+                bool checkOldPassword = Hash.VerifyPassword(changePasswordDTO.oldPassword, user.PasswordHash);
                 if (!checkOldPassword)
                 {
-                    _logger.LogWarning("Invalid old password");
+                    _logger.LogWarning("ChangePassword: invalid old password for Email='{Email}'.", changePasswordDTO.Email);
                     return false;
                 }
                 string newHashedPassword = Hash.HashPassword(changePasswordDTO.newPassword);
                 int updated = await _context.authModels
                                      .Where(u => u.Email == changePasswordDTO.Email)
                                      .ExecuteUpdateAsync(s => s
-                                         .SetProperty(u => u.Password, newHashedPassword)
-                                         .SetProperty(u => u.UpdatedAt, DateTime.Now)
+                                         .SetProperty(u => u.PasswordHash, newHashedPassword)
+                                         .SetProperty(u => u.UpdateAt, DateTime.Now)
                                      );
-                _logger.LogInformation("Password changed successfully");
                 if (updated > 0)
                 {
+                    _logger.LogInformation("Password changed successfully for Email={Email}.", changePasswordDTO.Email);
                     return true;
                 }
                 else
                 {
+                    _logger.LogWarning("ChangePassword: no records updated for Email={Email}.", changePasswordDTO.Email);
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error changing password for email {Email}", changePasswordDTO.Email);
+                _logger.LogError(ex, "Error changing password for Email={Email}.", changePasswordDTO?.Email);
                 return false;
             }
         }
-        public async Task<bool> verifyOTP(int accountId, string otp)
+        public async Task<bool> verifyOTP(string email, string otp)
         {
-            string? OTP = await _redis.GetStringAsync("OTP_" + accountId);
-            if (OTP == null)
+            try
             {
-                _logger.LogWarning("OTP expired or not found  ");
-                return false;
-            }
-            bool checkOTP = Hash.VerifyPassword(otp, OTP);
+                string? OTP = await _redis.GetStringAsync("OTP_" + email);
+                if (OTP == null)
+                {
+                    _logger.LogWarning("verifyOTP: OTP expired or not found for email={email}.", email);
+                    return false;
+                }
+                bool checkOTP = Hash.VerifyPassword(otp, OTP);
 
-            if (!checkOTP)
+                if (!checkOTP)
+                {
+                    _logger.LogWarning("verifyOTP: invalid OTP for email={email}.", email);
+                    return false;
+                }
+                _logger.LogInformation("OTP verified successfully for email={email}.", email);
+                bool deleted = await _redis.DeleteKeyAsync($"OTP_{email}");
+                return true;
+            }
+            catch (Exception ex)
             {
-                _logger.LogWarning("Invalid OTP for AccountId ");
+                _logger.LogError(ex, "Error verifying OTP for email={email}.", email);
                 return false;
             }
-            _logger.LogInformation("OTP verified successfully }");
-            bool deleted = await _redis.DeleteKeyAsync($"OTP_{accountId}");
-            return true;
         }
         public async Task<bool> updateNewPassword(int accountId, string newPassword)
         {
             try
             {
                 string newHashedPassword = Hash.HashPassword(newPassword);
-                int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, newHashedPassword)
-                                                                                                                      .SetProperty(u => u.UpdatedAt, DateTime.Now));
+                int updated = await _context.authModels.Where(u => u.AccountId == accountId).ExecuteUpdateAsync(s => s.SetProperty(u => u.PasswordHash, newHashedPassword)
+                                                                                                                      .SetProperty(u => u.UpdateAt, DateTime.Now));
                 if (updated > 0)
                 {
-                    _logger.LogInformation("Password updated successfully for AccountId {AccountId}", accountId);
+                    _logger.LogInformation("Password updated successfully for AccountId={AccountId}.", accountId);
                     return true;
                 }
                 else
                 {
-                    _logger.LogWarning("No records updated for AccountId {AccountId}", accountId);
+                    _logger.LogWarning("updateNewPassword: no records updated for AccountId={AccountId}.", accountId);
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error checking database connection");
+                _logger.LogError(ex, "Error updating password for AccountId={AccountId}.", accountId);
                 return false;
             }
         }
-        public async Task<string> getNewAccessToken(GetNewATDTO tokenDTO)
+        public async Task<string> getNewAccessToken(GetNewAccessTokenDTO tokenDTO)
         {
             try
             {
-                string? refreshTokenInDb = await _redis.GetStringAsync($"RT_{tokenDTO.AccountId}");
+                string? refreshTokenInDb = await _redis.GetStringAsync($"RefressToken_{tokenDTO.AccountId}");
                 if (refreshTokenInDb == null || refreshTokenInDb != tokenDTO.RefreshToken)
                 {
-                    _logger.LogWarning("Invalid or expired refresh token for AccountId");
+                    _logger.LogWarning("getNewAccessToken: invalid or expired refresh token for AccountId={AccountId}.", tokenDTO.AccountId);
                     return null;
                 }
                 var user = await _context.authModels.FirstOrDefaultAsync(u => u.AccountId == tokenDTO.AccountId);
                 if (user == null)
                 {
-                    _logger.LogWarning("AccountId not found");
+                    _logger.LogWarning("getNewAccessToken: AccountId not found {AccountId}.", tokenDTO.AccountId);
                     return null;
                 }
                 var newAccessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
+                _logger.LogInformation("New access token generated for AccountId={AccountId}.", tokenDTO.AccountId);
                 return newAccessToken;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during getNewAccessToken");
+                _logger.LogError(ex, "Error during getNewAccessToken for AccountId={AccountId}.", tokenDTO?.AccountId);
                 return null;
             }
         }
@@ -316,12 +340,12 @@ namespace Capstone.Services
                 var user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == email);
                 if (user == null)
                 {
-                    _logger.LogWarning("Email not found");
+                    _logger.LogWarning("LoginGoogle: email not found '{Email}'.", email);
                     return null;
                 }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
-                bool setRefresh = await _redis.SetStringAsync($"RT_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
+                bool setRefresh = await _redis.SetStringAsync($"RefressToken_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));  
                 bool setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
                 AuthLoginResponse response = new AuthLoginResponse
                 {
@@ -331,12 +355,12 @@ namespace Capstone.Services
                     AccesToken = accessToken,
                     RefreshToken = refreshToken,
                 };
-                _logger.LogInformation("User with email {Email} logged in successfully via Google", email);
+                _logger.LogInformation("User logged in via Google. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
                 return response;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during Google login for email {Email}", email);
+                _logger.LogError(ex, "Error during Google login for Email={Email}", email);
                 return null;
             }
         }

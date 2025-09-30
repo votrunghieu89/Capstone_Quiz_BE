@@ -23,7 +23,7 @@ namespace Capstone.Security
             {
                 new Claim("AccountId", accountId.ToString()),
                 new Claim("Role", role),
-                new Claim("Email", email)
+                new Claim("Email", email),
             };
             var token = new JwtSecurityToken(
                  issuer: _configuration["Jwt:Issuer"],

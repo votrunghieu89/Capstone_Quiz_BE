@@ -1,6 +1,6 @@
 ﻿using Capstone.Model;
-using Capstone.Model.Others;
-using Capstone.Model.Profile;
+
+
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 
@@ -14,34 +14,33 @@ namespace Capstone.Database
         }
 
         public DbSet<AuthModel> authModels { get; set; }
-        
-   
 
+        // Profile / Account related
+        public DbSet<StudentProfileModel> studentProfiles { get; set; }
+        public DbSet<TeacherProfileModel> teacherProfiles { get; set; }
 
-        public DbSet<ProfileCandidateModel> profileCandidates { get; set; }
-        public DbSet<ProfileCompanyModel> profileCompanies { get; set; }
+        // Groups
+        public DbSet<GroupModel> groups { get; set; }
+        public DbSet<StudentGroupModel> studentGroups { get; set; }
 
-        // CVs
-        public DbSet<CVsModel> cVsModels { get; set; }
-        public DbSet<CVExtractionModel> cVExtractionModels { get; set; }
+        // Topics and folders
+        public DbSet<TopicModel> topics { get; set; }
+        public DbSet<QuizzFolderModel> quizzFolders { get; set; }
 
-        // JDs and related
-        public DbSet<JDsModel> jDsModel { get; set; }
-        public DbSet<JDDetailModel> jDDetailModels { get; set; }
-        public DbSet<PositionModel> positionsModel { get; set; }
-        public DbSet<JDPositionModel> jDPositionsModel { get; set; }
+        // Quizzes and related
+        public DbSet<QuizModel> quizzes { get; set; }
+        public DbSet<QuizzGroupModel> quizzGroups { get; set; }
 
-        // Favourites
-        public DbSet<CVFavouriteModel> cVFavouriteModels { get; set; }
-        public DbSet<CompanyFavouriteModel> companyFavourites { get; set; }
-        public DbSet<JDFavouriteModel> jDFavourites { get; set; }
+        // Questions / Options
+        public DbSet<QuestionModel> questions { get; set; }
+        public DbSet<OptionModel> options { get; set; }
 
-        // CV <-> JD
-        public DbSet<CV_JD_ApplyModel> cV_JD_Applies { get; set; }
-        public DbSet<CV_JD_ScoreModel> cV_JD_Scores { get; set; }
+        // Results
+        public DbSet<OfflineResultModel> offlineResults { get; set; }
+        public DbSet<OnlineResultModel> onlineResults { get; set; }
 
-        // Notifications
-        public DbSet<NotificationsModel> notificationsModels{ get; set; }
-
+        // Favourites / Stats
+        public DbSet<QuizzFavouriteModel> quizzFavourites { get; set; }
+        public DbSet<QuestionStatsModel> questionStats { get; set; }
     }
 }

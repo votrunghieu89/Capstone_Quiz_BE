@@ -2,8 +2,7 @@
 using Capstone.Model;
 using Capstone.Notification;
 using Capstone.Repositories;
-using Capstone.Repositories.Dashboard;
-using Capstone.Repositories.Profile;
+using Capstone.Repositories.Quizzes;
 using Capstone.Security;
 using Capstone.Services;
 using Capstone.Settings;
@@ -111,15 +110,13 @@ builder.Services.AddScoped<Token>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<GoogleService>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
-builder.Services.AddScoped<IDashboardAccountRepository, DashboardAccountServices>();
-builder.Services.AddScoped<IRecruiterProfileRepository, RecruiterProfileService>();
-builder.Services.AddScoped<ICandidatePofileRepository,CandidateProfileService>();
+builder.Services.AddScoped<IStudentProfileRepository, StudenProfileService>();
+builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
+builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
-builder.Services.AddScoped<INotificationRepository, NotificationService>();
-builder.Services.AddScoped<ISupportRepository, SupportService>();
-
+builder.Services.AddScoped<ConnectionService>();
 var app = builder.Build();
 
 // Swagger chỉ nên bật khi dev
@@ -137,11 +134,11 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
     RequestPath = "/ProfileImage"
 });
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\CVPDF"),
-    RequestPath = "/CVPDF"
-});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\CVPDF"),
+//    RequestPath = "/CVPDF"
+//});
 app.UseRouting();
 
 app.UseCors("AllowFrontend");

@@ -2,7 +2,7 @@
 {
     public class VerifyOTP
     {
-        public int AccountId { get; set; }
+        public string  Email { get; set; } = string.Empty;
         public string OTP { get; set; } = string.Empty;
 
     }

@@ -53,20 +53,22 @@ namespace Capstone.Controllers
                 var isExist = await _authRepository.isEmailExist(email);
                 if (isExist == 0)
                 {
+                    _logger.LogInformation("checkEmail: Email not found: {Email}", email);
                     return NotFound(new { message = "Email does not exist in the system." });
                 }
 
                 var otp = GenerateOTP();
                 var otpHash = Hash.HashPassword(otp);
-                await _redis.SetStringAsync($"OTP_{isExist}", otpHash, TimeSpan.FromMinutes(5));
+                await _redis.SetStringAsync($"OTP_{email}", otpHash, TimeSpan.FromMinutes(5));
 
                 string subject = "Your OTP Code";
                 await _emailService.SendEmailAsync(email, subject, otp);
-                return Ok(new { message = "OTP has been sent to your email." });
+                _logger.LogInformation("checkEmail: OTP generated and sent for AccountId={AccountId}, Email={Email}", isExist, email);
+                return Ok(new { message = "OTP has been sent to your email.", AccountId = isExist});
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while checking email or sending OTP.");
+                _logger.LogError(ex, "checkEmail: Error processing request for Email={Email}", email);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
@@ -76,54 +78,66 @@ namespace Capstone.Controllers
         {
             try
             {
-                //if (verifyOTP == null)
-                //    return BadRequest(new { message = "Request body is required." });
-
-                //if (verifyOTP.AccountId <= 0)
-                //    return BadRequest(new { message = "AccountId is required." });
+                if (verifyOTP == null)
+                {
+                    _logger.LogWarning("verifyOTP: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
+                }
 
                 if (string.IsNullOrWhiteSpace(verifyOTP.OTP))
+                {
+                    _logger.LogWarning("verifyOTP: OTP missing for AccountId={AccountId}", verifyOTP.Email);
                     return BadRequest(new { message = "OTP is required." });
+                }
 
-                bool checkOTP = await _authRepository.verifyOTP(verifyOTP.AccountId, verifyOTP.OTP);
+                bool checkOTP = await _authRepository.verifyOTP(verifyOTP.Email, verifyOTP.OTP);
                 if (!checkOTP)
                 {
+                    _logger.LogInformation("verifyOTP: Invalid or expired OTP for AccountId={AccountId}", verifyOTP.Email);
                     return BadRequest(new { message = "Invalid or expired OTP." });
                 }
+
+                _logger.LogInformation("verifyOTP: OTP verified for AccountId={AccountId}", verifyOTP.Email);
                 return Ok(new { message = "OTP verification successful. You can now reset your password." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while verifying OTP.");
+                _logger.LogError(ex, "verifyOTP: Error verifying OTP for AccountId={AccountId}" , verifyOTP?.Email);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
-        [HttpPost("resetPasswordGoogle")]
+        [HttpPost("resetPasswordOTP")]
         public async Task<ActionResult> resetPassword([FromBody] ResetPasswordDTO resetPasswordDTO)
         {
             try
             {
-                //if (resetPasswordDTO == null)
-                //    return BadRequest(new { message = "Request body is required." });
-
-                //if (resetPasswordDTO.accountId <= 0)
-                //    return BadRequest(new { message = "AccountId is required." });
+                if (resetPasswordDTO == null)
+                {
+                    _logger.LogWarning("resetPassword: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
+                }
 
                 if (string.IsNullOrWhiteSpace(resetPasswordDTO.PasswordReset))
+                {
+                    _logger.LogWarning("resetPassword: PasswordReset missing for AccountId={AccountId}", resetPasswordDTO.accountId);
                     return BadRequest(new { message = "PasswordReset is required." });
+                }
 
                 bool isReset = await _authRepository.updateNewPassword(resetPasswordDTO.accountId, resetPasswordDTO.PasswordReset);
                 if (!isReset)
                 {
+                    _logger.LogWarning("resetPassword: Failed to reset password for AccountId={AccountId}", resetPasswordDTO.accountId);
                     return BadRequest(new { message = "Failed to reset password. Please try again." });
                 }
+
                 await _redis.DeleteKeyAsync($"OTP_{resetPasswordDTO.accountId}");
+                _logger.LogInformation("resetPassword: Password reset successful for AccountId={AccountId}", resetPasswordDTO.accountId);
                 return Ok(new { message = "Password has been reset successfully." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while resetting password.");
+                _logger.LogError(ex, "resetPassword: Error while resetting password for AccountId={AccountId}", resetPasswordDTO?.accountId);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
@@ -134,90 +148,120 @@ namespace Capstone.Controllers
         {
             try
             {
-                //if (authLoginDTO == null)
-                //    return BadRequest(new { message = "Request body is required." });
+                if (authLoginDTO == null)
+                {
+                    _logger.LogWarning("login: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
+                }
 
                 if (string.IsNullOrWhiteSpace(authLoginDTO.Email) || string.IsNullOrWhiteSpace(authLoginDTO.Password))
+                {
+                    _logger.LogWarning("login: Missing email or password");
                     return BadRequest(new { message = "Email and Password are required." });
+                }
 
                 var loginResponse = await _authRepository.Login(authLoginDTO);
                 if (loginResponse == null)
                 {
+                    _logger.LogWarning("login: Authentication failed for Email={Email}", authLoginDTO.Email);
                     return Unauthorized(new { message = "Invalid email or password." });
                 }
+
+                _logger.LogInformation("login: User authenticated. AccountId={AccountId}, Email={Email}", loginResponse.AccountId, loginResponse.Email);
                 return Ok(loginResponse);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while logging in.");
+                _logger.LogError(ex, "login: Error while logging in for Email={Email}", authLoginDTO?.Email);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
-        // Register Candidate API
-        [HttpPost("registerCandidate")]
-        public async Task<ActionResult> RegisterCandidate([FromBody] AuthRegisterDTO authRegisterDTO)
+        // Register Student API
+        [HttpPost("registerStudent")]
+        public async Task<ActionResult> registerStudent([FromBody] AuthRegisterStudentDTO authRegisterDTO)
         {
             try
             {
-                //if (authRegisterDTO == null)
-                //    return BadRequest(new { message = "Request body is required." });
-
-                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.Password))
-                    return BadRequest(new { message = "Email and Password are required." });
-                if(string.IsNullOrWhiteSpace( authRegisterDTO.FullName))
+                if (authRegisterDTO == null)
                 {
-                   return BadRequest(new { message = "FullName is required." });
+                    _logger.LogWarning("registerStudent: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
                 }
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.PasswordHash))
+                {
+                    _logger.LogWarning("registerStudent: Missing email or password");
+                    return BadRequest(new { message = "Email and Password are required." });
+                }
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.FullName))
+                {
+                    _logger.LogWarning("registerStudent: Missing FullName for Email={Email}", authRegisterDTO.Email);
+                    return BadRequest(new { message = "FullName is required." });
+                }
+
                 int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
                 if (checkEmail != 0)
                 {
+                    _logger.LogInformation("registerStudent: Email already exists: {Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Email already exists. Please use a different email." });
                 }
-                var isRegistered = await _authRepository.RegisterCandidate(authRegisterDTO);
+
+                var isRegistered = await _authRepository.RegisterStudent(authRegisterDTO);
                 if (!isRegistered)
                 {
+                    _logger.LogError("registerStudent: Registration failed for Email={Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Registration failed. Please try again." });
                 }
+
+                _logger.LogInformation("registerStudent: Student registered successfully. Email={Email}", authRegisterDTO.Email);
                 return Ok(new { message = "Candidate registered successfully." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while registering candidate.");
+                _logger.LogError(ex, "registerStudent: Error while registering student for Email={Email}", authRegisterDTO?.Email);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
-        // Register Recruiter API
-        [HttpPost("registerRecruiter")]
-        public async Task<ActionResult> RegisterRecruiter([FromBody] AuthRegisterRecruiterDTO authRegisterDTO)
+        // Register Teacher API
+        [HttpPost("registerTeacher")]
+        public async Task<ActionResult> RegisterTeacher([FromBody] AuthRegisterTeacherDTO authRegisterDTO)
         {
             try
             {
-                //if (authRegisterDTO == null)
-                //    return BadRequest(new { message = "Request body is required." });
-
-                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.Password)
-                    || string.IsNullOrWhiteSpace(authRegisterDTO.CompanyName) || string.IsNullOrWhiteSpace(authRegisterDTO.CompanyAddress))
+                if (authRegisterDTO == null)
                 {
+                    _logger.LogWarning("registerTeacher: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
+                }
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.PasswordHash)
+                    || string.IsNullOrWhiteSpace(authRegisterDTO.OrganizationName) || string.IsNullOrWhiteSpace(authRegisterDTO.OrganizationAddress))
+                {
+                    _logger.LogWarning("registerTeacher: Missing required fields for Email={Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Email, Password, CompanyName and CompanyAddress are required." });
                 }
 
                 int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
                 if (checkEmail != 0)
                 {
+                    _logger.LogInformation("registerTeacher: Email already exists: {Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Email already exists. Please use a different email." });
                 }
-                var isRegistered = await _authRepository.RegisterRecruiter(authRegisterDTO);
+                var isRegistered = await _authRepository.RegisterTeacher(authRegisterDTO);
                 if (!isRegistered)
                 {
+                    _logger.LogError("registerTeacher: Registration failed for Email={Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Registration failed. Please try again." });
                 }
+                _logger.LogInformation("registerTeacher: Teacher registered successfully. Email={Email}", authRegisterDTO.Email);
                 return Ok(new { message = "Recruiter registered successfully." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while registering recruiter.");
+                _logger.LogError(ex, "registerTeacher: Error while registering teacher for Email={Email}", authRegisterDTO?.Email);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
@@ -228,26 +272,32 @@ namespace Capstone.Controllers
         {
             try
             {
-                //if (changePasswordDTO == null)
-                //    return BadRequest(new { message = "Request body is required." });
+                if (changePasswordDTO == null)
+                {
+                    _logger.LogWarning("changePassword: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
+                }
 
                 if (string.IsNullOrWhiteSpace(changePasswordDTO.Email)
                     || string.IsNullOrWhiteSpace(changePasswordDTO.oldPassword)
                     || string.IsNullOrWhiteSpace(changePasswordDTO.newPassword))
                 {
+                    _logger.LogWarning("changePassword: Missing required fields for Email={Email}", changePasswordDTO?.Email);
                     return BadRequest(new { message = "Email, oldPassword and newPassword are required." });
                 }
 
                 var isChanged = await _authRepository.ChangePassword(changePasswordDTO);
                 if (!isChanged)
                 {
+                    _logger.LogWarning("changePassword: Failed to change password for Email={Email}", changePasswordDTO.Email);
                     return BadRequest(new { message = "Failed to change password. Please try again." });
                 }
+                _logger.LogInformation("changePassword: Password changed for Email={Email}", changePasswordDTO.Email);
                 return Ok(new { message = "Password changed successfully." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while changing password.");
+                _logger.LogError(ex, "changePassword: Error while changing password for Email={Email}", changePasswordDTO?.Email);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
@@ -258,45 +308,46 @@ namespace Capstone.Controllers
         {
             try
             {
-                //if (accountId <= 0)
-                //    return BadRequest(new { message = "AccountId is required." });
-
                 var isLoggedOut = await _authRepository.Logout(accountId);
                 if (!isLoggedOut)
                 {
+                    _logger.LogWarning("logout: Failed logout attempt for AccountId={AccountId}", accountId);
                     return BadRequest(new { message = "Failed to logout. Please try again." });
                 }
+                _logger.LogInformation("logout: User logged out AccountId={AccountId}", accountId);
                 return Ok(new { message = "Logout successful." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while logging out.");
+                _logger.LogError(ex, "logout: Error while logging out for AccountId={AccountId}", accountId);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
 
         // Get New Access Token API
         [HttpPost("accessToken")]
-        public async Task<ActionResult> GetNewAccessToken([FromBody] GetNewATDTO tokenDTO)
+        public async Task<ActionResult> GetNewAccessToken([FromBody] GetNewAccessTokenDTO tokenDTO)
         {
             try
             {
-                //if (tokenDTO == null)
-                //    return BadRequest(new { message = "Request body is required." });
-
-                //if (tokenDTO.AccountId <= 0 || string.IsNullOrWhiteSpace(tokenDTO.RefreshToken))
-                //    return BadRequest(new { message = "AccountId and RefreshToken are required." });
+                if (tokenDTO == null)
+                {
+                    _logger.LogWarning("getNewAccessToken: Request body null");
+                    return BadRequest(new { message = "Request body is required." });
+                }
 
                 var newAccessToken = await _authRepository.getNewAccessToken(tokenDTO);
                 if (newAccessToken == null)
                 {
+                    _logger.LogWarning("getNewAccessToken: Failed to generate new access token for AccountId={AccountId}", tokenDTO.AccountId);
                     return BadRequest(new { message = "Failed to generate a new Access Token. Please try again." });
                 }
+                _logger.LogInformation("getNewAccessToken: New access token generated for AccountId={AccountId}", tokenDTO.AccountId);
                 return Ok(new { AccessToken = newAccessToken });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while generating new Access Token.");
+                _logger.LogError(ex, "getNewAccessToken: Error while generating new access token for AccountId={AccountId}", tokenDTO?.AccountId);
                 return StatusCode(500, new { message = "An error occurred while processing your request." });
             }
         }
@@ -307,6 +358,7 @@ namespace Capstone.Controllers
         {
             if (request == null || string.IsNullOrWhiteSpace(request.IdToken))
             {
+                _logger.LogWarning("googleLogin: Missing IdToken in request");
                 return BadRequest(new { message = "IdToken is required." });
             }
             try
@@ -314,28 +366,33 @@ namespace Capstone.Controllers
                 var googleResponse = await _googleService.checkIdToken(request.IdToken); // return Email, name, and avartarURL
                 if (googleResponse == null)
                 {
+                    _logger.LogWarning("googleLogin: Invalid IdToken provided");
                     return BadRequest(new { message = "Invalid IdToken." });
                 }
                 var checkIsEmail =  await _authRepository.isEmailExist(googleResponse.Email);
                 if(checkIsEmail == 0)
                 {
-                    var newAccout = new AuthRegisterDTO
+                    var newAccout = new AuthRegisterStudentDTO
                     {
                         Email = googleResponse.Email,
-                        Password = Guid.NewGuid().ToString(),
+                        PasswordHash = Guid.NewGuid().ToString(),
                         FullName = googleResponse.Name
                     };
-                    var isRegistered = await _authRepository.RegisterCandidate(newAccout);
+                    var isRegistered = await _authRepository.RegisterStudent(newAccout);
+                    _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
                 }
                 var loginResponse = await _authRepository.LoginGoogle(googleResponse.Email); // có trả về accessTOken và refreshToken
                 if (loginResponse == null)
                 {
+                    _logger.LogWarning("googleLogin: Login via Google failed for Email={Email}", googleResponse.Email);
                     return Unauthorized(new { message = "Login failed. Please try again." });
                 }
+                _logger.LogInformation("googleLogin: User logged in via Google. Email={Email}", googleResponse.Email);
                 return Ok(loginResponse);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "googleLogin: Error processing Google login");
                 return BadRequest(new { error = ex.Message });
             }
         }
