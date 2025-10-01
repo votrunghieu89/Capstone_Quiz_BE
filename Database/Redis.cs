@@ -1,52 +1,43 @@
 ﻿using StackExchange.Redis;
 
-namespace Capstone.Database
+public class Redis
 {
-    public class Redis
+    private readonly IConnectionMultiplexer _redis;
+    private readonly IDatabase _db;
+
+    public Redis(IConnectionMultiplexer redis)
     {
-        private readonly IConnectionMultiplexer _redis;
-        private readonly IDatabase _db;
+        _redis = redis ?? throw new ArgumentNullException(nameof(redis));
+        _db = _redis.GetDatabase();
+    }
 
-        public Redis(IConnectionMultiplexer redis)
-        {
-            _redis = redis ?? throw new ArgumentNullException(nameof(redis));
-            _db = _redis.GetDatabase();
-        }
+    public async Task<bool> SetStringAsync(string key, string value, TimeSpan? expiry = null)
+        => await _db.StringSetAsync(key, value, expiry);
 
-        // Lưu key/value (string) async
-        public async Task<bool> SetStringAsync(string key, string value, TimeSpan? expiry = null)
-        {
-            return await _db.StringSetAsync(key, value, expiry);
-        }
+    public async Task<string?> GetStringAsync(string key)
+        => await _db.StringGetAsync(key);
 
-        // Lấy value theo key async
-        public async Task<string?> GetStringAsync(string key)
-        {
-            return await _db.StringGetAsync(key);
-        }
+    public async Task<bool> DeleteKeyAsync(string key)
+        => await _db.KeyDeleteAsync(key);
 
-        // Xóa key async
-        public async Task<bool> DeleteKeyAsync(string key)
-        {
-            return await _db.KeyDeleteAsync(key);
-        }
+    public async Task<bool> KeyExistsAsync(string key)
+        => await _db.KeyExistsAsync(key);
 
-        // Kiểm tra key tồn tại async
-        public async Task<bool> KeyExistsAsync(string key)
-        {
-            return await _db.KeyExistsAsync(key);
-        }
+    public async Task<long> IncrementAsync(string key, long value = 1)
+        => await _db.StringIncrementAsync(key, value);
 
-        // Tăng giá trị key kiểu int
-        public async Task<long> IncrementAsync(string key, long value = 1)
-        {
-            return await _db.StringIncrementAsync(key, value);
-        }
+    public async Task<long> DecrementAsync(string key, long value = 1)
+        => await _db.StringDecrementAsync(key, value);
 
-        // Giảm giá trị key kiểu int
-        public async Task<long> DecrementAsync(string key, long value = 1)
+    // ✅ thêm method để xoá theo pattern
+    public async Task DeleteKeysByPatternAsync(string pattern)
+    {
+        var endpoints = _redis.GetEndPoints();
+        var server = _redis.GetServer(endpoints.First());
+
+        foreach (var key in server.Keys(pattern: pattern))
         {
-            return await _db.StringDecrementAsync(key, value);
+            await _db.KeyDeleteAsync(key);
         }
     }
 }

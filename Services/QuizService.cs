@@ -2,6 +2,7 @@
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.Repositories.Quizzes;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -225,8 +226,28 @@ namespace Capstone.Services
                         IsCorrect = o.IsCorrect
                     }).ToList()
                 }).ToList();
-                var totalTime = result.Sum(q => q.Time);
-                await _redis.SetStringAsync($"quiz_questions_{quizId}", JsonSerializer.Serialize(result), TimeSpan.FromSeconds(totalTime + 600));
+                await _redis.SetStringAsync($"quiz_questions_{quizId}", JsonSerializer.Serialize(result), TimeSpan.FromHours(2));
+
+                foreach (var q in result)
+                {
+                    RightAnswerDTO optionModel = new RightAnswerDTO();
+                    foreach (var o in q.Options)
+                    {
+                        await _redis.SetStringAsync($"quiz_questions_{quizId}:question_{q.QuestionId}:option_{o.OptionId}",o.IsCorrect.ToString().ToLower(), TimeSpan.FromHours(2));
+                        if (o.IsCorrect == true)
+                        {
+                            optionModel.OptionId = o.OptionId;
+                            optionModel.OptionContent = o.OptionContent;
+                        }
+                    }
+                    if (optionModel != null)
+                    {
+                        await _redis.SetStringAsync(
+                            $"quiz_questions_{quizId}:question_{q.QuestionId}:correcAnswer",
+                            JsonSerializer.Serialize(optionModel),
+                            TimeSpan.FromHours(2));
+                    }
+                }
                 return result;
             }
             catch (Exception ex)
@@ -236,52 +257,83 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer)
+        public async Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer) // quizId, questionId
         {
-            var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}");
-            if (json == null)
-            {
-                _logger.LogWarning("No cached questions found for quizId: {QuizId}", getCorrectAnswer.QuizId);
-                return null;
+           var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer");
+           if (json == null)
+           {
+                _logger.LogWarning("No cached correct answer found for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
+                var question = await _context.questions
+                    .Where(q => q.QuizId == getCorrectAnswer.QuizId && q.QuestionId == getCorrectAnswer.QuestionId)
+                    .Include(q => q.Options)
+                    .FirstOrDefaultAsync();
+                if (question == null)
+                {
+                    _logger.LogWarning("Question not found for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
+                    return null;
+                }
+                var correctOption = question.Options.FirstOrDefault(o => o.IsCorrect == true);
+                if (correctOption == null)
+                {
+                    _logger.LogWarning("No correct option found for questionId: {QuestionId}", getCorrectAnswer.QuestionId);
+                    return null;
+                }
+                RightAnswerDTO rightAnswerDTO = new RightAnswerDTO
+                {
+                    OptionId = correctOption.OptionId,
+                    OptionContent = correctOption.OptionContent
+                };
+                await _redis.SetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer", JsonSerializer.Serialize(rightAnswerDTO), TimeSpan.FromHours(2));
+                return rightAnswerDTO;
             }
-            var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json);
-            var question = questions?.FirstOrDefault(q => q.QuestionId == getCorrectAnswer.QuestionId);
-            if (question == null)
-            {
-                _logger.LogWarning("Question not found for QuestionId: {QuestionId} in QuizId: {QuizId}", getCorrectAnswer.QuestionId, getCorrectAnswer.QuizId);
+           var correctAnswer = JsonSerializer.Deserialize<RightAnswerDTO>(json);
+           if (correctAnswer == null)
+           {
+                _logger.LogWarning("Deserialized correct answer is null for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
                 return null;
-            }
-            var correctOption = question.Options.FirstOrDefault(o => o.IsCorrect ==  true);
-            return new RightAnswerDTO
-            {
-               OptionId = correctOption.OptionId,
-               OptionContent = correctOption.OptionContent
-            };  
+           }
+           return new RightAnswerDTO
+           {
+                OptionId = correctAnswer.OptionId,
+                OptionContent = correctAnswer.OptionContent
+           };
         }
 
         public async Task<bool> checkAnswer(CheckAnswerDTO checkAnswerDTO)
         {
-            var json = await _redis.GetStringAsync($"quiz_questions_{checkAnswerDTO.QuizId}");
-            if (json == null)
+            try
             {
-                _logger.LogWarning("No cached questions found for quizId: {QuizId}", checkAnswerDTO.QuizId);
+                var json = await _redis.GetStringAsync($"quiz_questions_{checkAnswerDTO.QuizId}:question_{checkAnswerDTO.QuestionId}:option_{checkAnswerDTO.OptionId}");
+                if (json == null)
+                {
+                    _logger.LogWarning("No cached answer found for quizId: {QuizId}, questionId: {QuestionId}, optionId: {OptionId}", checkAnswerDTO.QuizId, checkAnswerDTO.QuestionId, checkAnswerDTO.OptionId);
+                    var option = await _context.options
+                         .Where(o => o.QuestionId == checkAnswerDTO.QuestionId && o.OptionId == checkAnswerDTO.OptionId)
+                         .FirstOrDefaultAsync();
+                    if (option == null)
+                    {
+                        _logger.LogWarning("Option not found for questionId: {QuestionId}, optionId: {OptionId}", checkAnswerDTO.QuestionId, checkAnswerDTO.OptionId);
+                        return false;
+                    }
+                    await _redis.SetStringAsync($"quiz_questions_{checkAnswerDTO.QuizId}:question_{checkAnswerDTO.QuestionId}:option_{checkAnswerDTO.OptionId}", option.IsCorrect.ToString().ToLower(), TimeSpan.FromHours(2));
+                    return option.IsCorrect;
+                }
+                else
+                {
+                    if(json.ToLower() == "true")
+                    {
+                        return true;
+                    } else
+                    {
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking answer for quizId: {QuizId}, questionId: {QuestionId}, optionId: {OptionId}", checkAnswerDTO.QuizId, checkAnswerDTO.QuestionId, checkAnswerDTO.OptionId);
                 return false;
             }
-            var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json);
-            if (questions == null || !questions.Any())
-            {
-                _logger.LogWarning("Deserialized questions are null or empty for quizId: {QuizId}", checkAnswerDTO.QuizId);
-                return false;
-            }
-            var question = questions?.FirstOrDefault(q => q.QuestionId == checkAnswerDTO.QuestionId);
-            var option = question?.Options.FirstOrDefault(o => o.OptionId == checkAnswerDTO.OptionId);
-            if(option == null)
-            {
-                _logger.LogWarning("Option not found for OptionId: {OptionId} in QuestionId: {QuestionId}", checkAnswerDTO.OptionId, checkAnswerDTO.QuestionId);
-                return false;
-            }
-            return option.IsCorrect;
-
         }
     }
 }

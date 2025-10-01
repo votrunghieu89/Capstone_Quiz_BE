@@ -1,179 +1,166 @@
-﻿use Capstone;
+﻿USE Capstone;
 
 -- Bảng Accounts
 CREATE TABLE Accounts (
-    AccountId INT PRIMARY KEY IDENTITY(1,1),
-    Email NVARCHAR(255) NOT NULL UNIQUE,
-    Password NVARCHAR(255) NOT NULL,
-    Role NVARCHAR(20) NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL,
-    CONSTRAINT CK_Accounts_Role CHECK (Role IN ('Candidate', 'Recruiter', 'Admin'))
+    AccountId INT IDENTITY(1,1) PRIMARY KEY,
+    Email NVARCHAR(100) NOT NULL UNIQUE,
+    PasswordHash NVARCHAR(255) NOT NULL,
+    Role NVARCHAR(20) NOT NULL CHECK (Role IN ('Student','Teacher','Admin')),
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL
 );
 
--- Bảng ProfileCandidate
-CREATE TABLE ProfileCandidate (
-    PCAId INT PRIMARY KEY IDENTITY(1,1),
-    AccountId INT NOT NULL UNIQUE,
-    FullName NVARCHAR(200) NOT NULL,
-    PhoneNumber NVARCHAR(20),
-    AvatarURL NVARCHAR(255),
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL,
-    FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId)
+-- Bảng StudentProfile (1-1 với Accounts)
+CREATE TABLE StudentProfile (
+    StudentId INT PRIMARY KEY,
+    FullName NVARCHAR(100) NOT NULL,
+    AvatarURL NVARCHAR(100) NULL,
+    IdUnique NVARCHAR(100) NOT NULL UNIQUE,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL,
+    FOREIGN KEY (StudentId) REFERENCES Accounts(AccountId)
 );
 
--- Bảng ProfileCompany
-CREATE TABLE ProfileCompany (
-    PCId INT PRIMARY KEY IDENTITY(1,1),
-    AccountId INT NOT NULL UNIQUE,
-    PhoneNumber NVARCHAR(15),
-    AvatarURL NVARCHAR(255),
-    CompanyName NVARCHAR(200) NOT NULL,
-    CompanyAddress NVARCHAR(200) NOT NULL,
-    ComnpanyIntroduction NVARCHAR(max) NOT NULL,
-    CompanyLink NVARCHAR(255),
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL,
-    FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId)
+-- Bảng TeacherProfile (1-1 với Accounts)
+CREATE TABLE TeacherProfile (
+    TeacherId INT PRIMARY KEY,
+    FullName NVARCHAR(100) NOT NULL,
+    PhoneNumber NVARCHAR(100) NULL,
+    AvatarURL NVARCHAR(100) NULL,
+    IdUnique NVARCHAR(100) NOT NULL UNIQUE,
+    OrganizationName NVARCHAR(100) NOT NULL,
+    OrganizationAddress NVARCHAR(100) NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL,
+    FOREIGN KEY (TeacherId) REFERENCES Accounts(AccountId)
 );
 
--- Bảng Notifications
-CREATE TABLE Notifications (
-    NotificationId INT PRIMARY KEY IDENTITY(1,1),
-    Title NVARCHAR(255) NOT NULL,
-    Message NVARCHAR(MAX) NOT NULL,
-    Type NVARCHAR(50) NOT NULL CHECK (Type IN ('SubmitCV','Result')),
-    IsFavourite int CHECK (IsFavourite IN (0,1)),
-    IsRead int CHECK (IsRead IN (0,1)),
-    SenderId INT NOT NULL,
-    ReceiverId INT NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL,
-    FOREIGN KEY (SenderId) REFERENCES Accounts(AccountId),
-    FOREIGN KEY (ReceiverId) REFERENCES Accounts(AccountId)
+-- Bảng Groups
+CREATE TABLE Groups (
+    GroupId INT IDENTITY(1,1) PRIMARY KEY,
+    TeacherId INT NOT NULL,
+    GroupName NVARCHAR(100) NOT NULL,
+    GroupDescription NVARCHAR(255) NULL,
+    IdUnique NVARCHAR(100) NOT NULL UNIQUE,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
 );
 
--- Bảng CVs
-CREATE TABLE CVs (
-    CVId INT PRIMARY KEY IDENTITY(1,1),
-    PCAId INT NOT NULL,
-    FileName NVARCHAR(500) NOT NULL,
-    FilePath NVARCHAR(500) NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (PCAId) REFERENCES ProfileCandidate(PCAId)
+-- Bảng Student_Group (N-M giữa StudentProfile và Groups)
+CREATE TABLE Student_Group (
+    SGId INT IDENTITY(1,1) PRIMARY KEY,
+    StudentId INT NOT NULL,
+    GroupId INT NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
+    FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
 );
 
--- Bảng CVFavourite
-CREATE TABLE CVFavourite (
-    CVFavouriteId INT PRIMARY KEY IDENTITY(1,1),
-    PCId INT NOT NULL,
-    CVId INT NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId),
-    FOREIGN KEY (CVId) REFERENCES CVs(CVId)
+-- Bảng Topics
+CREATE TABLE Topics (
+    TopicId INT IDENTITY(1,1) PRIMARY KEY,
+    TopicName NVARCHAR(100) NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
--- Bảng CompanyFavourite
-CREATE TABLE CompanyFavourite (
-    CompanyFavouriteId INT PRIMARY KEY IDENTITY(1,1),
-    PCAId INT NOT NULL,
-    PCId INT NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (PCAId) REFERENCES ProfileCandidate(PCAId),
-    FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId)
+-- Bảng QuizzFolders
+CREATE TABLE QuizzFolders (
+    FolderId INT IDENTITY(1,1) PRIMARY KEY,
+    TeacherId INT,
+    FolderName NVARCHAR(100) NOT NULL,
+    ParentFolderId INT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL,
+    FOREIGN KEY (ParentFolderId) REFERENCES QuizzFolders(FolderId),
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
 );
 
--- Bảng JDs
-CREATE TABLE JDs (
-    JDId INT PRIMARY KEY IDENTITY(1,1),
-    PCId INT NOT NULL,
-    JDTitle NVARCHAR(200) NOT NULL,
-    JDSalary NVARCHAR(200),
-    JDLocation NVARCHAR(200) NOT NULL,
-    JDExperience NVARCHAR(200) NOT NULL,
-    JDExpiredTime Datetime NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL,
-    FOREIGN KEY (PCId) REFERENCES ProfileCompany(PCId)
+-- Bảng Quizzes
+CREATE TABLE Quizzes (
+    QuizId INT IDENTITY(1,1) PRIMARY KEY,
+    TeacherId INT NOT NULL,
+    FolderId INT NOT NULL,
+    TopicId INT NOT NULL,
+    GroupId INT NULL,
+    Title NVARCHAR(100) NOT NULL,
+    Description NVARCHAR(MAX) NOT NULL,
+    IsPrivate BIT NOT NULL,
+    AvartarURL NVARChAR (255),
+    NumberOfPlays int,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL,
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId),
+    FOREIGN KEY (FolderId) REFERENCES QuizzFolders(FolderId),
+    FOREIGN KEY (TopicId) REFERENCES Topics(TopicId),
+    FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
 );
 
--- Bảng JDDetail
-CREATE TABLE JDDetail (
-    JDDetailId INT PRIMARY KEY IDENTITY(1,1),
-    JDId INT NOT NULL UNIQUE,
-    Description NVARCHAR(MAX),
-    Requirement NVARCHAR(MAX),
-    Benefits NVARCHAR(MAX),
-    Location NVARCHAR(MAX),
-    WorkingTime NVARCHAR(MAX),
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL,
-    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+-- Bảng Quizz_Group (N-M giữa Quizzes và Groups)
+CREATE TABLE Quizz_Group (
+    QGId INT IDENTITY(1,1) PRIMARY KEY,
+    QuizId INT NOT NULL,
+    GroupId INT NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
 );
 
--- Bảng Position
-CREATE TABLE Position (
-    PositionId INT PRIMARY KEY IDENTITY(1,1),
-    PositionName NVARCHAR(200) NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    UpdatedAt DATETIME NULL
-);
--- Bảng JDPosition
-CREATE TABLE JDPosition (
-    JDPositionId INT PRIMARY KEY IDENTITY(1,1),
-    JDId INT NOT NULL,
-    PositionId INT NOT NULL,
-    CreatedAt DATETIME NOT NULL,   
-    FOREIGN KEY (JDId) REFERENCES JDs(JDId),
-    FOREIGN KEY (PositionId) REFERENCES Position(PositionId)
+-- Bảng Questions
+CREATE TABLE Questions (
+    QuestionId INT IDENTITY(1,1) PRIMARY KEY,
+    QuizId INT NOT NULL,
+    QuestionType NVARCHAR(10) NOT NULL CHECK (QuestionType IN ('MCQ','TF')),
+    QuestionContent NVARCHAR(MAX) NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL,
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
 
-
--- Bảng JDFavourite
-CREATE TABLE JDFavourite (
-    FavouriteId INT PRIMARY KEY IDENTITY(1,1),
-    PCAId INT NOT NULL,
-    JDId INT NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (PCAId) REFERENCES ProfileCandidate(PCAId),
-    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+-- Bảng Options
+CREATE TABLE Options (
+    OptionId INT IDENTITY(1,1) PRIMARY KEY,
+    QuestionId INT NOT NULL,
+    OptionContent NVARCHAR(MAX) NOT NULL,
+    IsCorrect BIT NOT NULL,
+    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
 );
 
--- Bảng CV_JD_Apply
-CREATE TABLE CV_JD_Apply (
-    ApplyId INT PRIMARY KEY IDENTITY(1,1),
-    CVId INT NOT NULL,
-    JDId INT NOT NULL,
-    Status NVARCHAR(10) CHECK (Status IN ('Pending','Reject', 'Approve')),
-    ReviewedDate DATETIME,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (CVId) REFERENCES CVs(CVId),
-    FOREIGN KEY (JDId) REFERENCES JDs(JDId)
+-- Bảng Results
+CREATE TABLE OfflineResults (
+    OffResultId INT IDENTITY(1,1) PRIMARY KEY,
+    StudentId INT NOT NULL,
+    QuizId INT NOT NULL,
+    Score INT NOT NULL,
+    CorrecCount int,
+    WrongCount int,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+);
+CREATE TABLE OnlineResults (
+    OnlResultId INT IDENTITY(1,1) PRIMARY KEY,
+    StudentName NVARCHAR(50) NOT NULL,
+    QuizId INT NOT NULL UNIQUE,
+    Score INT NOT NULL,
+    CorrecCount int,
+    WrongCount int,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+);
+-- Bảng QuizzFavourite
+CREATE TABLE QuizzFavourite (
+    FavouriteId INT IDENTITY(1,1) PRIMARY KEY,
+    StudentId INT NOT NULL,
+    QuizId INT NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
 
--- Bảng CV_JD_Score
-CREATE TABLE CV_JD_Score (
-    ScoreId INT PRIMARY KEY IDENTITY(1,1),
-    CVId INT NOT NULL,
-    JDId INT NOT NULL,
-    Score DECIMAL(5,2) NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (CVId) REFERENCES CVs(CVId),
-    FOREIGN KEY (JDId) REFERENCES JDs(JDId),
-
+CREATE TABLE QuestionStats (
+    QuestionStatsId INT IDENTITY(1,1) PRIMARY KEY,
+    QuizId INT UNIQUE,
+    QuestionId INT,
+    CorrecCount int,
+    WrongCount int,
+    Total int,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
 );
-
--- Bảng CVExtraction
-CREATE TABLE CVExtraction (
-    ExtractionId INT PRIMARY KEY IDENTITY(1,1),
-    CVId INT NOT NULL UNIQUE,
-    School NVARCHAR(255) NOT NULL,
-    Skills NVARCHAR(max) NOT NULL,
-    Certifications NVARCHAR(max) NOT NULL,
-    Experiences INT NOT NULL,
-    GPA DECIMAL(5,2) NOT NULL,
-    CreatedAt DATETIME NOT NULL,
-    FOREIGN KEY (CVId) REFERENCES CVs(CVId)
-);
-

@@ -77,32 +77,28 @@ namespace Capstone.Controllers
             }
             return Ok(new { message = "Question deleted successfully." });
         }
-        [HttpGet("GetQuestionOfQuizCache/{quizId}")]
+        [HttpGet("GetQuestionOfQuizC/{quizId}")]
         public async Task<IActionResult> GetQuizById(int quizId)
         {
-            var quiz = await _quizRepository.GetQuizQuestions(quizId);
-            if (quiz == null)
-            {
-                return NotFound(new { message = "Quiz not found." });
-            }
-            return Ok(quiz);
-        }
-        [HttpGet("GetQuestionOfQuizFromRedis/{quizId}")]
-        public async Task<IActionResult> GetQuizByIdFromRedis(int quizId)
-        {
-            var json = await _redis.GetStringAsync($"quiz_questions_{quizId}");
+            var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
             if (json == null)
             {
-                _logger.LogWarning("No cached questions found for quizId: {QuizId}", quizId);
-                return null;
-            }
-            var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json);
-            if (questions == null)
+                var quiz = await _quizRepository.GetQuizQuestions(quizId); // lấy câu hỏi từ database
+                if (quiz == null)
+                {
+                    return NotFound(new { message = "Quiz not found." });
+                }
+                return Ok(quiz);
+            } else
             {
-                _logger.LogError("Failed to deserialize cached questions for quizId: {QuizId}", quizId);
-                return StatusCode(500, "An error occurred while processing the cached data.");
+                var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json); // chuyển json thành object
+                if (questions == null)
+                {
+                    _logger.LogError("Failed to deserialize cached questions for quizId: {QuizId}", quizId);
+                    return StatusCode(500, "An error occurred while processing the cached data.");
+                }
+                return Ok(questions);
             }
-            return Ok(questions);
         }
         [HttpPost("CheckQuizAnswers")]
         public async Task<IActionResult> CheckQuizAnswers([FromBody] CheckAnswerDTO quizAnswers)
@@ -123,6 +119,20 @@ namespace Capstone.Controllers
                 return NotFound(new { message = "No correct answers found for the provided question IDs." });
             }
             return Ok(correctAnswers);
+        }
+        [HttpDelete("ClearQuizCache/{quizId}")]
+        public async Task<IActionResult> ClearQuizCache(int quizId)
+        {
+            try
+            {
+                await _redis.DeleteKeysByPatternAsync($"quiz_questions_{quizId}*");
+                return Ok(new { message = $"Cache for quiz {quizId} cleared successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
+                return StatusCode(500, "Error clearing quiz cache.");
+            }
         }
     }
 }
