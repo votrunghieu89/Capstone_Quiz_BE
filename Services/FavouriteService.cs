@@ -1,5 +1,4 @@
-﻿using Capstone.DTOs.Favourite;
-using Capstone.Repositories.Favourite;
+﻿using Capstone.Repositories.Favourite;
 
 using Capstone.Database;
 using Microsoft.EntityFrameworkCore;
@@ -19,10 +18,6 @@ namespace Capstone.Services
             _logger = logger;
         }
 
-        public async Task<List<GetAllFavouriteQuizzesDTO>> GetAllFavouriteQuizzes()
-        {
-            throw new NotImplementedException();
-        }
 
         public async Task<bool> InsertFavouriteQuizzes(int studentId, int quizzId)
         {
@@ -51,13 +46,13 @@ namespace Capstone.Services
                 int check = await _context.SaveChangesAsync();
                 if (check > 0)
                 {
-                    _logger.LogInformation("Insert Quizz Favoirite succesfully");
+                    _logger.LogInformation("Insert Quizz Favourite succesfully");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Can not insert Quizz Favoirite ");
+                _logger.LogError(ex, "Can not insert Quizz Favourite ");
                 return false;
             }
             return false;
@@ -71,12 +66,12 @@ namespace Capstone.Services
                     Where(qf => qf.FavouriteId == quizzFID).ExecuteDeleteAsync();
                 if (checkDeleteQuizzF > 0)
                 {
-                    _logger.LogInformation("Delete Quizz Favoirite succesfully");
+                    _logger.LogInformation("Delete Quizz Favourite succesfully");
                     return true;
                 }
             }catch(Exception ex)
             {
-                _logger.LogError(ex, "Can not insert Quizz Favoirite ");
+                _logger.LogError(ex, "Can not insert Quizz Favourite ");
                 return false;
             }
             return false;
