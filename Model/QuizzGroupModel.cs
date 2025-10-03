@@ -17,6 +17,8 @@ namespace Capstone.Model
 
         [Column("GroupId")]
         public int GroupId { get; set; }
+        [Column("Message")]
+        public string? Message { get; set; }
 
         [Column("CreateAt")]
         [Required]

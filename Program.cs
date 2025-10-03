@@ -2,6 +2,8 @@
 using Capstone.Model;
 using Capstone.Notification;
 using Capstone.Repositories;
+using Capstone.Repositories.Groups;
+using Capstone.Repositories.Profiles;
 using Capstone.Repositories.Favourite;
 using Capstone.Repositories.Quizzes;
 using Capstone.Security;
@@ -114,6 +116,7 @@ builder.Services.AddScoped<IAuthRepository, AuthService>();
 builder.Services.AddScoped<IStudentProfileRepository, StudenProfileService>();
 builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
 builder.Services.AddScoped<IQuizRepository, QuizService>();
+builder.Services.AddScoped<IGroupRepository, GroupService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
@@ -136,11 +139,11 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
     RequestPath = "/ProfileImage"
 });
-//app.UseStaticFiles(new StaticFileOptions
-//{
-//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\CVPDF"),
-//    RequestPath = "/CVPDF"
-//});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
+    RequestPath = "/QuizImage"
+});
 app.UseRouting();
 
 app.UseCors("AllowFrontend");

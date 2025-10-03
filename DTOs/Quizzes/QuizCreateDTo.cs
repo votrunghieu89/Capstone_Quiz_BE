@@ -9,7 +9,7 @@
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool IsPrivate { get; set; }
-        public string AvartarURL { get; set; }
+        public string? AvartarURL { get; set; }
         public int NumberOfPlays { get; set; }
 
         public List<QuestionDTO> Questions { get; set; } = new();
