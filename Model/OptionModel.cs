@@ -24,5 +24,7 @@ namespace Capstone.Model
 
         [Column("IsCorrect")]
         public bool IsCorrect { get; set; }
+        [Column("IsDeleted")]
+        public bool IsDeleted { get; set; } = false;
     }
 }

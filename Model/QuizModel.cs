@@ -21,9 +21,6 @@ namespace Capstone.Model
         [Column("TopicId")]
         public int? TopicId { get; set; }
 
-        [Column("GroupId")]
-        public int? GroupId { get; set; }
-
         [Column("Title")]
         [Required]
         [MaxLength(100)]

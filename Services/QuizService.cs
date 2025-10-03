@@ -3,6 +3,7 @@ using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.Repositories.Quizzes;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -14,16 +15,17 @@ namespace Capstone.Services
         private readonly AppDbContext _context;
         private readonly ILogger<QuizService> _logger;
         private readonly Redis _redis;
-
-        public QuizService(AppDbContext context, ILogger<QuizService> logger, Redis redis)
+        private readonly string _connectionString;
+        public QuizService(AppDbContext context, ILogger<QuizService> logger, Redis redis, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
             _redis = redis;
+            _connectionString = configuration.GetConnectionString("DefaultConnection");
         }
 
 
-        public async Task<bool> CreateQuiz(QuizModel quiz)
+        public async Task<bool> CreateQuiz(QuizCreateDTo quiz)
         {
             try
             {
@@ -35,7 +37,6 @@ namespace Capstone.Services
                         TeacherId = quiz.TeacherId,
                         FolderId = quiz.FolderId,
                         TopicId = quiz.TopicId,
-                        GroupId = quiz.GroupId,
                         Title = quiz.Title,
                         Description = quiz.Description,
                         IsPrivate = quiz.IsPrivate,
@@ -47,6 +48,16 @@ namespace Capstone.Services
                     await _context.quizzes.AddAsync(newQuiz);
                     await _context.SaveChangesAsync();
 
+                    if (quiz.GroupId != null)
+                    {
+                        var quizGroup = new QuizzGroupModel
+                        {
+                            QuizId = newQuiz.QuizId,
+                            GroupId = quiz.GroupId.Value
+                        };
+                        await _context.quizzGroups.AddAsync(quizGroup);
+                        await _context.SaveChangesAsync();
+                    }
                     var questions = new List<QuestionModel>();
                     foreach (var question in quiz.Questions)
                     {
@@ -56,6 +67,7 @@ namespace Capstone.Services
                             QuestionType = question.QuestionType,
                             QuestionContent = question.QuestionContent,
                             Time = question.Time,
+                            IsDeleted = false,
                             CreateAt = DateTime.Now
                         };
                         questions.Add(newQuestion);
@@ -74,7 +86,8 @@ namespace Capstone.Services
                             {
                                 QuestionId = questionId,
                                 OptionContent = option.OptionContent,
-                                IsCorrect = option.IsCorrect
+                                IsCorrect = option.IsCorrect,
+                                IsDeleted = false,
                             };
                             optionsToAdd.Add(newOption);
                         }
@@ -194,17 +207,153 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<bool> UpdateQuiz(QuizModel quiz)
+        public async Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO dto)
         {
-           return false; // Chưa làm
+            var quiz = await _context.quizzes
+                .Include(q => q.Questions)
+                .ThenInclude(q => q.Options)
+                .FirstOrDefaultAsync(q => q.QuizId == dto.QuizId);
+
+            if (quiz == null) throw new Exception("Quiz not found");
+
+            // Update quiz info
+            quiz.FolderId = dto.FolderId;
+            quiz.Title = dto.Title;
+            quiz.Description = dto.Description;
+            quiz.IsPrivate = dto.IsPrivate;
+            quiz.AvartarURL = dto.AvartarURL;
+            quiz.UpdateAt = DateTime.Now;
+
+            // Lấy danh sách questionId từ DTO
+            var dtoQuestionIds = dto.Questions.Where(q => q.QuestionId > 0).Select(q => q.QuestionId).ToList();
+
+            // Đánh dấu question cũ mà không còn trong DTO là IsDeleted = true
+            foreach (var oldQ in quiz.Questions)
+            {
+                if (!dtoQuestionIds.Contains(oldQ.QuestionId))
+                {
+                    oldQ.IsDeleted = true;
+                    oldQ.UpdateAt = DateTime.Now;
+                    foreach (var opt in oldQ.Options)
+                    {
+                        opt.IsDeleted = true;
+                    }
+                }
+            }
+
+            // Duyệt từng câu hỏi trong DTO
+            foreach (var qDto in dto.Questions)
+            {
+                QuestionModel question;
+
+                if (qDto.QuestionId > 0) // Update câu hỏi cũ
+                {
+                    question = quiz.Questions.FirstOrDefault(x => x.QuestionId == qDto.QuestionId);
+                    if (question != null)
+                    {
+                        question.QuestionContent = qDto.QuestionContent;
+                        question.QuestionType = qDto.QuestionType;
+                        question.Time = qDto.Time;
+                        question.IsDeleted = false; // bật lại nếu trước đó bị xóa
+                        question.UpdateAt = DateTime.Now;
+                    }
+                    else
+                    {
+                        continue; // tránh lỗi null
+                    }
+                }
+                else // Thêm câu hỏi mới
+                {
+                    question = new QuestionModel
+                    {
+                        QuizId = quiz.QuizId,
+                        QuestionContent = qDto.QuestionContent,
+                        QuestionType = qDto.QuestionType,
+                        Time = qDto.Time,
+                        Options = new List<OptionModel>(),
+                        IsDeleted = false
+                    };
+                    await _context.questions.AddAsync(question);
+                    await _context.SaveChangesAsync(); // save để có QuestionId
+                    quiz.Questions.Add(question);
+                }
+
+                // Lấy danh sách optionId từ DTO
+                var dtoOptionIds = qDto.Options.Where(o => o.OptionId > 0).Select(o => o.OptionId).ToList();
+
+                // Đánh dấu option cũ không còn trong DTO là IsDeleted = true
+                foreach (var oldO in question.Options)
+                {
+                    if (!dtoOptionIds.Contains(oldO.OptionId))
+                    {
+                        oldO.IsDeleted = true;
+                    }
+                }
+
+                // Duyệt option
+                foreach (var oDto in qDto.Options)
+                {
+                    if (oDto.OptionId > 0) // Update option cũ
+                    {
+                        var option = question.Options.FirstOrDefault(o => o.OptionId == oDto.OptionId);
+                        if (option != null)
+                        {
+                            option.OptionContent = oDto.OptionContent;
+                            option.IsCorrect = oDto.IsCorrect;
+                            option.IsDeleted = false; // bật lại nếu trước đó bị xóa
+                        }
+                    }
+                    else // Thêm option mới
+                    {
+                        var option = new OptionModel
+                        {
+                            QuestionId = question.QuestionId,
+                            OptionContent = oDto.OptionContent,
+                            IsCorrect = oDto.IsCorrect,
+                            IsDeleted = false
+                        };
+                        await _context.options.AddAsync(option);
+                        question.Options.Add(option);
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Trả DTO cập nhật lại (có Id mới)
+            return new QuizUpdateDTO
+            {
+                QuizId = quiz.QuizId,
+                FolderId = quiz.FolderId,
+                Title = quiz.Title,
+                Description = quiz.Description,
+                IsPrivate = quiz.IsPrivate,
+                AvartarURL = quiz.AvartarURL,
+                Questions = quiz.Questions.Select(q => new QuestionUpdateDTO
+                {
+                    QuestionId = q.QuestionId,
+                    QuestionContent = q.QuestionContent,
+                    QuestionType = q.QuestionType,
+                    Time = q.Time,
+                    IsDeleted = q.IsDeleted,
+                    Options = q.Options.Select(o => new OptionUpdateDTO
+                    {
+                        OptionId = o.OptionId,
+                        OptionContent = o.OptionContent,
+                        IsCorrect = o.IsCorrect,
+                        IsDeleted = o.IsDeleted
+                    }).ToList()
+                }).ToList()
+            };
         }
+
         public async Task<List<GetQuizQuestionsDTO>> GetQuizQuestions(int quizId)
         {
             try
             {
                 var questions = await _context.questions
-                    .Where(q => q.QuizId == quizId)
-                    .Include(q => q.Options)
+                    .Where(q => q.QuizId == quizId && q.IsDeleted == false) // chỉ lấy question chưa xóa
+                    .Include(q => q.Options.Where(o => o.IsDeleted == false)) // chỉ lấy option chưa xóa
                     .ToListAsync();
 
                 if (questions == null || !questions.Any())
@@ -226,28 +375,41 @@ namespace Capstone.Services
                         IsCorrect = o.IsCorrect
                     }).ToList()
                 }).ToList();
+
+                // Lưu cache vào Redis
                 await _redis.SetStringAsync($"quiz_questions_{quizId}", JsonSerializer.Serialize(result), TimeSpan.FromHours(2));
 
                 foreach (var q in result)
                 {
-                    RightAnswerDTO optionModel = new RightAnswerDTO();
+                    RightAnswerDTO optionModel = null;
                     foreach (var o in q.Options)
                     {
-                        await _redis.SetStringAsync($"quiz_questions_{quizId}:question_{q.QuestionId}:option_{o.OptionId}",o.IsCorrect.ToString().ToLower(), TimeSpan.FromHours(2));
-                        if (o.IsCorrect == true)
+                        await _redis.SetStringAsync(
+                            $"quiz_questions_{quizId}:question_{q.QuestionId}:option_{o.OptionId}",
+                            o.IsCorrect.ToString().ToLower(),
+                            TimeSpan.FromHours(2)
+                        );
+
+                        if (o.IsCorrect)
                         {
-                            optionModel.OptionId = o.OptionId;
-                            optionModel.OptionContent = o.OptionContent;
+                            optionModel = new RightAnswerDTO
+                            {
+                                OptionId = o.OptionId,
+                                OptionContent = o.OptionContent
+                            };
                         }
                     }
+
                     if (optionModel != null)
                     {
                         await _redis.SetStringAsync(
                             $"quiz_questions_{quizId}:question_{q.QuestionId}:correcAnswer",
                             JsonSerializer.Serialize(optionModel),
-                            TimeSpan.FromHours(2));
+                            TimeSpan.FromHours(2)
+                        );
                     }
                 }
+
                 return result;
             }
             catch (Exception ex)
@@ -259,9 +421,9 @@ namespace Capstone.Services
 
         public async Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer) // quizId, questionId
         {
-           var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer");
-           if (json == null)
-           {
+            var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer");
+            if (json == null)
+            {
                 _logger.LogWarning("No cached correct answer found for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
                 var question = await _context.questions
                     .Where(q => q.QuizId == getCorrectAnswer.QuizId && q.QuestionId == getCorrectAnswer.QuestionId)
@@ -286,17 +448,17 @@ namespace Capstone.Services
                 await _redis.SetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer", JsonSerializer.Serialize(rightAnswerDTO), TimeSpan.FromHours(2));
                 return rightAnswerDTO;
             }
-           var correctAnswer = JsonSerializer.Deserialize<RightAnswerDTO>(json);
-           if (correctAnswer == null)
-           {
+            var correctAnswer = JsonSerializer.Deserialize<RightAnswerDTO>(json);
+            if (correctAnswer == null)
+            {
                 _logger.LogWarning("Deserialized correct answer is null for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
                 return null;
-           }
-           return new RightAnswerDTO
-           {
+            }
+            return new RightAnswerDTO
+            {
                 OptionId = correctAnswer.OptionId,
                 OptionContent = correctAnswer.OptionContent
-           };
+            };
         }
 
         public async Task<bool> checkAnswer(CheckAnswerDTO checkAnswerDTO)
@@ -320,10 +482,11 @@ namespace Capstone.Services
                 }
                 else
                 {
-                    if(json.ToLower() == "true")
+                    if (json.ToLower() == "true")
                     {
                         return true;
-                    } else
+                    }
+                    else
                     {
                         return false;
                     }
@@ -339,7 +502,7 @@ namespace Capstone.Services
         {
             try
             {
-                var QuizDetail = await _context.quizzes
+                var quizDetail = await _context.quizzes
                     .Where(q => q.QuizId == quizId)
                     .Select(q => new
                     {
@@ -351,46 +514,139 @@ namespace Capstone.Services
                         q.CreateAt,
                     })
                     .FirstOrDefaultAsync();
-                if (QuizDetail == null)
+
+                if (quizDetail == null)
                 {
                     _logger.LogWarning("No quiz found for quizId: {QuizId}", quizId);
                     return null;
                 }
-                List<QuestionDetailDTO> questionDetails = await _context.questions
-                .Where(q => q.QuizId == quizId)
-                .Select(q => new QuestionDetailDTO
-                {
-                    QuestionId = q.QuestionId,
-                    QuestionType = q.QuestionType,
-                    QuestionContent = q.QuestionContent,
-                    Time = q.Time,
-                    Options = q.Options.Select(o => new OptionDetailDTO
-                    {
-                        OptionId = o.OptionId,
-                        OptionContent = o.OptionContent,
-                        IsCorrect = o.IsCorrect
-                    }).ToList()
-                })
-           .ToListAsync();
 
-                ViewDetailDTO viewDetailDTO = new ViewDetailDTO
+                // Lấy question chưa bị xóa
+                List<QuestionDetailDTO> questionDetails = await _context.questions
+                    .Where(q => q.QuizId == quizId && q.IsDeleted == false)
+                    .Select(q => new QuestionDetailDTO
+                    {
+                        QuestionId = q.QuestionId,
+                        QuestionType = q.QuestionType,
+                        QuestionContent = q.QuestionContent,
+                        Time = q.Time,
+                        Options = q.Options
+                            .Where(o => o.IsDeleted == false) // chỉ lấy option chưa xóa
+                            .Select(o => new OptionDetailDTO
+                            {
+                                OptionId = o.OptionId,
+                                OptionContent = o.OptionContent,
+                                IsCorrect = o.IsCorrect
+                            }).ToList()
+                    })
+                    .ToListAsync();
+
+                var viewDetailDTO = new ViewDetailDTO
                 {
-                    QuizId = QuizDetail.QuizId,
-                    Title = QuizDetail.Title,
-                    Description = QuizDetail.Description,
-                    AvatarURL = QuizDetail.AvartarURL,
-                    NumberOfPlays = QuizDetail.NumberOfPlays,
-                    CreatedDate = QuizDetail.CreateAt,
+                    QuizId = quizDetail.QuizId,
+                    Title = quizDetail.Title,
+                    Description = quizDetail.Description,
+                    AvatarURL = quizDetail.AvartarURL,
+                    NumberOfPlays = quizDetail.NumberOfPlays,
+                    CreatedDate = quizDetail.CreateAt,
                     Questions = questionDetails ?? new List<QuestionDetailDTO>()
                 };
-                return viewDetailDTO;
 
+                return viewDetailDTO;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting detail of quiz for quizId: {QuizId}", quizId);
                 return null;
             }
+        }
+
+        public async Task<string> getOrlAvatarURL(int quizId)
+        {
+            try
+            {
+                var quiz = await _context.quizzes
+                    .Where(q => q.QuizId == quizId)
+                    .Select(q => new { q.AvartarURL })
+                    .FirstOrDefaultAsync();
+                if (quiz == null)
+                {
+                    _logger.LogWarning("No quiz found for quizId: {QuizId}", quizId);
+                    return null;
+                }
+                return quiz.AvartarURL;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting avatar URL for quizId: {QuizId}", quizId);
+                return null;
+            }
+        }
+        public async Task<List<ViewAllQuizDTO>> getAllQuizzes(int page, int pageSize)
+        {
+            var result = new List<ViewAllQuizDTO>();
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    // Tính số dòng bỏ qua
+                    int skip = (page - 1) * pageSize;
+
+                    string query = @"
+                SELECT 
+                    q.QuizId,
+                    q.Title,
+                    q.AvartarURL,
+                    t.FullName AS CreatedBy,
+                    ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions
+                FROM Quizzes q
+                LEFT JOIN TeacherProfile t
+                    ON q.TeacherId = t.TeacherId
+                LEFT JOIN Questions ques
+                    ON q.QuizId = ques.QuizId AND ques.IsDeleted = 0
+                GROUP BY q.QuizId, q.Title, q.AvartarURL, t.FullName
+                ORDER BY q.QuizId
+                OFFSET @Skip ROWS
+                FETCH NEXT @Take ROWS ONLY;
+            ";
+
+                    using (SqlCommand cmd = new SqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddWithValue("@Skip", skip);
+                        cmd.Parameters.AddWithValue("@Take", pageSize);
+
+                        using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var quiz = new ViewAllQuizDTO
+                                {
+                                    QuizId = reader.GetInt32(reader.GetOrdinal("QuizId")),
+                                    Title = reader.GetString(reader.GetOrdinal("Title")),
+                                    AvatarURL = reader.GetString(reader.GetOrdinal("AvartarURL")),
+                                    CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy"))
+                                                ? null
+                                                : reader.GetString(reader.GetOrdinal("CreatedBy")),
+                                    TotalQuestions = reader.GetInt32(reader.GetOrdinal("TotalQuestions"))
+                                };
+
+                                result.Add(quiz);
+                            }
+                        }
+                    }
+                }
+                await _redis.SetStringAsync($"all_quizzes_page_{page}_size_{pageSize}", JsonSerializer.Serialize(result), TimeSpan.FromHours(3));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all quizzes");
+                return new List<ViewAllQuizDTO>();
+            }
+
+            return result;
         }
     }
 }

@@ -5,9 +5,9 @@ namespace Capstone.Repositories.Quizzes
 {
     public interface IQuizRepository
     {
-        public Task<bool> CreateQuiz(QuizModel quiz);
+        public Task<bool> CreateQuiz(QuizCreateDTo quiz);
         public Task<bool> DeleteQuiz(int quizId);
-        public Task<bool> UpdateQuiz(QuizModel quiz);
+        public Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO quiz);
         public Task<bool> DeleteQuestion(int questionId);
 
         public Task<List<GetQuizQuestionsDTO>> GetQuizQuestions(int quizId);
@@ -15,5 +15,8 @@ namespace Capstone.Repositories.Quizzes
         public Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer);
         public Task<bool> checkAnswer(CheckAnswerDTO checkAnswerDTO);
         public Task<ViewDetailDTO> getDetailOfAQuiz(int quizId);
+        public Task<string> getOrlAvatarURL(int quizId);
+
+        public Task<List<ViewAllQuizDTO>> getAllQuizzes(int page, int PageSize);
     }
 }

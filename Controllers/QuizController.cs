@@ -1,4 +1,5 @@
 ﻿using Capstone.Database;
+using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.Repositories.Quizzes;
@@ -55,8 +56,8 @@ namespace Capstone.Controllers
         public async Task<IActionResult> CreateQuiz([FromBody] QuizCreateDTo quiz)
         {
             try
-            { 
-                var quizModel = new QuizModel
+            {
+                var quizModel = new QuizCreateDTo
                 {
                     TeacherId = quiz.TeacherId,
                     FolderId = quiz.FolderId,
@@ -67,18 +68,18 @@ namespace Capstone.Controllers
                     IsPrivate = quiz.IsPrivate,
                     AvartarURL = quiz.AvartarURL,
                     NumberOfPlays = 0,
-                    CreateAt = DateTime.UtcNow,
-                    Questions = quiz.Questions?.Select(q => new QuestionModel
+                    CreatedAt = DateTime.Now,
+                    Questions = quiz.Questions?.Select(q => new QuestionDTO
                     {
                         QuestionType = q.QuestionType,
                         QuestionContent = q.QuestionContent,
                         Time = q.Time,
-                        Options = q.Options?.Select(o => new OptionModel
+                        Options = q.Options?.Select(o => new OptionDTO
                         {
                             OptionContent = o.OptionContent,
                             IsCorrect = o.IsCorrect
-                        }).ToList() ?? new List<OptionModel>()
-                    }).ToList() ?? new List<QuestionModel>()
+                        }).ToList() ?? new List<OptionDTO>()
+                    }).ToList() ?? new List<QuestionDTO>()
                 };
 
                 // 5️⃣ Gọi repository lưu quiz
@@ -128,7 +129,8 @@ namespace Capstone.Controllers
                     return NotFound(new { message = "Quiz not found." });
                 }
                 return Ok(quiz);
-            } else
+            }
+            else
             {
                 var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json); // chuyển json thành object
                 if (questions == null)
@@ -183,23 +185,167 @@ namespace Capstone.Controllers
             {
                 return NotFound(new { message = "Quiz not found." });
             }
-            if(!string.IsNullOrEmpty(quizDetails.AvatarURL))
+            if (!string.IsNullOrEmpty(quizDetails.AvatarURL))
             {
                 quizDetails.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quizDetails.AvatarURL.Replace("\\", "/")}";
             }
             ViewDetailDTO quiz = new ViewDetailDTO
             {
                 QuizId = quizDetails.QuizId,
-          
+
                 Title = quizDetails.Title,
                 Description = quizDetails.Description,
                 AvatarURL = quizDetails.AvatarURL ?? string.Empty,
                 NumberOfPlays = quizDetails.NumberOfPlays,
                 CreatedDate = quizDetails.CreatedDate,
                 Questions = quizDetails.Questions,
-                
+
             };
             return Ok(quiz);
+        }
+        [HttpPut("updateImage/{quizId}")]
+        public async Task<IActionResult> UpdateImage([FromForm] QuizUpdateImageDTO dto)
+        {
+            try
+            {
+                var oldImage = await _quizRepository.getOrlAvatarURL(dto.QuizId);
+
+                // Nếu user không upload ảnh mới -> giữ nguyên ảnh cũ
+                if (dto.AvatarURL == null)
+                {
+                    return Ok(new { imageUrl = oldImage });
+                }
+
+                // Validate dung lượng
+                if (dto.AvatarURL.Length > 2 * 1024 * 1024) // 2MB
+                {
+                    return BadRequest("File quá lớn, tối đa 2MB");
+                }
+
+                // Validate extension
+                var extension = Path.GetExtension(dto.AvatarURL.FileName).ToLower();
+                var allowedExt = new[] { ".jpg", ".jpeg", ".png" };
+                if (!allowedExt.Contains(extension))
+                {
+                    return BadRequest("Định dạng file không hợp lệ (chỉ cho phép .jpg, .jpeg, .png)");
+                }
+
+                // Tạo folder
+                var folderName = _configuration["UploadSettings:QuizFolder"];
+                var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
+                if (!Directory.Exists(uploadFolder))
+                    Directory.CreateDirectory(uploadFolder);
+
+                // Tạo file mới
+                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+                var filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+                using (var stream = System.IO.File.Create(filePath))
+                {
+                    await dto.AvatarURL.CopyToAsync(stream);
+                }
+
+                // Sau khi lưu file mới thành công -> mới xóa file cũ
+                if (!string.IsNullOrEmpty(oldImage) && oldImage != "Default.jpg")
+                {
+                    var oldImagePath = Path.Combine(_webHostEnvironment.ContentRootPath, oldImage);
+                    if (System.IO.File.Exists(oldImagePath))
+                    {
+                        System.IO.File.Delete(oldImagePath);
+                    }
+                }
+
+                return Ok(new { imageUrl = Path.Combine(folderName, uniqueFileName).Replace("\\", "/") });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi server: {ex.Message}");
+            }
+        }
+
+
+        [HttpPut("updateQuiz")]
+        public async Task<IActionResult> UpdateQuiz([FromBody] QuizzUpdateControllerDTO quiz)
+        {
+            try
+            {
+                var quizModel = new QuizUpdateDTO
+                {
+                    QuizId = quiz.QuizId,
+                    FolderId = quiz.FolderId,
+                    TopicId = quiz.TopicId,
+                    GroupId = quiz.GroupId,
+                    Title = quiz.Title,
+                    Description = quiz.Description,
+                    IsPrivate = quiz.IsPrivate,
+                    AvartarURL = quiz.AvartarURL,
+                    Questions = quiz.Questions?.Select(q => new QuestionUpdateDTO
+                    {
+                        QuestionId = q.QuestionId,
+                        QuestionType = q.QuestionType,
+                        QuestionContent = q.QuestionContent,
+                        Time = q.Time,
+                        Options = q.Options?.Select(o => new OptionUpdateDTO
+                        {
+                            OptionId = o.OptionId,
+                            OptionContent = o.OptionContent,
+                            IsCorrect = o.IsCorrect
+                        }).ToList() ?? new List<OptionUpdateDTO>()
+                    }).ToList() ?? new List<QuestionUpdateDTO>()
+                };
+                var updatedQuiz = await _quizRepository.UpdateQuiz(quizModel);
+                if (updatedQuiz == null)
+                {
+                    return StatusCode(500, "An error occurred while updating the quiz.");
+                }
+                // Xoá cache câu hỏi của quiz này trong Redis
+                await _redis.DeleteKeysByPatternAsync($"quiz_questions_{quiz.QuizId}*");
+                return Ok(updatedQuiz);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating quiz with ID: {QuizId}", quiz.QuizId);
+                return StatusCode(500, "An unexpected error occurred.");
+            }
+        }
+        [HttpGet("GetAllQuizzes")]
+        public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
+        {
+            if (pages.page <= 0 || pages.pageSize <= 0)
+                return BadRequest(new { message = "Page and PageSize must be greater than 0." });
+
+            string cacheKey = $"all_quizzes_page_{pages.page}_size_{pages.pageSize}";
+            // all_quizzes_page_{page}_size_{pageSize}
+            var cachedJson = await _redis.GetStringAsync(cacheKey);
+            if (cachedJson == null)
+            {
+                Console.WriteLine("Cache miss for key: " + cacheKey);
+            }
+            List<ViewAllQuizDTO>? quizzes = null;
+
+            if (!string.IsNullOrEmpty(cachedJson))
+            {
+                quizzes = JsonSerializer.Deserialize<List<ViewAllQuizDTO>>(cachedJson);
+                Console.WriteLine("Retrieved quizzes from cache.");
+            }
+
+          
+            if (quizzes == null || !quizzes.Any())
+            {
+                quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
+                Console.WriteLine("Retrieved quizzes from DB.");
+                if (quizzes == null || !quizzes.Any())
+                    return NotFound(new { message = "No quizzes found." });
+            }
+            foreach (var quiz in quizzes)
+            {
+                if (!string.IsNullOrEmpty(quiz.AvatarURL))
+                {
+                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                }
+            }
+
+            return Ok(quizzes);
         }
     }
 }

@@ -35,6 +35,9 @@ namespace Capstone.Model
         [Column("Time")]
         public int Time { get; set; }
 
+        [Column("IsDeleted")]
+        public bool IsDeleted { get; set; } = false;
+
         public List<OptionModel> Options { get; set; } = new List<OptionModel>();
     }
 }
