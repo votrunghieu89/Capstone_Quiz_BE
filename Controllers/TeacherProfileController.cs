@@ -1,6 +1,6 @@
 using Capstone.DTOs.TeacherProfile;
 using Capstone.Model;
-using Capstone.Repositories;
+using Capstone.Repositories.Profiles;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,7 +1,7 @@
 using Capstone.DTOs.TeacherProfile;
 using Capstone.Model;
 
-namespace Capstone.Repositories
+namespace Capstone.Repositories.Profiles
 {
     public interface ITeacherProfileRepository
     {

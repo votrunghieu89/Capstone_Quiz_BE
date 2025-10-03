@@ -12,10 +12,10 @@ namespace Capstone.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int SGId { get; set; }
 
-        [Column("StudentId")]
+        [ForeignKey("StudentId")]
         public int StudentId { get; set; }
 
-        [Column("GroupId")]
+        [ForeignKey("GroupId")]
         public int GroupId { get; set; }
 
         [Column("CreateAt")]

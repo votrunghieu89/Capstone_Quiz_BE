@@ -1,7 +1,7 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.StudentProfile;
 using Capstone.Model;
-using Capstone.Repositories;
+using Capstone.Repositories.Profiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 

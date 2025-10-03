@@ -12,7 +12,7 @@ namespace Capstone.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FolderId { get; set; }
 
-        [Column("TeacherId")]
+        [ForeignKey("TeacherId")]
         public int TeacherId { get; set; }
         [Column("FolderName")]
         [Required]
