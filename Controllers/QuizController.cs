@@ -2,6 +2,7 @@
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.Repositories.Quizzes;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -14,46 +15,84 @@ namespace Capstone.Controllers
         private readonly ILogger<QuizController> _logger;
         private readonly IQuizRepository _quizRepository;
         private readonly Redis _redis;
-        public QuizController(ILogger<QuizController> logger, IQuizRepository quizRepository, Redis redis)
+        private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _webHostEnvironment;
+        public QuizController(ILogger<QuizController> logger, IQuizRepository quizRepository, Redis redis, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
         {
             _logger = logger;
             _quizRepository = quizRepository;
             _redis = redis;
+            _configuration = configuration;
+            _webHostEnvironment = webHostEnvironment;
         }
+        [HttpPost("uploadImage")]
+        public async Task<IActionResult> UploadImage([FromForm] QuizCreateFormDTO dto)
+        {
+            var folderName = _configuration["UploadSettings:QuizFolder"];
+            var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
+
+            if (!Directory.Exists(uploadFolder))
+                Directory.CreateDirectory(uploadFolder);
+
+            string avatarPath = Path.Combine(folderName, "Default.jpg");
+
+            if (dto.AvatarURL != null && dto.AvatarURL.Length <= 2 * 1024 * 1024) // 2MB
+            {
+                var extension = Path.GetExtension(dto.AvatarURL.FileName);
+                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+                var filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await dto.AvatarURL.CopyToAsync(fileStream);
+
+                avatarPath = Path.Combine(folderName, uniqueFileName);
+            }
+
+            return Ok(new { imageUrl = avatarPath.Replace("\\", "/") });
+        }
+
         [HttpPost("createQuiz")]
         public async Task<IActionResult> CreateQuiz([FromBody] QuizCreateDTo quiz)
         {
-            QuizModel quizModel = new QuizModel()
-            {
-                TeacherId = quiz.TeacherId,
-                FolderId = quiz.FolderId,
-                TopicId = quiz.TopicId,
-                GroupId = quiz.GroupId,
-                Title = quiz.Title,
-                Description = quiz.Description,
-                IsPrivate = quiz.IsPrivate,
-                AvartarURL = quiz.AvartarURL,
-                NumberOfPlays = 0,
-                CreateAt = DateTime.Now,
-                Questions = quiz.Questions.Select(q => new QuestionModel
+            try
+            { 
+                var quizModel = new QuizModel
                 {
-                    QuestionType = q.QuestionType,
-                    QuestionContent = q.QuestionContent,
-                    Time = q.Time,
-                    Options = q.Options.Select(o => new OptionModel
+                    TeacherId = quiz.TeacherId,
+                    FolderId = quiz.FolderId,
+                    TopicId = quiz.TopicId,
+                    GroupId = quiz.GroupId,
+                    Title = quiz.Title,
+                    Description = quiz.Description,
+                    IsPrivate = quiz.IsPrivate,
+                    AvartarURL = quiz.AvartarURL,
+                    NumberOfPlays = 0,
+                    CreateAt = DateTime.UtcNow,
+                    Questions = quiz.Questions?.Select(q => new QuestionModel
                     {
-                        OptionContent = o.OptionContent,
-                        IsCorrect = o.IsCorrect
-                    }).ToList()
-                }).ToList()
+                        QuestionType = q.QuestionType,
+                        QuestionContent = q.QuestionContent,
+                        Time = q.Time,
+                        Options = q.Options?.Select(o => new OptionModel
+                        {
+                            OptionContent = o.OptionContent,
+                            IsCorrect = o.IsCorrect
+                        }).ToList() ?? new List<OptionModel>()
+                    }).ToList() ?? new List<QuestionModel>()
+                };
 
-            };
-            var createdQuiz = await _quizRepository.CreateQuiz(quizModel);
-            if (createdQuiz == null)
-            {
-                return StatusCode(500, "An error occurred while creating the quiz.");
+                // 5️⃣ Gọi repository lưu quiz
+                var createdQuiz = await _quizRepository.CreateQuiz(quizModel);
+                if (createdQuiz == null)
+                    return StatusCode(500, "An error occurred while creating the quiz.");
+
+                return Ok(createdQuiz);
             }
-            return Ok(createdQuiz);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating quiz");
+                return StatusCode(500, "An unexpected error occurred.");
+            }
         }
 
         [HttpDelete("deleteQuiz/{quizId}")]
@@ -133,6 +172,34 @@ namespace Capstone.Controllers
                 _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
                 return StatusCode(500, "Error clearing quiz cache.");
             }
+        }
+
+
+        [HttpGet("GetQuizDetails/{quizId}")]
+        public async Task<IActionResult> GetQuizDetails(int quizId)
+        {
+            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuiz(quizId);
+            if (quizDetails == null)
+            {
+                return NotFound(new { message = "Quiz not found." });
+            }
+            if(!string.IsNullOrEmpty(quizDetails.AvatarURL))
+            {
+                quizDetails.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quizDetails.AvatarURL.Replace("\\", "/")}";
+            }
+            ViewDetailDTO quiz = new ViewDetailDTO
+            {
+                QuizId = quizDetails.QuizId,
+          
+                Title = quizDetails.Title,
+                Description = quizDetails.Description,
+                AvatarURL = quizDetails.AvatarURL ?? string.Empty,
+                NumberOfPlays = quizDetails.NumberOfPlays,
+                CreatedDate = quizDetails.CreatedDate,
+                Questions = quizDetails.Questions,
+                
+            };
+            return Ok(quiz);
         }
     }
 }

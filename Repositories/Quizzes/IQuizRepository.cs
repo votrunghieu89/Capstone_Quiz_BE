@@ -14,5 +14,6 @@ namespace Capstone.Repositories.Quizzes
 
         public Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer);
         public Task<bool> checkAnswer(CheckAnswerDTO checkAnswerDTO);
+        public Task<ViewDetailDTO> getDetailOfAQuiz(int quizId);
     }
 }

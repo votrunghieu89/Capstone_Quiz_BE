@@ -1,4 +1,4 @@
-﻿using Capstone.Database;
+﻿ using Capstone.Database;
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.Repositories.Quizzes;
@@ -333,6 +333,63 @@ namespace Capstone.Services
             {
                 _logger.LogError(ex, "Error checking answer for quizId: {QuizId}, questionId: {QuestionId}, optionId: {OptionId}", checkAnswerDTO.QuizId, checkAnswerDTO.QuestionId, checkAnswerDTO.OptionId);
                 return false;
+            }
+        }
+        public async Task<ViewDetailDTO> getDetailOfAQuiz(int quizId)
+        {
+            try
+            {
+                var QuizDetail = await _context.quizzes
+                    .Where(q => q.QuizId == quizId)
+                    .Select(q => new
+                    {
+                        q.QuizId,
+                        q.Title,
+                        q.Description,
+                        q.AvartarURL,
+                        q.NumberOfPlays,
+                        q.CreateAt,
+                    })
+                    .FirstOrDefaultAsync();
+                if (QuizDetail == null)
+                {
+                    _logger.LogWarning("No quiz found for quizId: {QuizId}", quizId);
+                    return null;
+                }
+                List<QuestionDetailDTO> questionDetails = await _context.questions
+                .Where(q => q.QuizId == quizId)
+                .Select(q => new QuestionDetailDTO
+                {
+                    QuestionId = q.QuestionId,
+                    QuestionType = q.QuestionType,
+                    QuestionContent = q.QuestionContent,
+                    Time = q.Time,
+                    Options = q.Options.Select(o => new OptionDetailDTO
+                    {
+                        OptionId = o.OptionId,
+                        OptionContent = o.OptionContent,
+                        IsCorrect = o.IsCorrect
+                    }).ToList()
+                })
+           .ToListAsync();
+
+                ViewDetailDTO viewDetailDTO = new ViewDetailDTO
+                {
+                    QuizId = QuizDetail.QuizId,
+                    Title = QuizDetail.Title,
+                    Description = QuizDetail.Description,
+                    AvatarURL = QuizDetail.AvartarURL,
+                    NumberOfPlays = QuizDetail.NumberOfPlays,
+                    CreatedDate = QuizDetail.CreateAt,
+                    Questions = questionDetails ?? new List<QuestionDetailDTO>()
+                };
+                return viewDetailDTO;
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting detail of quiz for quizId: {QuizId}", quizId);
+                return null;
             }
         }
     }

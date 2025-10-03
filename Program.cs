@@ -137,11 +137,11 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
     RequestPath = "/ProfileImage"
 });
-//app.UseStaticFiles(new StaticFileOptions
-//{
-//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\CVPDF"),
-//    RequestPath = "/CVPDF"
-//});
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
+    RequestPath = "/QuizImage"
+});
 app.UseRouting();
 
 app.UseCors("AllowFrontend");
