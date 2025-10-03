@@ -319,21 +319,21 @@ namespace Capstone.Controllers
             var cachedJson = await _redis.GetStringAsync(cacheKey);
             if (cachedJson == null)
             {
-                Console.WriteLine("Cache miss for key: " + cacheKey);
+              
             }
             List<ViewAllQuizDTO>? quizzes = null;
 
             if (!string.IsNullOrEmpty(cachedJson))
             {
                 quizzes = JsonSerializer.Deserialize<List<ViewAllQuizDTO>>(cachedJson);
-                Console.WriteLine("Retrieved quizzes from cache.");
+              
             }
 
           
             if (quizzes == null || !quizzes.Any())
             {
                 quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
-                Console.WriteLine("Retrieved quizzes from DB.");
+               
                 if (quizzes == null || !quizzes.Any())
                     return NotFound(new { message = "No quizzes found." });
             }
