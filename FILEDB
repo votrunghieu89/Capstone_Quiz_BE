@@ -81,7 +81,6 @@ CREATE TABLE Quizzes (
     TeacherId INT NOT NULL,
     FolderId INT NOT NULL,
     TopicId INT NOT NULL,
-    GroupId INT NULL,
     Title NVARCHAR(100) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
     IsPrivate BIT NOT NULL,
