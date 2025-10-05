@@ -2,6 +2,7 @@
 using Capstone.Model;
 using Capstone.Notification;
 using Capstone.Repositories;
+using Capstone.Repositories.Admin;
 using Capstone.Repositories.Groups;
 using Capstone.Repositories.Profiles;
 using Capstone.Repositories.Quizzes;
@@ -116,6 +117,7 @@ builder.Services.AddScoped<IStudentProfileRepository, StudenProfileService>();
 builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
 builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddScoped<IGroupRepository, GroupService>();
+builder.Services.AddScoped<IAdminRepository,AdminService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
