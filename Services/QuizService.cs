@@ -347,21 +347,22 @@ namespace Capstone.Services
             };
         }
 
-        public async Task<List<GetQuizQuestionsDTO>> GetQuizQuestions(int quizId)
+        public async Task<List<getQuizQuestionWithoutAnswerDTO>> GetQuizQuestions(int quizId)
         {
             try
             {
                 var questions = await _context.questions
-                    .Where(q => q.QuizId == quizId && q.IsDeleted == false) // chỉ lấy question chưa xóa
-                    .Include(q => q.Options.Where(o => o.IsDeleted == false)) // chỉ lấy option chưa xóa
+                    .Where(q => q.QuizId == quizId && q.IsDeleted == false)
+                    .Include(q => q.Options.Where(o => o.IsDeleted == false))
                     .ToListAsync();
 
                 if (questions == null || !questions.Any())
                 {
                     _logger.LogWarning("No questions found for quizId: {QuizId}", quizId);
-                    return new List<GetQuizQuestionsDTO>();
+                    return new List<getQuizQuestionWithoutAnswerDTO>();
                 }
 
+                // Bản đầy đủ (có IsCorrect)
                 var result = questions.Select(q => new GetQuizQuestionsDTO
                 {
                     QuestionId = q.QuestionId,
@@ -376,12 +377,31 @@ namespace Capstone.Services
                     }).ToList()
                 }).ToList();
 
-                // Lưu cache vào Redis
-                await _redis.SetStringAsync($"quiz_questions_{quizId}", JsonSerializer.Serialize(result), TimeSpan.FromHours(2));
+             
+                var cacheWithoutAnswer = result.Select(q => new getQuizQuestionWithoutAnswerDTO
+                {
+                    QuestionId = q.QuestionId,
+                    QuestionType = q.QuestionType,
+                    QuestionContent = q.QuestionContent,
+                    Time = q.Time,
+                    Options = q.Options.Select(o => new getQuizOptionWithoutAnswerDTO
+                    {
+                        OptionId = o.OptionId,
+                        OptionContent = o.OptionContent
+                    }).ToList()
+                }).ToList();
 
+                
+                await _redis.SetStringAsync(
+                    $"quiz_questions_{quizId}",
+                    JsonSerializer.Serialize(cacheWithoutAnswer),
+                    TimeSpan.FromHours(2)
+                );
+
+            
                 foreach (var q in result)
                 {
-                    RightAnswerDTO optionModel = null;
+                    RightAnswerDTO? optionModel = null;
                     foreach (var o in q.Options)
                     {
                         await _redis.SetStringAsync(
@@ -403,21 +423,22 @@ namespace Capstone.Services
                     if (optionModel != null)
                     {
                         await _redis.SetStringAsync(
-                            $"quiz_questions_{quizId}:question_{q.QuestionId}:correcAnswer",
+                            $"quiz_questions_{quizId}:question_{q.QuestionId}:correctAnswer",
                             JsonSerializer.Serialize(optionModel),
                             TimeSpan.FromHours(2)
                         );
                     }
                 }
 
-                return result;
+                return cacheWithoutAnswer;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting quiz questions for quizId: {QuizId}", quizId);
-                return new List<GetQuizQuestionsDTO>();
+                return new List<getQuizQuestionWithoutAnswerDTO>();
             }
         }
+
 
         public async Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer) // quizId, questionId
         {
@@ -498,7 +519,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<ViewDetailDTO> getDetailOfAQuiz(int quizId)
+        public async Task<ViewDetailDTO> getDetailOfAQuizforTeacher(int quizId)
         {
             try
             {

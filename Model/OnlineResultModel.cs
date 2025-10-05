@@ -17,7 +17,7 @@ namespace Capstone.Model
         [MaxLength(50)]
         public string StudentName { get; set; } = string.Empty;
 
-        [Column("QuizId")]
+        [ForeignKey("QuizId")]
         public int QuizId { get; set; }
 
         [Column("Score")]
@@ -28,6 +28,8 @@ namespace Capstone.Model
 
         [Column("WrongCount")]
         public int? WrongCount { get; set; }
+        [Column("Rank")]
+        public int? Rank { get; set; }
 
         [Column("CreateAt")]
         [Required]

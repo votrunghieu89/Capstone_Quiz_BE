@@ -117,7 +117,7 @@ namespace Capstone.Controllers
             }
             return Ok(new { message = "Question deleted successfully." });
         }
-        [HttpGet("GetQuestionOfQuizC/{quizId}")]
+        [HttpGet("GetQuestionOfQuizCache/{quizId}")]
         public async Task<IActionResult> GetQuizById(int quizId)
         {
             var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
@@ -177,10 +177,10 @@ namespace Capstone.Controllers
         }
 
 
-        [HttpGet("GetQuizDetails/{quizId}")]
-        public async Task<IActionResult> GetQuizDetails(int quizId)
+        [HttpGet("getDetailOfAQuizforTeacher/{quizId}")]
+        public async Task<IActionResult> getDetailOfAQuizforTeacher(int quizId)
         {
-            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuiz(quizId);
+            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuizforTeacher(quizId);
             if (quizDetails == null)
             {
                 return NotFound(new { message = "Quiz not found." });
@@ -319,21 +319,21 @@ namespace Capstone.Controllers
             var cachedJson = await _redis.GetStringAsync(cacheKey);
             if (cachedJson == null)
             {
-              
+
             }
             List<ViewAllQuizDTO>? quizzes = null;
 
             if (!string.IsNullOrEmpty(cachedJson))
             {
                 quizzes = JsonSerializer.Deserialize<List<ViewAllQuizDTO>>(cachedJson);
-              
+
             }
 
-          
+
             if (quizzes == null || !quizzes.Any())
             {
                 quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
-               
+
                 if (quizzes == null || !quizzes.Any())
                     return NotFound(new { message = "No quizzes found." });
             }
