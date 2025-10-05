@@ -5,6 +5,7 @@ using Capstone.Repositories;
 using Capstone.Repositories.Admin;
 using Capstone.Repositories.Groups;
 using Capstone.Repositories.Profiles;
+using Capstone.Repositories.Favourite;
 using Capstone.Repositories.Quizzes;
 using Capstone.Security;
 using Capstone.Services;
@@ -122,6 +123,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
 builder.Services.AddScoped<ConnectionService>();
+builder.Services.AddScoped<IFavouriteRepository , FavouriteService>();
 var app = builder.Build();
 
 // Swagger chỉ nên bật khi dev
