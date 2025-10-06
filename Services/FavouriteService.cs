@@ -95,6 +95,30 @@ namespace Capstone.Services
             }
         }
 
+        public async Task<bool> IsFavouriteExists(int accountId, int quizzId)
+        {
+            try
+            {
+                bool isExist = await _context.quizzFavourites
+                    .AnyAsync(qf => qf.AccountId == accountId && qf.QuizId == quizzId);
+                if(isExist)
+                {
+                    _logger.LogInformation("Favourite exists for AccountId {accountId} and QuizId {quizzId}", accountId, quizzId);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogInformation("Favourite does not exist for AccountId {accountId} and QuizId {quizzId}", accountId, quizzId);
+                    return false;
+                }
+            }   
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cannot check Favourite Quiz existence");
+                return false;
+            }
+        }
+
         public async Task<bool> RemoveFavouriteQuizzes(int quizzFID)
         {
             try

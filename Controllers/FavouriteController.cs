@@ -60,5 +60,12 @@ namespace Capstone.Controllers
             }
             return Ok(getAllFavouriteQuizzes);
         }
+        [HttpGet("isFavouriteExists")]
+        public async Task<IActionResult> IsFavouriteExists(int accountId, int quizzId)
+        {
+            var isFavouriteExists = await _repository.IsFavouriteExists(accountId, quizzId);
+            return Ok(isFavouriteExists);
+            
+        }
     }
 }
