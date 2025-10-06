@@ -272,6 +272,7 @@ namespace Capstone.Services
                             HighestScore = 0,
                             LowestScore = 0,
                             AverageScore = 0,
+                            TotalParticipants = 0,
                             CreatedAt = DateTime.Now
                         };
 

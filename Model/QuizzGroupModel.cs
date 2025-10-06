@@ -20,7 +20,7 @@ namespace Capstone.Model
         [Column("Message")]
         public string? Message { get; set; }
         [Column("Status")]
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
         [Column("ExpiredTime")]
         public DateTime ExpiredTime { get; set; }
         [Column("CreateAt")]

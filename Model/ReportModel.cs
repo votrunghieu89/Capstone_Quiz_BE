@@ -24,6 +24,8 @@ namespace Capstone.Model
         public int LowestScore { get; set; }
         [Column("AverageScore")]
         public decimal AverageScore { get; set; }
+        [Column("TotalParticipants")]
+        public int TotalParticipants { get; set; }
         [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }

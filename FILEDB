@@ -197,6 +197,7 @@ CREATE TABLE Reports(
     HighestScore INT NOT NULL,
     LowestScore INT NOT NULL,
     AverageScore Decimal(5,2) NOT NULL,
+    TotalParticipants INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),
 );

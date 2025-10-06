@@ -1,0 +1,17 @@
+﻿namespace Capstone.DTOs.Reports.Teacher
+{
+    public class DeliveredQuizzDTO
+    {
+        public int GroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+        public List<DeliveredQuizzDetailDTO> Quizzes { get; set; } = new List<DeliveredQuizzDetailDTO>();
+    }
+    public class DeliveredQuizzDetailDTO
+    {
+        public int QuizzId { get; set; }
+        public string QuizzName { get; set; } = string.Empty;
+        public int TotalParticipants { get; set; }
+        public DateTime EndTime { get; set; }
+        public string Status { get; set; } = string.Empty;
+    }
+}
