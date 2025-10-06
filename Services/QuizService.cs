@@ -41,7 +41,6 @@ namespace Capstone.Services
                         Description = quiz.Description,
                         IsPrivate = quiz.IsPrivate,
                         AvartarURL = quiz.AvartarURL,
-                        NumberOfPlays = 0,
                         CreateAt = DateTime.Now
                     };
 
@@ -531,7 +530,6 @@ namespace Capstone.Services
                         q.Title,
                         q.Description,
                         q.AvartarURL,
-                        q.NumberOfPlays,
                         q.CreateAt,
                     })
                     .FirstOrDefaultAsync();
@@ -568,7 +566,6 @@ namespace Capstone.Services
                     Title = quizDetail.Title,
                     Description = quizDetail.Description,
                     AvatarURL = quizDetail.AvartarURL,
-                    NumberOfPlays = quizDetail.NumberOfPlays,
                     CreatedDate = quizDetail.CreateAt,
                     Questions = questionDetails ?? new List<QuestionDetailDTO>()
                 };
@@ -621,19 +618,21 @@ namespace Capstone.Services
                     q.QuizId,
                     q.Title,
                     q.AvartarURL,
-                    t.FullName AS CreatedBy,
+                    a.Email AS CreatedBy,
                     ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions
                 FROM Quizzes q
                 LEFT JOIN TeacherProfile t
                     ON q.TeacherId = t.TeacherId
                 LEFT JOIN Questions ques
                     ON q.QuizId = ques.QuizId AND ques.IsDeleted = 0
-                GROUP BY q.QuizId, q.Title, q.AvartarURL, t.FullName
+                LEFT JOIN Accounts a
+                    ON q.TeacherId = a.AccountId
+                WHERE q.IsPrivate = 0       
+                GROUP BY q.QuizId, q.Title, q.AvartarURL, t.FullName, a.Email
                 ORDER BY q.QuizId
                 OFFSET @Skip ROWS
                 FETCH NEXT @Take ROWS ONLY;
             ";
-
                     using (SqlCommand cmd = new SqlCommand(query, connection))
                     {
                         cmd.Parameters.AddWithValue("@Skip", skip);

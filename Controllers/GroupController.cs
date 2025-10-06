@@ -325,7 +325,7 @@ namespace Capstone.Controllers
                     return NotFound(new { message = "Group not found" });
                 }
 
-                List<ViewQuizDTO> quizzes = await _groupRepository.GetAllQuizzesByGroupId(groupId);
+                List<ViewQuizDTO> quizzes = await _groupRepository.GetAllDeliveredQuizzesByGroupId(groupId);
                 var FronendURL = _configuration["Frontend:BaseUrl"];
                 var urlInvite = $"{FronendURL}/join-group/{group.IdUnique}";
                 var newObject = new

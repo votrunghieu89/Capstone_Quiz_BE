@@ -25,7 +25,7 @@ namespace Capstone.Model
         public int? WrongCount { get; set; }
 
         [Column("TotalAnswer")]
-        public int? TotalAnswer { get; set; }
+        public int? TotalAnswer { get; set; } 
 
         [Column("CreateAt")]
         [Required]

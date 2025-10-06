@@ -13,7 +13,7 @@ namespace Capstone.Model
         public int OptionId { get; set; }
 
 
-        [ForeignKey("Question")]
+        [ForeignKey("QuestionId")]
         public int QuestionId { get; set; }
 
         public QuestionModel Question { get; set; }

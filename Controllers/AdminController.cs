@@ -53,42 +53,18 @@ namespace Capstone.Controllers
             }
         }
 
-        [HttpGet("getAllAccountsByRole")]
-        public async Task<IActionResult> GetAllAccountsByRole([FromQuery] PaginationDTO pages, [FromQuery] string role)
+        [HttpGet("getAllAccounts")]
+        public async Task<IActionResult> GetAllAccountsByRole([FromQuery] PaginationDTO pages)
         {
-            if (pages.page <= 0 || pages.pageSize <= 0)
-                return BadRequest(new { message = "Page and PageSize must be greater than 0." });
-
-            if (string.IsNullOrEmpty(role))
-                return BadRequest(new { message = "Role is required." });
-
-            // tạo cache key cho role + phân trang
-            string cacheKey = $"accounts_{role}_page_{pages.page}_size_{pages.pageSize}";
-            var cachedJson = await _redis.GetStringAsync(cacheKey);
-
-            List<AllAccountByRoleDTO>? accounts = null;
-
-            if (!string.IsNullOrEmpty(cachedJson))
+            if(pages.page <= 0 || pages.pageSize <= 0)
             {
-                accounts = JsonSerializer.Deserialize<List<AllAccountByRoleDTO>>(cachedJson);
+                return BadRequest(new
+                {
+                    message = "Page and PageSize must be greater than 0."
+                });
             }
-
-            if (accounts == null || !accounts.Any())
-            {
-                accounts = await _adminRepository.GetAllAccountByRole(pages.page, pages.pageSize, role);
-
-                if (accounts == null || !accounts.Any())
-                    return NotFound(new { message = $"No accounts found for role {role}." });
-
-                // luu cache 5 phút
-                await _redis.SetStringAsync(
-                    cacheKey,
-                    JsonSerializer.Serialize(accounts),
-                    TimeSpan.FromMinutes(5)
-                );
-            }
-
-            return Ok(accounts);
+            var accountList = await _adminRepository.GetAllAccountByRole(pages.page, pages.pageSize);
+            return Ok(accountList);
         }
 
         [HttpGet("getAccount")]

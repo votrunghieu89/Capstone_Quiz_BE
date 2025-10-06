@@ -12,7 +12,7 @@ namespace Capstone.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int QuestionId { get; set; }
 
-        [ForeignKey("Quiz")]       // <-- chỉ định FK
+        [ForeignKey("QuizId")]       // <-- chỉ định FK
         public int QuizId { get; set; }
 
         public QuizModel Quiz { get; set; }

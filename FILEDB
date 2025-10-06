@@ -84,14 +84,12 @@ CREATE TABLE Quizzes (
     Title NVARCHAR(100) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
     IsPrivate BIT NOT NULL,
-    AvartarURL NVARChAR (255),
-    NumberOfPlays int,
+    AvartarURL NVARCHAR(255),
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
     FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId),
     FOREIGN KEY (FolderId) REFERENCES QuizzFolders(FolderId),
-    FOREIGN KEY (TopicId) REFERENCES Topics(TopicId),
-    FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
+    FOREIGN KEY (TopicId) REFERENCES Topics(TopicId)
 );
 
 -- Bảng Quizz_Group (N-M giữa Quizzes và Groups)
@@ -100,6 +98,8 @@ CREATE TABLE Quizz_Group (
     QuizId INT NOT NULL,
     GroupId INT NOT NULL,
     Message NVARCHAR(MAX) NULL,
+    ExpiredTime Datetime2  NOT NULL,
+    Status NVARCHAR(10) NOT NULL DEFAULT 'Active' CHECK (Status IN ('Pending','Completed')),
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
     FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
@@ -113,6 +113,8 @@ CREATE TABLE Questions (
     QuestionContent NVARCHAR(MAX) NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
+    Time INT NUll,
+    IsDeleted BIT NOT NULL DEFAULT 0,
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
 
@@ -122,45 +124,79 @@ CREATE TABLE Options (
     QuestionId INT NOT NULL,
     OptionContent NVARCHAR(MAX) NOT NULL,
     IsCorrect BIT NOT NULL,
+    IsDeleted BIT NOT NULL DEFAULT 0,
     FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
 );
 
--- Bảng Results
 CREATE TABLE OfflineResults (
     OffResultId INT IDENTITY(1,1) PRIMARY KEY,
     StudentId INT NOT NULL,
     QuizId INT NOT NULL,
+    CorrecCount INT NULL,
+    WrongCount INT NULL,
+    TotalQuestion INT NULL,
+    StartDate DATETIME2 NULL,
+    EndDate DATETIME2 NULL,
+    Duration INT NULL, -- Duration in minutes
     Score INT NOT NULL,
-    CorrecCount int,
-    WrongCount int,
+    RANK INT,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
+
+-- Bảng OnlineResults
 CREATE TABLE OnlineResults (
     OnlResultId INT IDENTITY(1,1) PRIMARY KEY,
     StudentName NVARCHAR(50) NOT NULL,
-    QuizId INT NOT NULL UNIQUE,
+    QuizId INT NOT NULL,
     Score INT NOT NULL,
-    CorrecCount int,
-    WrongCount int,
+    CorrecCount INT,
+    WrongCount INT,
+    RANK INT,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
+
 -- Bảng QuizzFavourite
 CREATE TABLE QuizzFavourite (
     FavouriteId INT IDENTITY(1,1) PRIMARY KEY,
-    StudentId INT NOT NULL,
+    AccountID INT NOT NULL,
     QuizId INT NOT NULL,
-    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
 );
 
+-- Bảng QuestionStats
 CREATE TABLE QuestionStats (
     QuestionStatsId INT IDENTITY(1,1) PRIMARY KEY,
-    QuizId INT UNIQUE,
+    QuizId INT,
     QuestionId INT,
-    CorrecCount int,
-    WrongCount int,
-    Total int,
-    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    CorrecCount INT,
+    WrongCount INT,
+    TotalAnswer INT,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
+);
+
+-- Bảng OfflineWrongAnswer (Missing table based on OfflineWrongAnswerModule.cs)
+CREATE TABLE OfflineWrongAnswers (
+    OffWrongId INT IDENTITY(1,1) PRIMARY KEY,
+    OfflineResultId INT NOT NULL,
+    QuestionId INT NOT NULL,
+    SelectedOptionId NVARCHAR(MAX),
+    CorrectOptionId NVARCHAR(MAX),
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+);
+
+CREATE TABLE Reports(
+    ReportId INT IDENTITY(1,1) PRIMARY KEY,
+    QGId INT NOT NULL,
+    QuizId INT NOT NULL,
+    ReportName NVARCHAR(100) NOT NULL,
+    HighestScore INT NOT NULL,
+    LowestScore INT NOT NULL,
+    AverageScore Decimal(5,2) NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),
 );

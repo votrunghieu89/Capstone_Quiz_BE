@@ -8,7 +8,7 @@ namespace Capstone.Model
     public class TeacherProfileModel
     {
         [Key]
-        [Column("TeacherId")]
+        [ForeignKey("TeacherId")]
         public int TeacherId { get; set; } // FK to Accounts.AccountId
 
         [Column("FullName")]

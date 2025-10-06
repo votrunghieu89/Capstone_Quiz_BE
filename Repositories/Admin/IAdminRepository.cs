@@ -14,7 +14,7 @@ namespace Capstone.Repositories.Admin
         public Task<int> GetNumberOfCreatedTeacherAccountByMonth(int month, int year);
         public Task<bool> DeleteAccount(int accountId);
 
-        public Task<List<AllAccountByRoleDTO>> GetAllAccountByRole(int page, int pageSize, string role);
+        public Task<List<AllAccountByRoleDTO>> GetAllAccountByRole(int page, int pageSize);
 
         public Task<int> GetNumberOfCreatedQuizzes ();
         public Task<int> GetNumberOfCreatedQuizzesByMonth(int month, int year);

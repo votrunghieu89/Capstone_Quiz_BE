@@ -1,12 +1,15 @@
-﻿using Capstone.DTOs.Favourite;
+﻿
+
+using Capstone.DTOs;
+using static Capstone.ENUMs.FavouriteEnum;
 
 namespace Capstone.Repositories.Favourite
 {
     public interface IFavouriteRepository
     {
-        public Task<bool> InsertFavouriteQuizzes(int studentId, int quizzId);
+        public Task<InsertEnum> InsertFavouriteQuizzes(int studentId, int quizzId);
         public Task<bool> RemoveFavouriteQuizzes(int quizzFID);
-        public Task<List<GetAllFavouriteQuizzesDTO>> GetAllFavouriteQuizzes();
+        public Task<List<ViewFavouriteDTO>> GetAllFavouriteQuizzes(int accountId);
 
     }
 }

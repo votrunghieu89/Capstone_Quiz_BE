@@ -134,7 +134,7 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<List<ViewQuizDTO>> GetAllQuizzesByGroupId(int groupId)
+        public async Task<List<ViewQuizDTO>> GetAllDeliveredQuizzesByGroupId(int groupId)
         {
             _logger.LogInformation("GetAllQuizzesByGroupId: Start - GroupId={GroupId}", groupId);
             try
@@ -142,11 +142,12 @@ namespace Capstone.Services
                 var quizzes = await (from gq in _appDbContext.quizzGroups
                                      join q in _appDbContext.quizzes on gq.QuizId equals q.QuizId
                                      join t in _appDbContext.teacherProfiles on q.TeacherId equals t.TeacherId
+                                     join r in _appDbContext.reports on gq.QGId equals r.QGId 
                                      where gq.GroupId == groupId
                                      select new ViewQuizDTO
                                      {
                                         quizId = q.QuizId,
-                                        Title = q.Title,
+                                        Title = r.ReportName,
                                         TeacherName = t.FullName,
                                         DateCreated = gq.CreateAt.ToString("yyyy-MM-dd"),
                                         Message = gq.Message
@@ -238,21 +239,60 @@ namespace Capstone.Services
             _logger.LogInformation("InsertQuizToGroup: Start - QuizId={QuizId}, GroupId={GroupId}", insertQuiz?.QuizId, insertQuiz?.GroupId);
             try
             {
-                await _appDbContext.quizzGroups.AddAsync(new QuizzGroupModel {
-                    GroupId = insertQuiz.GroupId,
-                    QuizId = insertQuiz.QuizId,
-                    Message = insertQuiz.Message
-                });
-                int result = await _appDbContext.SaveChangesAsync();
-                if (result > 0)
+                using (var transaction = await _appDbContext.Database.BeginTransactionAsync())
                 {
-                    _logger.LogInformation("InsertQuizToGroup: Success - QuizId={QuizId} inserted to GroupId={GroupId}", insertQuiz.QuizId, insertQuiz.GroupId);
-                    return insertQuiz;
-                }
-                else
-                {
-                    _logger.LogWarning("InsertQuizToGroup: Failed to insert QuizId={QuizId} into GroupId={GroupId}", insertQuiz.QuizId, insertQuiz.GroupId);
-                    return null;
+                    try
+                    {
+                        // 1️⃣ Tạo bản ghi QuizzGroup
+                        var quizzGroupModel = new QuizzGroupModel
+                        {
+                            QuizId = insertQuiz.QuizId,
+                            GroupId = insertQuiz.GroupId,
+                            Message = insertQuiz.Message,
+                            Status = "Pending",
+                            ExpiredTime = insertQuiz.ExpiredTime,
+                            CreateAt = DateTime.Now
+                        };
+
+                        await _appDbContext.quizzGroups.AddAsync(quizzGroupModel);
+                        await _appDbContext.SaveChangesAsync();
+
+                        // 2️⃣ Lấy quiz title
+                        var quizTitle = await _appDbContext.quizzes
+                            .Where(q => q.QuizId == insertQuiz.QuizId)
+                            .Select(q => q.Title)
+                            .FirstOrDefaultAsync();
+
+                        // 3️⃣ Tạo report
+                        var newReport = new ReportModel
+                        {
+                            QGId = quizzGroupModel.QGId,
+                            QuizId = insertQuiz.QuizId,
+                            ReportName = quizTitle,
+                            HighestScore = 0,
+                            LowestScore = 0,
+                            AverageScore = 0,
+                            CreatedAt = DateTime.Now
+                        };
+
+                        await _appDbContext.reports.AddAsync(newReport);
+                        await _appDbContext.SaveChangesAsync();
+
+                        await transaction.CommitAsync();
+
+                        _logger.LogInformation(
+                            "InsertQuizToGroup: Successfully inserted QuizId={QuizId} into GroupId={GroupId} with ReportId={ReportId}",
+                            insertQuiz.QuizId, insertQuiz.GroupId, newReport.ReportId
+                        );
+
+                        return insertQuiz;
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, "InsertQuizToGroup: Transaction error inserting QuizId={QuizId} into GroupId={GroupId}", insertQuiz?.QuizId, insertQuiz?.GroupId);
+                        return null;
+                    }
                 }
 
             }
@@ -344,7 +384,6 @@ namespace Capstone.Services
                 return JoinGroupResult.Error;
             }
         }
-
 
         public async Task<bool> LeaveGroup(int groupId, int studentId)
         {

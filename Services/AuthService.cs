@@ -364,5 +364,28 @@ namespace Capstone.Services
                 return null;
             }
         }
+
+        public async Task<bool> RegisterAccountAdmin(AuthModel adminAccount)
+        {
+            try
+            {
+                var newAccount = new AuthModel
+                {
+                    Email = adminAccount.Email,
+                    PasswordHash = Hash.HashPassword(adminAccount.PasswordHash),
+                    Role = AuthEnum.Role.Admin.ToString(),
+                    CreateAt = DateTime.Now
+                };
+                await _context.authModels.AddAsync(newAccount);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Admin account registered successfully. AccountId={AccountId}, Email={Email}", newAccount.AccountId, newAccount.Email);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error registering admin account.");
+                return false;
+            }
+        }
     }
 }

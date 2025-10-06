@@ -19,7 +19,7 @@ namespace Capstone.Repositories.Groups
 
         public Task<InsertQuiz> InsertQuizToGroup(InsertQuiz insertQuiz); //
         public Task<bool> RemoveQuizFromGroup(int groupId, int quizId); //
-        public Task<List<ViewQuizDTO>> GetAllQuizzesByGroupId(int groupId); //
+        public Task<List<ViewQuizDTO>> GetAllDeliveredQuizzesByGroupId(int groupId); //
 
         // For Student
         public Task<List<AllGroupDTO>> GetAllGroupsByStudentId(int studentId); //

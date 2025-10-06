@@ -33,7 +33,7 @@ namespace Capstone.Services
                     // xoá dữ liệu liên quan đến Student
                     await _dbContext.offlineResults.Where(r => r.StudentId == accountId).ExecuteDeleteAsync();
                     await _dbContext.onlineResults.Where(r => r.StudentName == account.Email).ExecuteDeleteAsync();
-                    await _dbContext.quizzFavourites.Where(f => f.StudentId == accountId).ExecuteDeleteAsync();
+                    await _dbContext.quizzFavourites.Where(f => f.AccountId == accountId).ExecuteDeleteAsync();
                     await _dbContext.studentGroups.Where(sg => sg.StudentId == accountId).ExecuteDeleteAsync();
                     await _dbContext.studentProfiles.Where(p => p.StudentId == accountId).ExecuteDeleteAsync();
                 }
@@ -123,12 +123,11 @@ namespace Capstone.Services
 
 
 
-        public async Task<List<AllAccountByRoleDTO>> GetAllAccountByRole(int page, int pageSize, string role)
+        public async Task<List<AllAccountByRoleDTO>> GetAllAccountByRole(int page, int pageSize)
         {
             try
             {
                 return await _dbContext.authModels
-                    .Where(acc => acc.Role == role)
                     .OrderBy(acc => acc.AccountId)
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
@@ -143,7 +142,7 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting accounts by role {role}", role);
+               
                 return new List<AllAccountByRoleDTO>();
             }
         }

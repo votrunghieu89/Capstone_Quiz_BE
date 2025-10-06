@@ -12,14 +12,17 @@ namespace Capstone.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int QGId { get; set; }
 
-        [Column("QuizId")]
+        [ForeignKey("QuizId")]
         public int QuizId { get; set; }
 
-        [Column("GroupId")]
+        [ForeignKey("GroupId")]
         public int GroupId { get; set; }
         [Column("Message")]
         public string? Message { get; set; }
-
+        [Column("Status")]
+        public string Status { get; set; }
+        [Column("ExpiredTime")]
+        public DateTime ExpiredTime { get; set; }
         [Column("CreateAt")]
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;

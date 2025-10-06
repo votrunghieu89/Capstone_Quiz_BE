@@ -12,13 +12,13 @@ namespace Capstone.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int QuizId { get; set; }
 
-        [Column("TeacherId")]
+        [ForeignKey("TeacherId")]
         public int TeacherId { get; set; }
 
-        [Column("FolderId")]
+        [ForeignKey("FolderId")]
         public int FolderId { get; set; }
 
-        [Column("TopicId")]
+        [ForeignKey("TopicId")]
         public int? TopicId { get; set; }
 
         [Column("Title")]
@@ -36,9 +36,6 @@ namespace Capstone.Model
         [Column("AvartarURL")]
         [MaxLength(255)]
         public string? AvartarURL { get; set; }
-
-        [Column("NumberOfPlays")]
-        public int? NumberOfPlays { get; set; }
 
         [Column("CreateAt")]
         [Required]

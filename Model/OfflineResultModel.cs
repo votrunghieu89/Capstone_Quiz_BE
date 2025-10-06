@@ -27,6 +27,10 @@ namespace Capstone.Model
         public DateTime? EndDate { get; set; }
         [Column("Duration")]
         public int? Duration { get; set; } // Duration in minutes
+        [Column("Score")]
+        public int Score { get; set; }
+        [Column("RANK")]
+        public int? RANK { get; set; }
         [Column("CreateAt")]
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;
