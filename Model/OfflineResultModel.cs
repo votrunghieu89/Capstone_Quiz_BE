@@ -16,21 +16,21 @@ namespace Capstone.Model
         [Column("QuizId")]
         public int QuizId { get; set; }
         [Column("CorrecCount")]
-        public int? CorrecCount { get; set; }
+        public int CorrecCount { get; set; }
         [Column("WrongCount")]
-        public int? WrongCount { get; set; }
+        public int WrongCount { get; set; }
         [Column("TotalQuestion")]
-        public int? TotalQuestion { get; set; }
+        public int TotalQuestion { get; set; }
         [Column("StartDate")]
-        public DateTime? StartDate { get; set; }
+        public DateTime StartDate { get; set; }
         [Column("EndDate")]
-        public DateTime? EndDate { get; set; }
+        public DateTime EndDate { get; set; }
         [Column("Duration")]
-        public int? Duration { get; set; } // Duration in minutes
+        public int Duration { get; set; } // Duration in minutes
         [Column("Score")]
         public int Score { get; set; }
         [Column("RANK")]
-        public int? RANK { get; set; }
+        public int RANK { get; set; }
         [Column("CreateAt")]
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;

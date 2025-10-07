@@ -132,12 +132,12 @@ CREATE TABLE OfflineResults (
     OffResultId INT IDENTITY(1,1) PRIMARY KEY,
     StudentId INT NOT NULL,
     QuizId INT NOT NULL,
-    CorrecCount INT NULL,
-    WrongCount INT NULL,
-    TotalQuestion INT NULL,
-    StartDate DATETIME2 NULL,
-    EndDate DATETIME2 NULL,
-    Duration INT NULL, -- Duration in minutes
+    CorrecCount INT NOT NULL,
+    WrongCount INT NOT NULL,
+    TotalQuestion INT NOT NULL,
+    StartDate DATETIME2 NOT NULL,
+    EndDate DATETIME2 NOT NULL,
+    Duration INT NOT NULL, -- Duration in minutes
     Score INT NOT NULL,
     RANK INT,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
@@ -182,11 +182,12 @@ CREATE TABLE QuestionStats (
 -- Bảng OfflineWrongAnswer (Missing table based on OfflineWrongAnswerModule.cs)
 CREATE TABLE OfflineWrongAnswers (
     OffWrongId INT IDENTITY(1,1) PRIMARY KEY,
-    OfflineResultId INT NOT NULL,
+    OffResultId INT NOT NULL,
     QuestionId INT NOT NULL,
     SelectedOptionId NVARCHAR(MAX),
     CorrectOptionId NVARCHAR(MAX),
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (OffResultId) REFERENCES OfflineResults(OffResultId),
 );
 
 CREATE TABLE Reports(

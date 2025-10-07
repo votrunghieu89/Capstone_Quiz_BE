@@ -26,6 +26,101 @@ namespace Capstone.Controllers
             _configuration = configuration;
             _webHostEnvironment = webHostEnvironment;
         }
+
+        // ===== GET METHODS =====
+        [HttpGet("GetQuestionOfQuizCache/{quizId}")]
+        public async Task<IActionResult> GetQuizById(int quizId)
+        {
+            var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
+            if (json == null)
+            {
+                var quiz = await _quizRepository.GetQuizQuestions(quizId); // lấy câu hỏi từ database
+                if (quiz == null)
+                {
+                    return NotFound(new { message = "Quiz not found." });
+                }
+                return Ok(quiz);
+            }
+            else
+            {
+                var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json); // chuyển json thành object
+                if (questions == null)
+                {
+                    _logger.LogError("Failed to deserialize cached questions for quizId: {QuizId}", quizId);
+                    return StatusCode(500, "An error occurred while processing the cached data.");
+                }
+                return Ok(questions);
+            }
+        }
+
+        [HttpGet("getDetailOfAQuiz/{quizId}")]
+        public async Task<IActionResult> getDetailOfAQuizforTeacher(int quizId)
+        {
+            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuizforTeacher(quizId);
+            if (quizDetails == null)
+            {
+                return NotFound(new { message = "Quiz not found." });
+            }
+            if (!string.IsNullOrEmpty(quizDetails.AvatarURL))
+            {
+                quizDetails.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quizDetails.AvatarURL.Replace("\\", "/")}";
+            }
+            ViewDetailDTO quiz = new ViewDetailDTO
+            {
+                QuizId = quizDetails.QuizId,
+
+                Title = quizDetails.Title,
+                Description = quizDetails.Description,
+                AvatarURL = quizDetails.AvatarURL ?? string.Empty,
+                NumberOfPlays = quizDetails.NumberOfPlays,
+                CreatedDate = quizDetails.CreatedDate,
+                Questions = quizDetails.Questions,
+
+            };
+            return Ok(quiz);
+        }
+
+        [HttpGet("GetAllQuizzes")]
+        public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
+        {
+            if (pages.page <= 0 || pages.pageSize <= 0)
+                return BadRequest(new { message = "Page and PageSize must be greater than 0." });
+
+            string cacheKey = $"all_quizzes_page_{pages.page}_size_{pages.pageSize}";
+            // all_quizzes_page_{page}_size_{pageSize}
+            var cachedJson = await _redis.GetStringAsync(cacheKey);
+            if (cachedJson == null)
+            {
+
+            }
+            List<ViewAllQuizDTO>? quizzes = null;
+
+            if (!string.IsNullOrEmpty(cachedJson))
+            {
+                quizzes = JsonSerializer.Deserialize<List<ViewAllQuizDTO>>(cachedJson);
+
+            }
+
+
+            if (quizzes == null || !quizzes.Any())
+            {
+                quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
+
+                if (quizzes == null || !quizzes.Any())
+                    return NotFound(new { message = "No quizzes found." });
+            }
+            foreach (var quiz in quizzes)
+            {
+                if (!string.IsNullOrEmpty(quiz.AvatarURL))
+                {
+                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                }
+            }
+
+            return Ok(quizzes);
+        }
+
+        // ===== POST METHODS =====
         [HttpPost("uploadImage")]
         public async Task<IActionResult> UploadImage([FromForm] QuizCreateFormDTO dto)
         {
@@ -96,51 +191,6 @@ namespace Capstone.Controllers
             }
         }
 
-        [HttpDelete("deleteQuiz/{quizId}")]
-        public async Task<IActionResult> DeleteQuiz(int quizId)
-        {
-            bool isDeleted = await _quizRepository.DeleteQuiz(quizId);
-            if (!isDeleted)
-            {
-                return NotFound(new { message = "Quiz not found or could not be deleted." });
-            }
-            return Ok(new { message = "Quiz deleted successfully." });
-        }
-
-        [HttpDelete("deleteQuestion/{questionId}")]
-        public async Task<IActionResult> DeleteQuestion(int questionId)
-        {
-            bool isDeleted = await _quizRepository.DeleteQuestion(questionId);
-            if (!isDeleted)
-            {
-                return NotFound(new { message = "Question not found or could not be deleted." });
-            }
-            return Ok(new { message = "Question deleted successfully." });
-        }
-        [HttpGet("GetQuestionOfQuizCache/{quizId}")]
-        public async Task<IActionResult> GetQuizById(int quizId)
-        {
-            var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
-            if (json == null)
-            {
-                var quiz = await _quizRepository.GetQuizQuestions(quizId); // lấy câu hỏi từ database
-                if (quiz == null)
-                {
-                    return NotFound(new { message = "Quiz not found." });
-                }
-                return Ok(quiz);
-            }
-            else
-            {
-                var questions = JsonSerializer.Deserialize<List<GetQuizQuestionsDTO>>(json); // chuyển json thành object
-                if (questions == null)
-                {
-                    _logger.LogError("Failed to deserialize cached questions for quizId: {QuizId}", quizId);
-                    return StatusCode(500, "An error occurred while processing the cached data.");
-                }
-                return Ok(questions);
-            }
-        }
         [HttpPost("CheckQuizAnswers")]
         public async Task<IActionResult> CheckQuizAnswers([FromBody] CheckAnswerDTO quizAnswers)
         {
@@ -151,6 +201,7 @@ namespace Capstone.Controllers
             }
             return Ok(result);
         }
+
         [HttpPost("GetCorrectAnswers")]
         public async Task<IActionResult> GetCorrectAnswers([FromBody] GetCorrectAnswer getCorrectAnswer)
         {
@@ -161,48 +212,8 @@ namespace Capstone.Controllers
             }
             return Ok(correctAnswers);
         }
-        [HttpDelete("ClearQuizCache/{quizId}")]
-        public async Task<IActionResult> ClearQuizCache(int quizId)
-        {
-            try
-            {
-                await _redis.DeleteKeysByPatternAsync($"quiz_questions_{quizId}*");
-                return Ok(new { message = $"Cache for quiz {quizId} cleared successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
-                return StatusCode(500, "Error clearing quiz cache.");
-            }
-        }
 
-
-        [HttpGet("getDetailOfAQuizforTeacher/{quizId}")]
-        public async Task<IActionResult> getDetailOfAQuizforTeacher(int quizId)
-        {
-            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuizforTeacher(quizId);
-            if (quizDetails == null)
-            {
-                return NotFound(new { message = "Quiz not found." });
-            }
-            if (!string.IsNullOrEmpty(quizDetails.AvatarURL))
-            {
-                quizDetails.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quizDetails.AvatarURL.Replace("\\", "/")}";
-            }
-            ViewDetailDTO quiz = new ViewDetailDTO
-            {
-                QuizId = quizDetails.QuizId,
-
-                Title = quizDetails.Title,
-                Description = quizDetails.Description,
-                AvatarURL = quizDetails.AvatarURL ?? string.Empty,
-                NumberOfPlays = quizDetails.NumberOfPlays,
-                CreatedDate = quizDetails.CreatedDate,
-                Questions = quizDetails.Questions,
-
-            };
-            return Ok(quiz);
-        }
+        // ===== PUT METHODS =====
         [HttpPut("updateImage/{quizId}")]
         public async Task<IActionResult> UpdateImage([FromForm] QuizUpdateImageDTO dto)
         {
@@ -263,7 +274,6 @@ namespace Capstone.Controllers
             }
         }
 
-
         [HttpPut("updateQuiz")]
         public async Task<IActionResult> UpdateQuiz([FromBody] QuizzUpdateControllerDTO quiz)
         {
@@ -308,44 +318,43 @@ namespace Capstone.Controllers
                 return StatusCode(500, "An unexpected error occurred.");
             }
         }
-        [HttpGet("GetAllQuizzes")]
-        public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
+
+        // ===== DELETE METHODS =====
+        [HttpDelete("deleteQuiz/{quizId}")]
+        public async Task<IActionResult> DeleteQuiz(int quizId)
         {
-            if (pages.page <= 0 || pages.pageSize <= 0)
-                return BadRequest(new { message = "Page and PageSize must be greater than 0." });
-
-            string cacheKey = $"all_quizzes_page_{pages.page}_size_{pages.pageSize}";
-            // all_quizzes_page_{page}_size_{pageSize}
-            var cachedJson = await _redis.GetStringAsync(cacheKey);
-            if (cachedJson == null)
+            bool isDeleted = await _quizRepository.DeleteQuiz(quizId);
+            if (!isDeleted)
             {
-
+                return NotFound(new { message = "Quiz not found or could not be deleted." });
             }
-            List<ViewAllQuizDTO>? quizzes = null;
+            return Ok(new { message = "Quiz deleted successfully." });
+        }
 
-            if (!string.IsNullOrEmpty(cachedJson))
+        [HttpDelete("deleteQuestion/{questionId}")]
+        public async Task<IActionResult> DeleteQuestion(int questionId)
+        {
+            bool isDeleted = await _quizRepository.DeleteQuestion(questionId);
+            if (!isDeleted)
             {
-                quizzes = JsonSerializer.Deserialize<List<ViewAllQuizDTO>>(cachedJson);
-
+                return NotFound(new { message = "Question not found or could not be deleted." });
             }
+            return Ok(new { message = "Question deleted successfully." });
+        }
 
-
-            if (quizzes == null || !quizzes.Any())
+        [HttpDelete("ClearQuizCache/{quizId}")]
+        public async Task<IActionResult> ClearQuizCache(int quizId)
+        {
+            try
             {
-                quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
-
-                if (quizzes == null || !quizzes.Any())
-                    return NotFound(new { message = "No quizzes found." });
+                await _redis.DeleteKeysByPatternAsync($"quiz_questions_{quizId}*");
+                return Ok(new { message = $"Cache for quiz {quizId} cleared successfully." });
             }
-            foreach (var quiz in quizzes)
+            catch (Exception ex)
             {
-                if (!string.IsNullOrEmpty(quiz.AvatarURL))
-                {
-                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
-                }
+                _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
+                return StatusCode(500, "Error clearing quiz cache.");
             }
-
-            return Ok(quizzes);
         }
     }
 }

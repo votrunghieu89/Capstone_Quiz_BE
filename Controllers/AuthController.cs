@@ -41,7 +41,7 @@ namespace Capstone.Controllers
             return otp.ToString($"D{length}");
         }
 
-        // 1. Forgot Password APIs
+        // ===== POST METHODS =====
         [HttpPost("checkEmail")]
         public async Task<ActionResult> isEmailExist([FromBody] string email)
         {
@@ -142,7 +142,6 @@ namespace Capstone.Controllers
             }
         }
 
-        // Login API
         [HttpPost("login")]
         public async Task<ActionResult> Login([FromBody] AuthLoginDTO authLoginDTO)
         {
@@ -177,7 +176,6 @@ namespace Capstone.Controllers
             }
         }
 
-        // Register Student API
         [HttpPost("registerStudent")]
         public async Task<ActionResult> registerStudent([FromBody] AuthRegisterStudentDTO authRegisterDTO)
         {
@@ -225,7 +223,6 @@ namespace Capstone.Controllers
             }
         }
 
-        // Register Teacher API
         [HttpPost("registerTeacher")]
         public async Task<ActionResult> RegisterTeacher([FromBody] AuthRegisterTeacherDTO authRegisterDTO)
         {
@@ -266,7 +263,6 @@ namespace Capstone.Controllers
             }
         }
 
-        // Change Password API
         [HttpPost("changePassword")]
         public async Task<ActionResult> ChangePassword([FromBody] AuthChangePasswordDTO changePasswordDTO)
         {

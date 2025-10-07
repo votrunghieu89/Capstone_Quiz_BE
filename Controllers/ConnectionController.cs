@@ -16,6 +16,7 @@ namespace Capstone.Controllers
             _connection = connection;
         }
 
+        // ===== GET METHODS =====
         [HttpGet("check-db")]
         public async Task<IActionResult> CheckDbConnection()
         {

@@ -2,6 +2,7 @@
 using Capstone.DTOs.Reports.Teacher;
 using Capstone.ENUMs;
 using Capstone.Repositories.Histories;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using static Capstone.ENUMs.ExpiredEnumDTO;
 
@@ -11,10 +12,12 @@ namespace Capstone.Services
     {
         private readonly ILogger<TeacherHistoryService> _logger;
         private readonly AppDbContext _context;
-        public TeacherHistoryService(ILogger<TeacherHistoryService> logger, AppDbContext context)
+        private readonly string _connectionString;
+        public TeacherHistoryService(ILogger<TeacherHistoryService> logger, AppDbContext context, IConfiguration configuration)
         {
             _logger = logger;
             _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
         }
 
         public async Task<ExpiredEnum> ChangeExpiredTime(int groupId, int quizzId, DateTime newExpiredTime)
@@ -37,13 +40,13 @@ namespace Capstone.Services
                     _logger.LogInformation("Expired time for QuizId {quizzId} in GroupId {groupId} updated to {newExpiredTime}", quizzId, groupId, newExpiredTime);
                     return ExpiredEnumDTO.ExpiredEnum.Success;
                 }
-                return ExpiredEnumDTO.ExpiredEnum.UpdateFailed;   
+                return ExpiredEnumDTO.ExpiredEnum.UpdateFailed;
 
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred in ChangeExpiredTime");
-              return ExpiredEnumDTO.ExpiredEnum.Error;
+                return ExpiredEnumDTO.ExpiredEnum.Error;
             }
         }
 
@@ -77,7 +80,7 @@ namespace Capstone.Services
                     .FirstOrDefaultAsync();
                 if (quizzGroup == null)
                     return false;
-                if(quizzGroup.ExpiredTime <= DateTime.Now)
+                if (quizzGroup.ExpiredTime <= DateTime.Now)
                 {
                     int isUpdate = await _context.quizzGroups
                         .Where(qg => qg.QuizId == quizzId && qg.GroupId == groupId)
@@ -104,20 +107,21 @@ namespace Capstone.Services
                                   .Where(g => g.TeacherId == teacherId)
                                   .Select(s => new { s.GroupId, s.GroupName })
                                   .ToListAsync();
-                foreach (var group in listGroups) { 
-                    int groupId  = group.GroupId;
+                foreach (var group in listGroups)
+                {
+                    int groupId = group.GroupId;
                     List<DeliveredQuizzDetailDTO> quizzes = await (from g in _context.groups
-                                        join gq in _context.quizzGroups on g.GroupId equals gq.GroupId
-                                        join r in _context.reports on gq.QGId equals r.QGId
-                                        where g.GroupId == groupId
-                                         select new DeliveredQuizzDetailDTO
-                                        {
-                                            QuizzId = gq.QuizId,
-                                            QuizzName = r.ReportName,
-                                            TotalParticipants = r.TotalParticipants,
-                                            EndTime = gq.ExpiredTime,
-                                            Status = gq.Status,
-                                        }).ToListAsync();
+                                                                   join gq in _context.quizzGroups on g.GroupId equals gq.GroupId
+                                                                   join r in _context.reports on gq.QGId equals r.QGId
+                                                                   where g.GroupId == groupId
+                                                                   select new DeliveredQuizzDetailDTO
+                                                                   {
+                                                                       QuizzId = gq.QuizId,
+                                                                       QuizzName = r.ReportName,
+                                                                       TotalParticipants = r.TotalParticipants,
+                                                                       EndTime = gq.ExpiredTime,
+                                                                       Status = gq.Status,
+                                                                   }).ToListAsync();
                     var dto = new DeliveredQuizzDTO
                     {
                         GroupId = groupId,
@@ -128,7 +132,7 @@ namespace Capstone.Services
                 }
                 return quizList;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred in DeliveredQuizz");
                 throw;
@@ -138,13 +142,13 @@ namespace Capstone.Services
         {
             try
             {
-               
+
                 int isUpdate = await _context.quizzGroups
                     .Where(qg => qg.QuizId == quizzId && qg.GroupId == groupId)
                     .ExecuteUpdateAsync(u => u.SetProperty(qg => qg.Status, "Completed")
                                                 .SetProperty(qg => qg.ExpiredTime, qg => qg.CreateAt));
-                if(isUpdate > 0)
-                    {
+                if (isUpdate > 0)
+                {
                     _logger.LogInformation("QuizId {quizzId} in GroupId {groupId} status updated to Completed", quizzId, groupId);
                     return true;
                 }
@@ -166,9 +170,9 @@ namespace Capstone.Services
                     .Where(q => q.QuizId == quizzId && q.IsDeleted == false)
                     .CountAsync();
                 var CreateBy = await (from q in _context.quizzes
-                                  join a in _context.authModels on q.TeacherId equals a.AccountId
-                                  where q.QuizId == quizzId
-                                  select a.Email).FirstOrDefaultAsync();
+                                      join a in _context.authModels on q.TeacherId equals a.AccountId
+                                      where q.QuizId == quizzId
+                                      select a.Email).FirstOrDefaultAsync();
                 var reportQuery = from g in _context.groups
                                   join gq in _context.quizzGroups on g.GroupId equals gq.GroupId
                                   join r in _context.reports on gq.QGId equals r.QGId
@@ -207,6 +211,136 @@ namespace Capstone.Services
                 _logger.LogError(ex, "An error occurred in ReportDetail");
                 return null;
             }
+        }
+        public async Task<List<ViewStudentHistoryDTO>> GetOfflineResult(int quizzId)
+        {
+            try
+            {
+                List<ViewStudentHistoryDTO> result = await (from or in _context.offlineResults
+                                                            join a in _context.studentProfiles on or.StudentId equals a.StudentId
+                                                            where or.QuizId == quizzId
+                                                            select new ViewStudentHistoryDTO
+                                                            {
+                                                                Fullname = a.FullName,
+                                                                Rank = or.RANK,
+                                                                NumberOfCorrectAnswers = or.CorrecCount,
+                                                                NumberOfWrongAnswers = or.WrongCount,
+                                                                TotalQuestions = or.TotalQuestion,
+                                                                FinalScore = or.Score
+
+                                                            }).ToListAsync();
+                if (result == null || result.Count == 0)
+                {
+                    _logger.LogInformation("No offline results found for QuizId {quizzId}", quizzId);
+                    return new List<ViewStudentHistoryDTO>(); ;
+                }
+                _logger.BeginScope("Retrieved {count} offline results for QuizId {quizzId}", result.Count, quizzId);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in GetOfflineResult");
+                return new List<ViewStudentHistoryDTO>();
+            }
+        }
+
+        public async Task<DetailOfQuestionDTO> ViewDetailOfQuestion(int questionId)
+        {
+            try
+            {
+                List<OptionsDTO> options = await (from o in _context.options
+                                                 where o.QuestionId == questionId
+                                                 select new OptionsDTO
+                                                 {
+                                                     OptionId = o.OptionId,
+                                                     OptionContent = o.OptionContent,
+                                                     IsCorrect = o.IsCorrect
+                                                 }).ToListAsync();
+                var question = await _context.questions.Where(q => q.QuestionId == questionId)
+                                    .Select(q => new
+                                    {
+                                        q.QuestionContent,
+                                        q.Time
+                                    }).FirstOrDefaultAsync();
+                if (question == null)
+                {
+                    _logger.LogWarning("Question with ID {questionId} not found", questionId);
+                    return null;
+                }
+                DetailOfQuestionDTO result = new DetailOfQuestionDTO
+                {
+                    QuestionContent = question?.QuestionContent ?? string.Empty,
+                    Time = question?.Time ?? 0,
+                    options = options
+                };
+                Console.WriteLine(result.options);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in ViewDetailOfQuestion");
+                return null;
+            }
+        }
+
+        public async Task<List<ViewQuestionHistoryDTO>> ViewQuestionHistory(int quizId)
+        {
+            var result = new List<ViewQuestionHistoryDTO>();
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync();
+
+                    string query = @"
+                SELECT 
+                    q.QuestionId,
+                    q.QuestionContent,
+                    COUNT(DISTINCT r.OffResultId) AS Total_Answers,
+                    COUNT(DISTINCT w.OffWrongId) AS Wrong_Count,
+                    COUNT(DISTINCT r.OffResultId) - COUNT(DISTINCT w.OffWrongId) AS Correct_Count,
+                    CAST(
+                        (COUNT(DISTINCT r.OffResultId) - COUNT(DISTINCT w.OffWrongId)) * 100.0 / 
+                        NULLIF(COUNT(DISTINCT r.OffResultId), 0)
+                    AS DECIMAL(5,2)) AS Percentage_Correct
+                    FROM Questions q
+                    JOIN OfflineResults r ON r.QuizId = q.QuizId
+                    LEFT JOIN OfflineWrongAnswers w 
+                        ON w.QuestionId = q.QuestionId AND w.OffResultId = r.OffResultId
+                    WHERE q.QuizId = @quizId
+                    GROUP BY q.QuestionId, q.QuestionContent
+                    ORDER BY q.QuestionId";
+
+                    using (SqlCommand command = new SqlCommand(query, connection))
+                    {
+                        command.Parameters.AddWithValue("@quizId", quizId);
+
+                        using (SqlDataReader reader = await command.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                var dto = new ViewQuestionHistoryDTO
+                                {
+                                    QuestionId = reader.GetInt32(reader.GetOrdinal("QuestionId")),
+                                    QuestionContent = reader.GetString(reader.GetOrdinal("QuestionContent")),
+                                    TotalAnswers = reader.GetInt32(reader.GetOrdinal("Total_Answers")),
+                                    WrongCount = reader.GetInt32(reader.GetOrdinal("Wrong_Count")),
+                                    CorrectCount = reader.GetInt32(reader.GetOrdinal("Correct_Count")),
+                                    PercentageCorrect = reader.GetDecimal(reader.GetOrdinal("Percentage_Correct"))
+                                };
+                                result.Add(dto);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred in ViewQuestionHistory");
+            }
+
+            return result;
         }
     }
 }

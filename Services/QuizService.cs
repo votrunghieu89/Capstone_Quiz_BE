@@ -438,7 +438,6 @@ namespace Capstone.Services
             }
         }
 
-
         public async Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer) // quizId, questionId
         {
             var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer");
@@ -480,7 +479,6 @@ namespace Capstone.Services
                 OptionContent = correctAnswer.OptionContent
             };
         }
-
         public async Task<bool> checkAnswer(CheckAnswerDTO checkAnswerDTO)
         {
             try

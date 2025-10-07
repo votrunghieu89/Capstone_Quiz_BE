@@ -24,6 +24,7 @@ namespace Capstone.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
+        // ===== GET METHODS =====
         [HttpGet("getTeacherProfile/{teacherId}")]
         public async Task<IActionResult> getTeacherProfile(int teacherId)
         {
@@ -51,6 +52,7 @@ namespace Capstone.Controllers
             }
         }
 
+        // ===== POST METHODS =====
         [HttpPost("updateTeacherProfile")]
         public async Task<IActionResult> updateTeacherProfile([FromForm] TeacherProfileUpdateDTO dto)
         {

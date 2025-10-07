@@ -16,6 +16,31 @@ namespace Capstone.Controllers
             _repository = repository;
         }
 
+        // ===== GET METHODS =====
+        [HttpGet("getAllFavouriteQuizzes/{accountId}")]
+        public async Task<IActionResult> GetAllFavouriteQuizzes(int accountId)
+        {
+            var getAllFavouriteQuizzes = await _repository.GetAllFavouriteQuizzes(accountId);
+            if (getAllFavouriteQuizzes == null)
+            {
+                return NotFound("No Favourite Quiz found for the given account ID.");
+            }
+            foreach (var quiz in getAllFavouriteQuizzes)
+            {
+               quiz.AvatarURL = quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+            }
+            return Ok(getAllFavouriteQuizzes);
+        }
+
+        [HttpGet("isFavouriteExists")]
+        public async Task<IActionResult> IsFavouriteExists(int accountId, int quizzId)
+        {
+            var isFavouriteExists = await _repository.IsFavouriteExists(accountId, quizzId);
+            return Ok(isFavouriteExists);
+            
+        }
+
+        // ===== POST METHODS =====
         [HttpPost("insertFavouriteQuiz")]
         public async Task<IActionResult> InsertFavouriteQuizzes(int accountId, int quizzId)
         {
@@ -36,6 +61,7 @@ namespace Capstone.Controllers
             }
         }
 
+        // ===== DELETE METHODS =====
         [HttpDelete("removeFavouriteQuiz")]
         public async Task<IActionResult> RemoveFavouriteQuizzes(int quizzFID)
         {
@@ -45,27 +71,6 @@ namespace Capstone.Controllers
                 return StatusCode(500, "An error occurred while remove the Favourite Quiz.");
             }
             return Ok(removeFavouriteQuizzes);
-        }
-        [HttpGet("getAllFavouriteQuizzes/{accountId}")]
-        public async Task<IActionResult> GetAllFavouriteQuizzes(int accountId)
-        {
-            var getAllFavouriteQuizzes = await _repository.GetAllFavouriteQuizzes(accountId);
-            if (getAllFavouriteQuizzes == null)
-            {
-                return NotFound("No Favourite Quiz found for the given account ID.");
-            }
-            foreach (var quiz in getAllFavouriteQuizzes)
-            {
-               quiz.AvatarURL = quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
-            }
-            return Ok(getAllFavouriteQuizzes);
-        }
-        [HttpGet("isFavouriteExists")]
-        public async Task<IActionResult> IsFavouriteExists(int accountId, int quizzId)
-        {
-            var isFavouriteExists = await _repository.IsFavouriteExists(accountId, quizzId);
-            return Ok(isFavouriteExists);
-            
         }
     }
 }

@@ -22,37 +22,7 @@ namespace Capstone.Controllers
             _redis = redis;
         }
 
-        [HttpDelete("deleteAccount/{accountId}")]
-        public async Task<IActionResult> DeleteAccount(int accountId)
-        {
-            try
-            {
-                bool isDeleted = await _adminRepository.DeleteAccount(accountId);
-
-                if (!isDeleted)
-                {
-                    return NotFound(new
-                    {
-                        message = $"Account with ID {accountId} not found or could not be deleted."
-                    });
-                }
-
-                return Ok(new
-                {
-                    message = $"Account with ID {accountId} deleted successfully."
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting account {accountId}", accountId);
-                return StatusCode(500, new
-                {
-                    message = "Internal server error while deleting account.",
-                    detail = ex.Message
-                });
-            }
-        }
-
+        // ===== GET METHODS =====
         [HttpGet("getAllAccounts")]
         public async Task<IActionResult> GetAllAccountsByRole([FromQuery] PaginationDTO pages)
         {
@@ -123,5 +93,36 @@ namespace Capstone.Controllers
             return Ok(total);
         }
 
+        // ===== DELETE METHODS =====
+        [HttpDelete("deleteAccount/{accountId}")]
+        public async Task<IActionResult> DeleteAccount(int accountId)
+        {
+            try
+            {
+                bool isDeleted = await _adminRepository.DeleteAccount(accountId);
+
+                if (!isDeleted)
+                {
+                    return NotFound(new
+                    {
+                        message = $"Account with ID {accountId} not found or could not be deleted."
+                    });
+                }
+
+                return Ok(new
+                {
+                    message = $"Account with ID {accountId} deleted successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting account {accountId}", accountId);
+                return StatusCode(500, new
+                {
+                    message = "Internal server error while deleting account.",
+                    detail = ex.Message
+                });
+            }
+        }
     }
 }
