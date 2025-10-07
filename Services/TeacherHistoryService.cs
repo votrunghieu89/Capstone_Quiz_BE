@@ -20,24 +20,24 @@ namespace Capstone.Services
             _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
         }
 
-        public async Task<ExpiredEnum> ChangeExpiredTime(int groupId, int quizzId, DateTime newExpiredTime)
+        public async Task<ExpiredEnum> ChangeExpiredTime(int QGId, int quizzId, DateTime newExpiredTime)
         {
             try
             {
                 var quizzGroup = await _context.quizzGroups
-                    .Where(qg => qg.QuizId == quizzId && qg.GroupId == groupId)
+                    .Where(qg => qg.QuizId == quizzId && qg.QGId == QGId)
                     .FirstOrDefaultAsync();
                 if (quizzGroup == null)
                     return ExpiredEnumDTO.ExpiredEnum.QuizGroupNotFound;
                 if (newExpiredTime <= DateTime.Now)
                     return ExpiredEnumDTO.ExpiredEnum.InvalidExpiredTime;
                 int isUpdate = await _context.quizzGroups
-                    .Where(qg => qg.QuizId == quizzId && qg.GroupId == groupId)
+                    .Where(qg => qg.QuizId == quizzId && qg.QGId == QGId)
                     .ExecuteUpdateAsync(u => u.SetProperty(qg => qg.ExpiredTime, newExpiredTime)
                                              .SetProperty(qg => qg.Status, "Pending"));
                 if (isUpdate > 0)
                 {
-                    _logger.LogInformation("Expired time for QuizId {quizzId} in GroupId {groupId} updated to {newExpiredTime}", quizzId, groupId, newExpiredTime);
+                    _logger.LogInformation("Expired time for QuizId {quizzId} in GroupId {groupId} updated to {newExpiredTime}", quizzId, QGId, newExpiredTime);
                     return ExpiredEnumDTO.ExpiredEnum.Success;
                 }
                 return ExpiredEnumDTO.ExpiredEnum.UpdateFailed;
@@ -54,7 +54,7 @@ namespace Capstone.Services
         {
             try
             {
-                int isUpdate = await _context.reports
+                int isUpdate = await _context.offlinereports
                     .Where(r => r.ReportId == reportId)
                     .ExecuteUpdateAsync(u => u.SetProperty(r => r.ReportName, newReportName));
                 if (isUpdate > 0)
@@ -71,21 +71,21 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<bool> checkExpiredTime(int quizzId, int groupId)
+        public async Task<bool> checkExpiredTime(int QGId, int groupId)
         {
             try
             {
                 var quizzGroup = await _context.quizzGroups
-                    .Where(qg => qg.QuizId == quizzId && qg.GroupId == groupId)
+                    .Where(qg => qg.QGId == QGId && qg.GroupId == groupId)
                     .FirstOrDefaultAsync();
                 if (quizzGroup == null)
                     return false;
                 if (quizzGroup.ExpiredTime <= DateTime.Now)
                 {
                     int isUpdate = await _context.quizzGroups
-                        .Where(qg => qg.QuizId == quizzId && qg.GroupId == groupId)
+                        .Where(qg => qg.QGId == QGId && qg.GroupId == groupId)
                         .ExecuteUpdateAsync(u => u.SetProperty(qg => qg.Status, "Completed"));
-                    _logger.LogInformation("QuizId {quizzId} in GroupId {groupId} has expired and status updated to Completed", quizzId, groupId);
+                    _logger.LogInformation("QuizId {quizzId} in GroupId {groupId} has expired and status updated to Completed", QGId, groupId);
                     return true;
                 }
                 return false;
@@ -112,7 +112,7 @@ namespace Capstone.Services
                     int groupId = group.GroupId;
                     List<DeliveredQuizzDetailDTO> quizzes = await (from g in _context.groups
                                                                    join gq in _context.quizzGroups on g.GroupId equals gq.GroupId
-                                                                   join r in _context.reports on gq.QGId equals r.QGId
+                                                                   join r in _context.offlinereports on gq.QGId equals r.QGId
                                                                    where g.GroupId == groupId
                                                                    select new DeliveredQuizzDetailDTO
                                                                    {
@@ -162,7 +162,7 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<DetailOfQuizDTO> ReportDetail(int groupId, int quizzId)
+        public async Task<DetailOfQuizDTO> ReportDetailOffline(int QGId, int quizzId)
         {
             try
             {
@@ -175,11 +175,13 @@ namespace Capstone.Services
                                       select a.Email).FirstOrDefaultAsync();
                 var reportQuery = from g in _context.groups
                                   join gq in _context.quizzGroups on g.GroupId equals gq.GroupId
-                                  join r in _context.reports on gq.QGId equals r.QGId
-                                  where gq.GroupId == groupId && gq.QuizId == quizzId
+                                  join r in _context.offlinereports on gq.QGId equals r.QGId
+                                  where gq.QGId == QGId && gq.QuizId == quizzId
                                   select new
                                   {
+                                      gq.QGId,
                                       g.GroupName,
+                                      g.GroupId,
                                       r.TotalParticipants,
                                       r.HighestScore,
                                       r.LowestScore,
@@ -193,6 +195,8 @@ namespace Capstone.Services
                 if (report == null) return null;
                 var result = new DetailOfQuizDTO
                 {
+                    QGId = report.QGId,
+                    GroupId = report.GroupId,
                     GroupName = report.GroupName,
                     TotalParticipants = report.TotalParticipants,
                     HighestScore = report.HighestScore,
@@ -212,13 +216,13 @@ namespace Capstone.Services
                 return null;
             }
         }
-        public async Task<List<ViewStudentHistoryDTO>> GetOfflineResult(int quizzId)
+        public async Task<List<ViewStudentHistoryDTO>> GetOfflineResult(int quizzId, int QGId, int groupId)
         {
             try
             {
                 List<ViewStudentHistoryDTO> result = await (from or in _context.offlineResults
                                                             join a in _context.studentProfiles on or.StudentId equals a.StudentId
-                                                            where or.QuizId == quizzId
+                                                            where or.QuizId == quizzId && or.QGId == QGId && or.GroupId == groupId
                                                             select new ViewStudentHistoryDTO
                                                             {
                                                                 Fullname = a.FullName,
@@ -283,7 +287,7 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<List<ViewQuestionHistoryDTO>> ViewQuestionHistory(int quizId)
+        public async Task<List<ViewQuestionHistoryDTO>> ViewQuestionHistory(int quizId, int QGId, int groupId)
         {
             var result = new List<ViewQuestionHistoryDTO>();
 
@@ -309,13 +313,16 @@ namespace Capstone.Services
                     LEFT JOIN OfflineWrongAnswers w 
                         ON w.QuestionId = q.QuestionId AND w.OffResultId = r.OffResultId
                     WHERE q.QuizId = @quizId
+                          AND r.QGId = @QGId
+                          AND r.GroupId = @groupId
                     GROUP BY q.QuestionId, q.QuestionContent
                     ORDER BY q.QuestionId";
 
                     using (SqlCommand command = new SqlCommand(query, connection))
                     {
                         command.Parameters.AddWithValue("@quizId", quizId);
-
+                        command.Parameters.AddWithValue("@QGId", QGId);
+                        command.Parameters.AddWithValue("@groupId", groupId);
                         using (SqlDataReader reader = await command.ExecuteReaderAsync())
                         {
                             while (await reader.ReadAsync())

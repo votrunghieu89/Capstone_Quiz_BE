@@ -28,6 +28,8 @@ namespace Capstone.Model
 
         [Column("WrongCount")]
         public int? WrongCount { get; set; }
+        [Column("TotalQuestion")]
+        public int? TotalQuestion { get; set; }
         [Column("Rank")]
         public int? Rank { get; set; }
 

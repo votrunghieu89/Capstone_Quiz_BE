@@ -85,6 +85,7 @@ CREATE TABLE Quizzes (
     Description NVARCHAR(MAX) NOT NULL,
     IsPrivate BIT NOT NULL,
     AvartarURL NVARCHAR(255),
+    TotalParticipants INT NOT NULL DEFAULT 0,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
     FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId),
@@ -130,6 +131,8 @@ CREATE TABLE Options (
 
 CREATE TABLE OfflineResults (
     OffResultId INT IDENTITY(1,1) PRIMARY KEY,
+    QGId INT NULL,
+    GroupId INT NULL,
     StudentId INT NOT NULL,
     QuizId INT NOT NULL,
     CorrecCount INT NOT NULL,
@@ -142,17 +145,20 @@ CREATE TABLE OfflineResults (
     RANK INT,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId)
 );
 
 -- Bảng OnlineResults
 CREATE TABLE OnlineResults (
     OnlResultId INT IDENTITY(1,1) PRIMARY KEY,
     StudentName NVARCHAR(50) NOT NULL,
+    OnlineReportId INT NOT NULL,
     QuizId INT NOT NULL,
     Score INT NOT NULL,
     CorrecCount INT,
     WrongCount INT,
+    TotalQuestion INT,
     RANK INT,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
@@ -190,8 +196,8 @@ CREATE TABLE OfflineWrongAnswers (
     FOREIGN KEY (OffResultId) REFERENCES OfflineResults(OffResultId),
 );
 
-CREATE TABLE Reports(
-    ReportId INT IDENTITY(1,1) PRIMARY KEY,
+CREATE TABLE OfflineReports(
+    OfflineReportId INT IDENTITY(1,1) PRIMARY KEY,
     QGId INT NOT NULL,
     QuizId INT NOT NULL,
     ReportName NVARCHAR(100) NOT NULL,
@@ -202,3 +208,27 @@ CREATE TABLE Reports(
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),
 );
+
+CREATE TABLE OnlineReports(
+    OnlineReportId INT IDENTITY(1,1) PRIMARY KEY,
+    QuizId INT NOT NULL,
+    TeacherId INT NOT NULL,
+    ReportName NVARCHAR(100) NOT NULL,
+    HighestScore INT NOT NULL,
+    LowestScore INT NOT NULL,
+    AverageScore Decimal(5,2) NOT NULL,
+    TotalParticipants INT NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),    
+);
+
+CREATE TABLE OnlineWrongAnswer  (
+    OnlWrongId INT IDENTITY(1,1) PRIMARY KEY,
+    OnlResultId INT NOT NULL,
+    QuestionId INT NOT NULL,
+    SelectedOptionId NVARCHAR(MAX),
+    CorrectOptionId NVARCHAR(MAX),
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId),
+);
+

@@ -92,6 +92,7 @@ namespace Capstone.Controllers
                 var urlInvite = $"{FronendURL}/join-group/{group.IdUnique}";
                 var newObject = new
                 {
+
                     group.GroupId,
                     group.TeacherId,
                     group.GroupName,

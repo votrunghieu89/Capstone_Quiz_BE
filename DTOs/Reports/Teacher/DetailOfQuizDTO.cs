@@ -2,6 +2,8 @@
 {
     public class DetailOfQuizDTO
     {
+        public int QGId { get; set; }
+        public int GroupId { get; set; }
         public string GroupName { get; set; }
         public int TotalParticipants { get; set; }
         public int HighestScore { get; set; }

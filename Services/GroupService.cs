@@ -142,10 +142,11 @@ namespace Capstone.Services
                 var quizzes = await (from gq in _appDbContext.quizzGroups
                                      join q in _appDbContext.quizzes on gq.QuizId equals q.QuizId
                                      join t in _appDbContext.teacherProfiles on q.TeacherId equals t.TeacherId
-                                     join r in _appDbContext.reports on gq.QGId equals r.QGId 
+                                     join r in _appDbContext.offlinereports on gq.QGId equals r.QGId 
                                      where gq.GroupId == groupId
                                      select new ViewQuizDTO
                                      {
+                                        QGId = gq.QGId,
                                         quizId = q.QuizId,
                                         Title = r.ReportName,
                                         TeacherName = t.FullName,
@@ -264,7 +265,7 @@ namespace Capstone.Services
                             .FirstOrDefaultAsync();
 
                         // 3️⃣ Tạo report
-                        var newReport = new ReportModel
+                        var newReport = new OfflineReportsModel
                         {
                             QGId = quizzGroupModel.QGId,
                             QuizId = insertQuiz.QuizId,
@@ -276,7 +277,7 @@ namespace Capstone.Services
                             CreatedAt = DateTime.Now
                         };
 
-                        await _appDbContext.reports.AddAsync(newReport);
+                        await _appDbContext.offlinereports.AddAsync(newReport);
                         await _appDbContext.SaveChangesAsync();
 
                         await transaction.CommitAsync();

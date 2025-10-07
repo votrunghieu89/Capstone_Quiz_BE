@@ -516,7 +516,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<ViewDetailDTO> getDetailOfAQuizforTeacher(int quizId)
+        public async Task<ViewDetailDTO> getDetailOfAQuiz(int quizId)
         {
             try
             {
@@ -528,6 +528,7 @@ namespace Capstone.Services
                         q.Title,
                         q.Description,
                         q.AvartarURL,
+                        q.TotalParticipants,
                         q.CreateAt,
                     })
                     .FirstOrDefaultAsync();

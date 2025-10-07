@@ -45,6 +45,6 @@ namespace Capstone.Database
         public DbSet<QuestionStatsModel> questionStats { get; set; }
 
         // Reports
-        public DbSet<ReportModel> reports { get; set; }
+        public DbSet<OfflineReportsModel> offlinereports { get; set; }
     }
 }

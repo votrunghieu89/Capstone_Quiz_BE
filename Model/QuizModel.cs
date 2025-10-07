@@ -36,7 +36,8 @@ namespace Capstone.Model
         [Column("AvartarURL")]
         [MaxLength(255)]
         public string? AvartarURL { get; set; }
-
+        [Column("TotalParticipants")]
+        public int TotalParticipants { get; set; } = 0;
         [Column("CreateAt")]
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;

@@ -4,8 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Capstone.Model
 {
-    [Table("Reports")]
-    public class ReportModel
+    [Table("OfflineReports")]
+    public class OfflineReportsModel
     {
         [Key]
         [Column("ReportId")]

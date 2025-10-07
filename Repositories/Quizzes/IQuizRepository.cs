@@ -14,7 +14,7 @@ namespace Capstone.Repositories.Quizzes
 
         public Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer);
         public Task<bool> checkAnswer(CheckAnswerDTO checkAnswerDTO);
-        public Task<ViewDetailDTO> getDetailOfAQuizforTeacher(int quizId);
+        public Task<ViewDetailDTO> getDetailOfAQuiz(int quizId);
         public Task<string> getOrlAvatarURL(int quizId);
 
         public Task<List<ViewAllQuizDTO>> getAllQuizzes(int page, int PageSize);

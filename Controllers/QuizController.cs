@@ -54,9 +54,9 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getDetailOfAQuiz/{quizId}")]
-        public async Task<IActionResult> getDetailOfAQuizforTeacher(int quizId)
+        public async Task<IActionResult> getDetailOfAQuiz(int quizId)
         {
-            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuizforTeacher(quizId);
+            ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuiz(quizId);
             if (quizDetails == null)
             {
                 return NotFound(new { message = "Quiz not found." });
@@ -72,7 +72,7 @@ namespace Capstone.Controllers
                 Title = quizDetails.Title,
                 Description = quizDetails.Description,
                 AvatarURL = quizDetails.AvatarURL ?? string.Empty,
-                NumberOfPlays = quizDetails.NumberOfPlays,
+                TotalParticipants = quizDetails.TotalParticipants,
                 CreatedDate = quizDetails.CreatedDate,
                 Questions = quizDetails.Questions,
 

@@ -11,6 +11,10 @@ namespace Capstone.Model
         [Column("OffResultId")]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int OffResultId { get; set; }
+        [ForeignKey("QGId   ")]
+        public int? QGId { get; set; }
+        [Column("GroupId")] 
+        public int? GroupId { get; set; }
         [ForeignKey("StudentId")]
         public int StudentId { get; set; }
         [Column("QuizId")]
