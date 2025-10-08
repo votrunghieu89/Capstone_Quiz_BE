@@ -48,27 +48,62 @@ namespace Capstone.Services
         public async Task<bool> DeleteGroup(int groupId)
         {
             _logger.LogInformation("DeleteGroup: Start - GroupId={GroupId}", groupId);
+
+            await using var transaction = await _appDbContext.Database.BeginTransactionAsync();
+
             try
             {
+                List<int> QgIdList = await _appDbContext.quizzGroups
+                    .Where(gq => gq.GroupId == groupId)
+                    .Select(gq => gq.QGId)
+                    .ToListAsync();
+
+
+                if (QgIdList.Any())
+                {
+                    int deletedReports = await _appDbContext.offlinereports
+                        .Where(r => QgIdList.Contains(r.QGId))
+                        .ExecuteDeleteAsync();
+
+                    _logger.LogInformation("DeleteGroup: Deleted {Count} reports related to GroupId={GroupId}", deletedReports, groupId);
+                }
+                int deletedQuizzGroups = await _appDbContext.quizzGroups
+                    .Where(gq => gq.GroupId == groupId)
+                    .ExecuteDeleteAsync();
+                _logger.LogInformation("DeleteGroup: Deleted {Count} quizz-group relations related to GroupId={GroupId}", deletedQuizzGroups, groupId);
+
+                
+                int deletedStudentGroups = await _appDbContext.studentGroups
+                    .Where(sg => sg.GroupId == groupId)
+                    .ExecuteDeleteAsync();
+                _logger.LogInformation("DeleteGroup: Deleted {Count} student-group relations related to GroupId={GroupId}", deletedStudentGroups, groupId);
+
+              
                 int isDelete = await _appDbContext.groups
                     .Where(g => g.GroupId == groupId)
                     .ExecuteDeleteAsync();
-                if (isDelete > 0) { 
-                    _logger.LogInformation("DeleteGroup: Success - GroupId={GroupId}", groupId);
+
+                if (isDelete > 0)
+                {
+                    await transaction.CommitAsync(); 
+                    _logger.LogInformation("DeleteGroup: Successfully deleted GroupId={GroupId}", groupId);
                     return true;
                 }
                 else
                 {
-                    _logger.LogWarning("DeleteGroup: No group found to delete - GroupId={GroupId}", groupId);
+                    _logger.LogWarning("DeleteGroup: No group found with ID {GroupId} to delete", groupId);
+                    await transaction.RollbackAsync();
                     return false;
                 }
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync(); 
                 _logger.LogError(ex, "DeleteGroup: Error deleting group - GroupId={GroupId}", groupId);
                 return false;
             }
         }
+
 
         public async Task<List<AllGroupDTO>> GetAllGroupsByStudentId(int studentId)
         {
@@ -252,6 +287,7 @@ namespace Capstone.Services
                             Message = insertQuiz.Message,
                             Status = "Pending",
                             ExpiredTime = insertQuiz.ExpiredTime,
+                            MaxAttempts = insertQuiz.MaxAttempts,
                             CreateAt = DateTime.Now
                         };
 
@@ -274,7 +310,7 @@ namespace Capstone.Services
                             LowestScore = 0,
                             AverageScore = 0,
                             TotalParticipants = 0,
-                            CreatedAt = DateTime.Now
+                            CreateAt = DateTime.Now
                         };
 
                         await _appDbContext.offlinereports.AddAsync(newReport);
@@ -284,7 +320,7 @@ namespace Capstone.Services
 
                         _logger.LogInformation(
                             "InsertQuizToGroup: Successfully inserted QuizId={QuizId} into GroupId={GroupId} with ReportId={ReportId}",
-                            insertQuiz.QuizId, insertQuiz.GroupId, newReport.ReportId
+                            insertQuiz.QuizId, insertQuiz.GroupId, newReport.OfflineReportId
                         );
 
                         return insertQuiz;
@@ -418,29 +454,49 @@ namespace Capstone.Services
         public async Task<bool> RemoveQuizFromGroup(int groupId, int quizId)
         {
             _logger.LogInformation("RemoveQuizFromGroup: Start - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
+
+            await using var transaction = await _appDbContext.Database.BeginTransactionAsync();
             try
             {
-                int isDelete = await _appDbContext.quizzGroups
+                var QgId = await _appDbContext.quizzGroups
+                    .Where(gq => gq.GroupId == groupId && gq.QuizId == quizId)
+                    .Select(gq => gq.QGId)
+                    .FirstOrDefaultAsync();
+
+                if (QgId == 0)
+                {
+                    _logger.LogWarning("RemoveQuizFromGroup: Not found - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
+                    return false;
+                }
+
+                // Xóa report trước
+                int isDeleteReport = await _appDbContext.offlinereports
+                    .Where(r => r.QGId == QgId)
+                    .ExecuteDeleteAsync();
+
+                // Xóa quan hệ quiz-group
+                int isDeleteQuizzGroup = await _appDbContext.quizzGroups
                     .Where(gq => gq.GroupId == groupId && gq.QuizId == quizId)
                     .ExecuteDeleteAsync();
-                if (isDelete > 0)
+
+                if (isDeleteQuizzGroup > 0)
                 {
+                    await transaction.CommitAsync();
                     _logger.LogInformation("RemoveQuizFromGroup: Success - QuizId={QuizId} removed from GroupId={GroupId}", quizId, groupId);
                     return true;
                 }
-                else
-                {
-                    _logger.LogWarning("RemoveQuizFromGroup: No matching quiz in group to remove - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
-                    return false;
-                }
+
+                await transaction.RollbackAsync();
+                _logger.LogWarning("RemoveQuizFromGroup: Nothing deleted - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
+                return false;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "RemoveQuizFromGroup: Error removing QuizId={QuizId} from GroupId={GroupId}", quizId, groupId);
                 return false;
             }
         }
-
         public async Task<bool> RemoveStudentFromGroup(int groupId, int studentId)
         {
             _logger.LogInformation("RemoveStudentFromGroup: Start - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);

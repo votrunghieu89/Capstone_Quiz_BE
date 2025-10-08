@@ -35,6 +35,8 @@ namespace Capstone.Model
         public int Score { get; set; }
         [Column("RANK")]
         public int RANK { get; set; }
+        [Column("CountAttempts")]   
+        public int CountAttempts { get; set; }
         [Column("CreateAt")]
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;

@@ -12,13 +12,14 @@ namespace Capstone.Model
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int OnlResultId { get; set; }
 
+        [ForeignKey("QuizId")]
+        public int QuizId { get; set; }
+        [Column("OnlineReportId")]
+        public int OnlineReportId { get; set; }
         [Column("StudentName")]
         [Required]
         [MaxLength(50)]
         public string StudentName { get; set; } = string.Empty;
-
-        [ForeignKey("QuizId")]
-        public int QuizId { get; set; }
 
         [Column("Score")]
         public int Score { get; set; }

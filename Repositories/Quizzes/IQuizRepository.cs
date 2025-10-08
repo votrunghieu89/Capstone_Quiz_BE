@@ -6,10 +6,9 @@ namespace Capstone.Repositories.Quizzes
     public interface IQuizRepository
     {
         public Task<bool> CreateQuiz(QuizCreateDTo quiz);
-        public Task<bool> DeleteQuiz(int quizId);
+        public Task<string> DeleteQuiz(int quizId);
         public Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO quiz);
         public Task<bool> DeleteQuestion(int questionId);
-
         public Task<List<getQuizQuestionWithoutAnswerDTO>> GetQuizQuestions(int quizId);
 
         public Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer);

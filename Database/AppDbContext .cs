@@ -39,6 +39,7 @@ namespace Capstone.Database
         public DbSet<OfflineResultModel> offlineResults { get; set; }
         public DbSet<OnlineResultModel> onlineResults { get; set; }
         public DbSet<OfflineWrongAnswerModule> offlineWrongAnswers { get; set; }
+        public DbSet<OnlineWrongAnswerModel> onlineWrongAnswers { get; set; }
 
         // Favourites / Stats
         public DbSet<QuizzFavouriteModel> quizzFavourites { get; set; }
@@ -46,5 +47,6 @@ namespace Capstone.Database
 
         // Reports
         public DbSet<OfflineReportsModel> offlinereports { get; set; }
+        public DbSet<OnlineReportModel> onlinereports { get; set; }
     }
 }

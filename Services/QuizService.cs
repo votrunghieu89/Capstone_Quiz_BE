@@ -40,23 +40,13 @@ namespace Capstone.Services
                         Title = quiz.Title,
                         Description = quiz.Description,
                         IsPrivate = quiz.IsPrivate,
-                        AvartarURL = quiz.AvartarURL,
+                        AvatarURL = quiz.AvatarURL,
                         CreateAt = DateTime.Now
                     };
 
                     await _context.quizzes.AddAsync(newQuiz);
                     await _context.SaveChangesAsync();
 
-                    if (quiz.GroupId != null)
-                    {
-                        var quizGroup = new QuizzGroupModel
-                        {
-                            QuizId = newQuiz.QuizId,
-                            GroupId = quiz.GroupId.Value
-                        };
-                        await _context.quizzGroups.AddAsync(quizGroup);
-                        await _context.SaveChangesAsync();
-                    }
                     var questions = new List<QuestionModel>();
                     foreach (var question in quiz.Questions)
                     {
@@ -153,7 +143,7 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<bool> DeleteQuiz(int quizId)
+        public async Task<string> DeleteQuiz(int quizId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -161,11 +151,11 @@ namespace Capstone.Services
                 // 1. Lấy quiz
                 var quiz = await _context.quizzes
                     .FirstOrDefaultAsync(q => q.QuizId == quizId);
-
+                var oldAvatarURL = quiz?.AvatarURL;
                 if (quiz == null)
                 {
                     _logger.LogWarning("Quiz not found for quizId: {QuizId}", quizId);
-                    return false;
+                    return null;
                 }
 
                 // 2. Lấy tất cả questions thuộc quiz
@@ -196,13 +186,13 @@ namespace Capstone.Services
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
-                return true;
+                return oldAvatarURL;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error deleting quiz with Id={QuizId}", quizId);
-                return false;
+                return null;
             }
         }
 
@@ -220,7 +210,7 @@ namespace Capstone.Services
             quiz.Title = dto.Title;
             quiz.Description = dto.Description;
             quiz.IsPrivate = dto.IsPrivate;
-            quiz.AvartarURL = dto.AvartarURL;
+            quiz.AvatarURL = dto.AvartarURL;
             quiz.UpdateAt = DateTime.Now;
 
             // Lấy danh sách questionId từ DTO
@@ -327,7 +317,7 @@ namespace Capstone.Services
                 Title = quiz.Title,
                 Description = quiz.Description,
                 IsPrivate = quiz.IsPrivate,
-                AvartarURL = quiz.AvartarURL,
+                AvartarURL = quiz.AvatarURL,
                 Questions = quiz.Questions.Select(q => new QuestionUpdateDTO
                 {
                     QuestionId = q.QuestionId,
@@ -527,7 +517,7 @@ namespace Capstone.Services
                         q.QuizId,
                         q.Title,
                         q.Description,
-                        q.AvartarURL,
+                        q.AvatarURL,
                         q.TotalParticipants,
                         q.CreateAt,
                     })
@@ -564,7 +554,7 @@ namespace Capstone.Services
                     QuizId = quizDetail.QuizId,
                     Title = quizDetail.Title,
                     Description = quizDetail.Description,
-                    AvatarURL = quizDetail.AvartarURL,
+                    AvatarURL = quizDetail.AvatarURL,
                     CreatedDate = quizDetail.CreateAt,
                     Questions = questionDetails ?? new List<QuestionDetailDTO>()
                 };
@@ -584,14 +574,14 @@ namespace Capstone.Services
             {
                 var quiz = await _context.quizzes
                     .Where(q => q.QuizId == quizId)
-                    .Select(q => new { q.AvartarURL })
+                    .Select(q => new { q.AvatarURL })
                     .FirstOrDefaultAsync();
                 if (quiz == null)
                 {
                     _logger.LogWarning("No quiz found for quizId: {QuizId}", quizId);
                     return null;
                 }
-                return quiz.AvartarURL;
+                return quiz.AvatarURL;
             }
             catch (Exception ex)
             {
@@ -616,8 +606,9 @@ namespace Capstone.Services
                 SELECT 
                     q.QuizId,
                     q.Title,
-                    q.AvartarURL,
+                    q.AvatarURL,
                     a.Email AS CreatedBy,
+                    tpc.TopicName,
                     ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions
                 FROM Quizzes q
                 LEFT JOIN TeacherProfile t
@@ -626,8 +617,10 @@ namespace Capstone.Services
                     ON q.QuizId = ques.QuizId AND ques.IsDeleted = 0
                 LEFT JOIN Accounts a
                     ON q.TeacherId = a.AccountId
+                JOIN Topics tpc
+                    ON q.TopicId = tpc.TopicId
                 WHERE q.IsPrivate = 0       
-                GROUP BY q.QuizId, q.Title, q.AvartarURL, t.FullName, a.Email
+                GROUP BY q.QuizId, q.Title, q.AvatarURL, t.FullName, a.Email, tpc.TopicName
                 ORDER BY q.QuizId
                 OFFSET @Skip ROWS
                 FETCH NEXT @Take ROWS ONLY;
@@ -645,10 +638,11 @@ namespace Capstone.Services
                                 {
                                     QuizId = reader.GetInt32(reader.GetOrdinal("QuizId")),
                                     Title = reader.GetString(reader.GetOrdinal("Title")),
-                                    AvatarURL = reader.GetString(reader.GetOrdinal("AvartarURL")),
+                                    AvatarURL = reader.GetString(reader.GetOrdinal("AvatarURL")),
                                     CreatedBy = reader.IsDBNull(reader.GetOrdinal("CreatedBy"))
                                                 ? null
                                                 : reader.GetString(reader.GetOrdinal("CreatedBy")),
+                                    TopicName = reader.GetString(reader.GetOrdinal("TopicName")),
                                     TotalQuestions = reader.GetInt32(reader.GetOrdinal("TotalQuestions"))
                                 };
 

@@ -84,7 +84,7 @@ CREATE TABLE Quizzes (
     Title NVARCHAR(100) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
     IsPrivate BIT NOT NULL,
-    AvartarURL NVARCHAR(255),
+    AvatarURL NVARCHAR(255),
     TotalParticipants INT NOT NULL DEFAULT 0,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
@@ -100,7 +100,8 @@ CREATE TABLE Quizz_Group (
     GroupId INT NOT NULL,
     Message NVARCHAR(MAX) NULL,
     ExpiredTime Datetime2  NOT NULL,
-    Status NVARCHAR(10) NOT NULL DEFAULT 'Active' CHECK (Status IN ('Pending','Completed')),
+    MaxAttempts INT NOT NULL DEFAULT 1,
+    Status NVARCHAR(10) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending','Completed')),
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
     FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
@@ -112,10 +113,10 @@ CREATE TABLE Questions (
     QuizId INT NOT NULL,
     QuestionType NVARCHAR(10) NOT NULL CHECK (QuestionType IN ('MCQ','TF')),
     QuestionContent NVARCHAR(MAX) NOT NULL,
-    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdateAt DATETIME2 NULL,
     Time INT NUll,
     IsDeleted BIT NOT NULL DEFAULT 0,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdateAt DATETIME2 NULL,
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
 
@@ -126,6 +127,7 @@ CREATE TABLE Options (
     OptionContent NVARCHAR(MAX) NOT NULL,
     IsCorrect BIT NOT NULL,
     IsDeleted BIT NOT NULL DEFAULT 0,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
 );
 
@@ -135,18 +137,18 @@ CREATE TABLE OfflineResults (
     GroupId INT NULL,
     StudentId INT NOT NULL,
     QuizId INT NOT NULL,
-    CorrecCount INT NOT NULL,
-    WrongCount INT NOT NULL,
-    TotalQuestion INT NOT NULL,
+    CorrecCount INT NOT NULL DEFAULT 0,
+    WrongCount INT NOT NULL DEFAULT 0 ,
+    TotalQuestion INT NOT NULL DEFAULT 0 ,
     StartDate DATETIME2 NOT NULL,
     EndDate DATETIME2 NOT NULL,
     Duration INT NOT NULL, -- Duration in minutes
     Score INT NOT NULL,
-    RANK INT,
+    RANK INT NULL,
+    CountAttempts INT NULL DEFAULT 1,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
-    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId)
 );
 
 -- Bảng OnlineResults
@@ -156,20 +158,23 @@ CREATE TABLE OnlineResults (
     OnlineReportId INT NOT NULL,
     QuizId INT NOT NULL,
     Score INT NOT NULL,
-    CorrecCount INT,
-    WrongCount INT,
-    TotalQuestion INT,
-    RANK INT,
+    CorrecCount INT NULL,
+    WrongCount INT NULL,
+    TotalQuestion INT NULL,
+    RANK INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (OnlineReportId) REFERENCES OnlineReports(OnlineReportId)
 );
 
 -- Bảng QuizzFavourite
 CREATE TABLE QuizzFavourite (
     FavouriteId INT IDENTITY(1,1) PRIMARY KEY,
-    AccountID INT NOT NULL,
+    AccountId INT NOT NULL,
     QuizId INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
 
 -- Bảng QuestionStats
@@ -185,15 +190,18 @@ CREATE TABLE QuestionStats (
     FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
 );
 
--- Bảng OfflineWrongAnswer (Missing table based on OfflineWrongAnswerModule.cs)
+-- Bảng OfflineWrongAnswers (Changed SelectedOptionId and CorrectOptionId to INT)
 CREATE TABLE OfflineWrongAnswers (
     OffWrongId INT IDENTITY(1,1) PRIMARY KEY,
     OffResultId INT NOT NULL,
     QuestionId INT NOT NULL,
-    SelectedOptionId NVARCHAR(MAX),
-    CorrectOptionId NVARCHAR(MAX),
+    SelectedOptionId INT NULL,
+    CorrectOptionId INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (OffResultId) REFERENCES OfflineResults(OffResultId),
+    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId),
+    FOREIGN KEY (SelectedOptionId) REFERENCES Options(OptionId),
+    FOREIGN KEY (CorrectOptionId) REFERENCES Options(OptionId)
 );
 
 CREATE TABLE OfflineReports(
@@ -207,6 +215,7 @@ CREATE TABLE OfflineReports(
     TotalParticipants INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
 
 CREATE TABLE OnlineReports(
@@ -219,16 +228,21 @@ CREATE TABLE OnlineReports(
     AverageScore Decimal(5,2) NOT NULL,
     TotalParticipants INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),    
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
+    
 );
 
 CREATE TABLE OnlineWrongAnswer  (
     OnlWrongId INT IDENTITY(1,1) PRIMARY KEY,
     OnlResultId INT NOT NULL,
     QuestionId INT NOT NULL,
-    SelectedOptionId NVARCHAR(MAX),
-    CorrectOptionId NVARCHAR(MAX),
+    SelectedOptionId INT NULL,
+    CorrectOptionId INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId),
+    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId),
+    FOREIGN KEY (SelectedOptionId) REFERENCES Options(OptionId),
+    FOREIGN KEY (CorrectOptionId) REFERENCES Options(OptionId)
 );
 

@@ -1,19 +1,19 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Capstone.Model
 {
-    [Table("OfflineWrongAnswers")]
-    public class OfflineWrongAnswerModule
+    [Table("OnlineWrongAnswer")]
+    public class OnlineWrongAnswerModel
     {
         [Key]
-        [Column("OffWrongId")]
+        [Column("OnlWrongId")]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int OffWrongId { get; set; }
+        public int OnlWrongId { get; set; }
 
-        [Column("OffResultId")]
-        [ForeignKey("OfflineResult")]
-        public int OffResultId { get; set; }
+        [Column("OnlResultId")]
+        public int OnlResultId { get; set; }
 
         [Column("QuestionId")]
         public int QuestionId { get; set; }
@@ -25,6 +25,7 @@ namespace Capstone.Model
         public int? CorrectOptionId { get; set; }
 
         [Column("CreateAt")]
+        [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;
     }
 }

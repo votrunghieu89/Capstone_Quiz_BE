@@ -1,6 +1,6 @@
-﻿namespace Capstone.DTOs.Reports.Teacher
+﻿namespace Capstone.DTOs.Reports.Teacher.OfflineReport
 {
-    public class DeliveredQuizzDTO
+    public class ViewAllOfflineReportDTO
     {
         public int GroupId { get; set; }
         public string GroupName { get; set; } = string.Empty;
@@ -8,8 +8,9 @@
     }
     public class DeliveredQuizzDetailDTO
     {
+        public int OfflineReportId { get; set; }
         public int QuizzId { get; set; }
-        public string QuizzName { get; set; } = string.Empty;
+        public string ReportName { get; set; } = string.Empty;
         public int TotalParticipants { get; set; }
         public DateTime EndTime { get; set; }
         public string Status { get; set; } = string.Empty;

@@ -150,6 +150,7 @@ namespace Capstone.Controllers
         [HttpPost("createQuiz")]
         public async Task<IActionResult> CreateQuiz([FromBody] QuizCreateDTo quiz)
         {
+            Console.WriteLine("Received quiz data: " + quiz.AvatarURL);
             try
             {
                 var quizModel = new QuizCreateDTo
@@ -157,11 +158,10 @@ namespace Capstone.Controllers
                     TeacherId = quiz.TeacherId,
                     FolderId = quiz.FolderId,
                     TopicId = quiz.TopicId,
-                    GroupId = quiz.GroupId,
                     Title = quiz.Title,
                     Description = quiz.Description,
                     IsPrivate = quiz.IsPrivate,
-                    AvartarURL = quiz.AvartarURL,
+                    AvatarURL = quiz.AvatarURL,
                     NumberOfPlays = 0,
                     CreatedAt = DateTime.Now,
                     Questions = quiz.Questions?.Select(q => new QuestionDTO
@@ -176,7 +176,7 @@ namespace Capstone.Controllers
                         }).ToList() ?? new List<OptionDTO>()
                     }).ToList() ?? new List<QuestionDTO>()
                 };
-
+                Console.WriteLine(quizModel.AvatarURL);
                 // 5️⃣ Gọi repository lưu quiz
                 var createdQuiz = await _quizRepository.CreateQuiz(quizModel);
                 if (createdQuiz == null)
@@ -214,7 +214,7 @@ namespace Capstone.Controllers
         }
 
         // ===== PUT METHODS =====
-        [HttpPut("updateImage/{quizId}")]
+        [HttpPut("updateImage")]
         public async Task<IActionResult> UpdateImage([FromForm] QuizUpdateImageDTO dto)
         {
             try
@@ -284,7 +284,6 @@ namespace Capstone.Controllers
                     QuizId = quiz.QuizId,
                     FolderId = quiz.FolderId,
                     TopicId = quiz.TopicId,
-                    GroupId = quiz.GroupId,
                     Title = quiz.Title,
                     Description = quiz.Description,
                     IsPrivate = quiz.IsPrivate,
@@ -323,12 +322,24 @@ namespace Capstone.Controllers
         [HttpDelete("deleteQuiz/{quizId}")]
         public async Task<IActionResult> DeleteQuiz(int quizId)
         {
-            bool isDeleted = await _quizRepository.DeleteQuiz(quizId);
-            if (!isDeleted)
+            string isDeleted = await _quizRepository.DeleteQuiz(quizId);
+            if (isDeleted == null)
             {
                 return NotFound(new { message = "Quiz not found or could not be deleted." });
             }
-            return Ok(new { message = "Quiz deleted successfully." });
+            if(isDeleted == "QuizImage/Default.jpg")
+            {
+                return Ok(new { message = "Quiz deleted successfully." });
+            }
+            else
+            {
+                var imagePath = Path.Combine(_webHostEnvironment.ContentRootPath, isDeleted);
+                if (System.IO.File.Exists(imagePath))
+                {
+                    System.IO.File.Delete(imagePath);
+                }
+                return Ok(new { message = "Quiz deleted successfully." });
+            }
         }
 
         [HttpDelete("deleteQuestion/{questionId}")]

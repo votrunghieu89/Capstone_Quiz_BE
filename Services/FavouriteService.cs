@@ -33,7 +33,7 @@ namespace Capstone.Services
                     {
                         QuizId = q.QuizId,
                         Title = q.Title,
-                        AvatarURL = q.AvartarURL,
+                        AvatarURL = q.AvatarURL,
                         CreatedBy = pc.Email,
                         TotalQuestions = _context.questions
                                                   .Count(ques => ques.QuizId == q.QuizId && ques.IsDeleted == false)

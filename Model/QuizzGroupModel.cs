@@ -17,6 +17,8 @@ namespace Capstone.Model
 
         [ForeignKey("GroupId")]
         public int GroupId { get; set; }
+        [Column("MaxAttempts")]
+        public int MaxAttempts { get; set; }
         [Column("Message")]
         public string? Message { get; set; }
         [Column("Status")]

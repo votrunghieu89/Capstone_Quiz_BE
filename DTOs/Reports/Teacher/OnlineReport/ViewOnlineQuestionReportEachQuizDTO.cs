@@ -1,6 +1,6 @@
-﻿namespace Capstone.DTOs.Reports.Teacher
+﻿namespace Capstone.DTOs.Reports.Teacher.OnlineReport
 {
-    public class ViewQuestionHistoryDTO
+    public class ViewOnlineQuestionReportEachQuizDTO
     {
         public int QuestionId { get; set; }
         public string QuestionContent { get; set; } = string.Empty;

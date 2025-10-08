@@ -33,9 +33,9 @@ namespace Capstone.Model
         [Column("IsPrivate")]
         public bool IsPrivate { get; set; }
 
-        [Column("AvartarURL")]
+        [Column("AvatarURL")]
         [MaxLength(255)]
-        public string? AvartarURL { get; set; }
+        public string? AvatarURL { get; set; }
         [Column("TotalParticipants")]
         public int TotalParticipants { get; set; } = 0;
         [Column("CreateAt")]

@@ -120,7 +120,7 @@ builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
 builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddScoped<IGroupRepository, GroupService>();
 builder.Services.AddScoped<IAdminRepository,AdminService>();
-builder.Services.AddScoped<IHistoryTeacher, TeacherHistoryService>();
+builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();

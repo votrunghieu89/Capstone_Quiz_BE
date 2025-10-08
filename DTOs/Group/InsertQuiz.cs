@@ -6,5 +6,6 @@
         public int GroupId { get; set; }
         public string? Message { get; set; }
         public DateTime ExpiredTime { get; set; }
+        public int MaxAttempts { get; set; }
     }
 }
