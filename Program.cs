@@ -19,6 +19,7 @@ using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
 using Capstone.Repositories.Histories;
+using Capstone.Repositories.Folder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -121,6 +122,7 @@ builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddScoped<IGroupRepository, GroupService>();
 builder.Services.AddScoped<IAdminRepository,AdminService>();
 builder.Services.AddScoped<IHistoryTeacher, TeacherHistoryService>();
+builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
@@ -138,16 +140,16 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
-    RequestPath = "/ProfileImage"
-});
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
-    RequestPath = "/QuizImage"
-});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
+//    RequestPath = "/ProfileImage"
+//});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
+//    RequestPath = "/QuizImage"
+//});
 app.UseRouting();
 
 app.UseCors("AllowFrontend");

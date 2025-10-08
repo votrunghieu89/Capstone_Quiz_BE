@@ -26,7 +26,6 @@ namespace Capstone.Model
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;
         [Column("UpdateAt")]
-        [Required]
         public DateTime? UpdateAt { get; set; }
     }
 }
