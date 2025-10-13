@@ -73,6 +73,7 @@ namespace Capstone.Controllers
                 Description = quizDetails.Description,
                 AvatarURL = quizDetails.AvatarURL ?? string.Empty,
                 TotalParticipants = quizDetails.TotalParticipants,
+                TotalQuestions = quizDetails.TotalQuestions,
                 CreatedDate = quizDetails.CreatedDate,
                 Questions = quizDetails.Questions,
 
@@ -195,11 +196,11 @@ namespace Capstone.Controllers
         public async Task<IActionResult> CheckQuizAnswers([FromBody] CheckAnswerDTO quizAnswers)
         {
             var result = await _quizRepository.checkAnswer(quizAnswers);
-            if (result == null)
+            if(quizAnswers == null || result == false)
             {
-                return StatusCode(500, "An error occurred while checking the answers.");
+                return BadRequest(new { message = "Invalid quiz answers provided." });
             }
-            return Ok(result);
+            return Ok(new { message = "Answers checked successfully.", isAllCorrect = result });
         }
 
         [HttpPost("GetCorrectAnswers")]

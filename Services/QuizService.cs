@@ -522,6 +522,9 @@ namespace Capstone.Services
                         q.CreateAt,
                     })
                     .FirstOrDefaultAsync();
+                var totalQuestions = await _context.questions
+                    .Where(q => q.QuizId == quizId && q.IsDeleted == false)
+                    .CountAsync();
 
                 if (quizDetail == null)
                 {
@@ -555,6 +558,8 @@ namespace Capstone.Services
                     Title = quizDetail.Title,
                     Description = quizDetail.Description,
                     AvatarURL = quizDetail.AvatarURL,
+                    TotalParticipants = quizDetail.TotalParticipants,
+                    TotalQuestions = totalQuestions,
                     CreatedDate = quizDetail.CreateAt,
                     Questions = questionDetails ?? new List<QuestionDetailDTO>()
                 };

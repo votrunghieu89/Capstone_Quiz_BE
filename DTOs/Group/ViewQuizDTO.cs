@@ -6,7 +6,7 @@
         public int quizId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string TeacherName { get; set; } = string.Empty;
-        public string DateCreated { get; set; } = string.Empty;
+        public DateTime DateCreated { get; set; }
         public string? Message { get; set; }
     }
 }

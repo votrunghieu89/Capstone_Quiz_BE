@@ -19,6 +19,7 @@ using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
 using Capstone.Repositories.Histories;
+using Capstone.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,6 +123,7 @@ builder.Services.AddScoped<IGroupRepository, GroupService>();
 builder.Services.AddScoped<IAdminRepository,AdminService>();
 builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddScoped<IStudentReportRepository, StudentReportService>();
+builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
@@ -158,6 +160,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<QuizHub>("/QuizHub");
 
 app.Run();

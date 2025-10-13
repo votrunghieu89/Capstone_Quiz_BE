@@ -185,7 +185,7 @@ namespace Capstone.Services
                                         quizId = q.QuizId,
                                         Title = r.ReportName,
                                         TeacherName = t.FullName,
-                                        DateCreated = gq.CreateAt.ToString("yyyy-MM-dd"),
+                                        DateCreated = gq.CreateAt,
                                         Message = gq.Message
                                      }).ToListAsync();
                 if (quizzes.Any())
@@ -222,8 +222,8 @@ namespace Capstone.Services
                                     FullName = sp.FullName,
                                     Email = a.Email,
                                     Avatar = sp.AvatarURL,
-                                    DateJoined = sg.CreateAt.ToString("yyyy-MM-dd"),
-                                    Permission = "Member"
+                                    DateJoined = sg.CreateAt,
+                                    Permission = "Student"
                                 }).ToListAsync();
                 if (students.Any())
                 {

@@ -7,6 +7,7 @@
         public string? Description { get; set; }
         public string? AvatarURL { get; set; }
         public int? TotalParticipants { get; set; }
+        public int? TotalQuestions { get; set; }
         public DateTime CreatedDate { get; set; }
         public List<QuestionDetailDTO> Questions { get; set; } = new List<QuestionDetailDTO>();
     }
