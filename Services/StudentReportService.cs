@@ -97,7 +97,7 @@ namespace Capstone.Services
                 NumberOfCorrectAnswers = correctAnswers,
                 NumberOfWrongAnswers = wrongCount,
                 TotalQuestions = totalQuestions,
-                FinalScore = (int)((correctAnswers / (double)totalQuestions) * 100),
+                FinalScore = result.Score,
                 StartDate = result.StartDate,
                 CompletedAt = result.CreateAt,
                 CreatedBy = quiz.CreatedBy,

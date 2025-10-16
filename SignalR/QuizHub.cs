@@ -1,4 +1,5 @@
-﻿using Capstone.DTOs.Quizzes.QuizzOnline;
+﻿using Capstone.DTOs.Quizzes;
+using Capstone.DTOs.Quizzes.QuizzOnline;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
@@ -9,7 +10,8 @@ namespace Capstone.SignalR
     {
         // list ở dây là tên giáo viên và học sinh
         // String là mã Pin
-        private static ConcurrentDictionary<string, ConcurrentBag<string>> Rooms = new();
+        private static ConcurrentDictionary<string, ConcurrentDictionary<string, string>> Rooms = new();
+        private static ConcurrentDictionary<string, (string RoomCode, string StudentId)> StudentConnections = new();
         private readonly Redis _redis;
         private readonly ILogger<QuizHub> _logger;
 
@@ -17,6 +19,40 @@ namespace Capstone.SignalR
         {
             _redis = redis;
             _logger = logger;
+        }
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            // Kiểm tra xem connection này có ánh xạ tới StudentId không
+            if (StudentConnections.TryRemove(Context.ConnectionId, out var info))
+            {
+                var (roomCode, studentId) = info;
+
+                // Kiểm tra phòng có tồn tại
+                if (Rooms.TryGetValue(roomCode, out var studentsInRoom))
+                {
+                    // Xoá student khỏi phòng
+                    if (studentsInRoom.TryRemove(studentId, out var studentName))
+                    {
+                        _logger.LogInformation("Student {StudentName} ({StudentId}) disconnected from room {RoomCode}",
+                            studentName, studentId, roomCode);
+
+                        // Gửi update danh sách student còn lại cho toàn bộ phòng
+                        await Clients.Group(roomCode).SendAsync("UpdateStudentList", studentsInRoom.Values, studentsInRoom.Count);
+                    }
+
+                    // Nếu phòng trống, bạn có thể xóa room luôn
+                    if (studentsInRoom.IsEmpty)
+                    {
+                        Rooms.TryRemove(roomCode, out _);
+                        _logger.LogInformation("Room {RoomCode} is empty and removed.", roomCode);
+                    }
+                }
+
+                // Xoá dữ liệu Redis nếu cần
+                await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}:student:{studentId}*");
+            }
+
+            await base.OnDisconnectedAsync(exception);
         }
 
         public async Task<string> CreateRoom(int quizId, int teacherId, int totalQuestion)
@@ -27,8 +63,8 @@ namespace Capstone.SignalR
                 roomCode = new Random().Next(100000, 999999).ToString();
             } while (await _redis.KeyExistsAsync($"quiz_room_{roomCode}"));
 
-            Rooms[roomCode] = new ConcurrentBag<string>(); // Tạo phòng mới với mã Pin
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode); // Thêm người dùng vào 1 nhóm
+            Rooms[roomCode] = new ConcurrentDictionary<string, string>();
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode); 
             CreateRoomRedisDTO createRoomRedis = new CreateRoomRedisDTO()
             {
                 QuizId = quizId,
@@ -51,14 +87,13 @@ namespace Capstone.SignalR
                 _logger.LogInformation("JoinRoom failed: Room {roomCode} does not exist.", roomCode);
                 return null;
             }
-
-          
-            Rooms[roomCode].Add(studentName);
-            int TotalStudents = Rooms[roomCode].Count;
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
-            await Clients.Group(roomCode).SendAsync("UpdateStudentList", Rooms[roomCode], TotalStudents);
-
             string studentId = Guid.NewGuid().ToString("N");
+            Rooms[roomCode][studentId] = studentName;
+            StudentConnections[Context.ConnectionId] = (roomCode, studentId);
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+            //
+            int TotalStudents = Rooms[roomCode].Count;
+            await Clients.Group(roomCode).SendAsync("UpdateStudentList", Rooms[roomCode].Values, TotalStudents);
 
             CreateStudentRedisDTO newStudentRedis = new CreateStudentRedisDTO()
             {
@@ -227,6 +262,60 @@ namespace Capstone.SignalR
             {
                 _logger.LogError(ex, "Error while ending game after completion for room {RoomCode}", roomCode);
             }
+        }
+
+        public async Task<StudentCompleteResultDTO> StudentComplete(string roomCode, string studentId)
+        {
+            // 1. Lấy thông tin phòng
+            var jsonRoomRedis = await _redis.GetStringAsync($"quiz:room:{roomCode}");
+            if (string.IsNullOrEmpty(jsonRoomRedis)) return null;
+            var roomRedis = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(jsonRoomRedis);
+            if (roomRedis == null) return null;
+
+            // 2. Lấy danh sách câu hỏi, đáp án
+            var jsonlistQuestion = await _redis.GetStringAsync($"quiz_questions_{roomRedis.QuizId}_Answer");
+            if (string.IsNullOrEmpty(jsonlistQuestion)) return null;
+
+            var listQuestion = JsonConvert.DeserializeObject<List<GetQuizQuestionsDTO>>(jsonlistQuestion);
+
+            // 3. Lấy thông tin học sinh và kết quả cuối
+            // Thông tin
+            var jsonStudentInfor = await _redis.GetStringAsync($"quiz:room:{roomCode}:student:{studentId}");
+            var studentData = JsonConvert.DeserializeObject<CreateStudentRedisDTO>(jsonStudentInfor ?? "");
+            // Kết quả
+            Dictionary<string, string> StudentDetail = await _redis.HGetAllAsync($"quiz:room:{roomCode}:student:{studentId}:detail");
+
+            var resultQuestions = new List<QuestionResultDTO>();
+            foreach (var q in listQuestion)
+            {
+                // Kiểm tra học sinh có sai ở câu này không
+                var wrong = studentData.WrongAnswerRedisDTOs.FirstOrDefault(w => w.QuestionId == q.QuestionId);
+                var optionResults = q.Options.Select(o => new OptionResultDTO
+                {
+                    OptionId = o.OptionId,
+                    OptionContent = o.OptionContent,
+                    IsCorrect = o.IsCorrect,
+                    IsSelectedWrong = wrong != null && wrong.SelectedOptionId == o.OptionId
+                }).ToList();
+
+                resultQuestions.Add(new QuestionResultDTO
+                {
+                    QuestionId = q.QuestionId,
+                    QuestionContent = q.QuestionContent,
+                    Options = optionResults
+                });
+            }
+
+            StudentCompleteResultDTO studentCompleteResultDTO = new StudentCompleteResultDTO()
+            {
+                StudentName = studentData.StudentName,
+                Score = Convert.ToInt32(StudentDetail["Score"]),
+                CorrectCount = Convert.ToInt32(StudentDetail["CorrectCount"]),
+                WrongCount = Convert.ToInt32(StudentDetail["WrongCount"]),
+                TotalQuestions = studentData.TotalQuestions,
+                Rank = Convert.ToInt32(StudentDetail["Rank"]),
+                Questions = resultQuestions
+            };
         }
     }
 }

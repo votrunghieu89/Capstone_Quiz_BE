@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Folder Include="ProfileImage\" />
+    <Folder Include="Repositories\Filter_Search\" />
   </ItemGroup>
 
 </Project>

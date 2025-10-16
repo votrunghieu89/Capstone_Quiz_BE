@@ -34,7 +34,7 @@ namespace Capstone.Controllers
             var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
             if (json == null)
             {
-                var quiz = await _quizRepository.GetQuizQuestions(quizId); // lấy câu hỏi từ database
+                var quiz = await _quizRepository.GetAllQuestionEachQuiz(quizId); // lấy câu hỏi từ database
                 if (quiz == null)
                 {
                     return NotFound(new { message = "Quiz not found." });

@@ -113,6 +113,7 @@ namespace Capstone.Services
                 var groups = await (from sg in _appDbContext.studentGroups
                                     join g in _appDbContext.groups on sg.GroupId equals g.GroupId
                                     where sg.StudentId == studentId
+                                    orderby sg.CreateAt descending
                                     select new AllGroupDTO
                                     {
                                         GroupId = g.GroupId,
@@ -144,6 +145,7 @@ namespace Capstone.Services
             {
                 var groups = await _appDbContext.groups
                     .Where(g => g.TeacherId == TeacherId)
+                    .OrderByDescending(g => g.CreateAt)
                     .Select(g => new AllGroupDTO
                     {
                         GroupId = g.GroupId,
@@ -179,19 +181,44 @@ namespace Capstone.Services
                                      join t in _appDbContext.teacherProfiles on q.TeacherId equals t.TeacherId
                                      join r in _appDbContext.offlinereports on gq.QGId equals r.QGId 
                                      where gq.GroupId == groupId
-                                     select new ViewQuizDTO
+                                     orderby gq.CreateAt descending
+                                     select new 
                                      {
                                         QGId = gq.QGId,
                                         quizId = q.QuizId,
                                         Title = r.ReportName,
                                         TeacherName = t.FullName,
                                         DateCreated = gq.CreateAt,
+                                        ExpiredDate = gq.ExpiredTime,
                                         Message = gq.Message
                                      }).ToListAsync();
+                List<ViewQuizDTO> result = new List<ViewQuizDTO>();
+                foreach (var quiz in quizzes)
+                {
+                    //var totalQuestion = await _appDbContext.questions.Where(q => q.QuizId == quiz.quizId && q.IsDeleted == false).CountAsync();
+                    var deliveredQuizz = await _appDbContext.quizzes.Where(q => q.QuizId == quiz.quizId).
+                                                    Select(q => new DeliveredQuizz
+                                                    {
+                                                        QuizId = q.QuizId,
+                                                        AvatarURL = q.AvatarURL,
+                                                        TotalQuestions = _appDbContext.questions.Count(ques => ques.QuizId == q.QuizId && !ques.IsDeleted)
+                                                    }).FirstOrDefaultAsync();
+                    ViewQuizDTO newViewQuizDTO = new ViewQuizDTO()
+                    {
+                        QGId = quiz.QGId,
+                        DeliveredQuiz = deliveredQuizz,
+                        Title = quiz.Title,
+                        TeacherName = quiz.TeacherName,
+                        DateCreated = quiz.DateCreated,
+                        ExpiredDate = quiz.ExpiredDate,
+                        Message = quiz.Message
+                    };
+                    result.Add(newViewQuizDTO);
+                }
                 if (quizzes.Any())
                 {
                     _logger.LogInformation("GetAllQuizzesByGroupId: Retrieved {Count} quizzes for GroupId={GroupId}", quizzes.Count, groupId);
-                    return quizzes;
+                    return result;
                 }
                 else
                 {

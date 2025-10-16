@@ -24,7 +24,7 @@ namespace Capstone.Model
         [Column("Score")]
         public int Score { get; set; }
 
-        [Column("CorrecCount")]
+        [Column("CorrectCount")]
         public int? CorrecCount { get; set; }
 
         [Column("WrongCount")]

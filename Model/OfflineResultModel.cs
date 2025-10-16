@@ -19,7 +19,7 @@ namespace Capstone.Model
         public int StudentId { get; set; }
         [Column("QuizId")]
         public int QuizId { get; set; }
-        [Column("CorrecCount")]
+        [Column("CorrectCount")]
         public int CorrecCount { get; set; }
         [Column("WrongCount")]
         public int WrongCount { get; set; }

@@ -194,7 +194,7 @@ namespace Capstone.Services
                 _logger.LogError(ex, "Error deleting quiz with Id={QuizId}", quizId);
                 return null;
             }
-        }
+        } 
 
         public async Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO dto)
         {
@@ -336,7 +336,7 @@ namespace Capstone.Services
             };
         }
 
-        public async Task<List<getQuizQuestionWithoutAnswerDTO>> GetQuizQuestions(int quizId)
+        public async Task<List<getQuizQuestionWithoutAnswerDTO>> GetAllQuestionEachQuiz(int quizId)
         {
             try
             {
@@ -382,11 +382,11 @@ namespace Capstone.Services
 
                 
                 await _redis.SetStringAsync(
-                    $"quiz_questions_{quizId}",
+                    $"quiz_questions_{quizId}_withoutAnswer",
                     JsonSerializer.Serialize(cacheWithoutAnswer),
                     TimeSpan.FromHours(2)
                 );
-
+                await _redis.SetStringAsync($"quiz_questions_{quizId}_Answer", JsonSerializer.Serialize(result), TimeSpan.FromHours(2));
             
                 foreach (var q in result)
                 {
@@ -608,27 +608,27 @@ namespace Capstone.Services
                     int skip = (page - 1) * pageSize;
 
                     string query = @"
-                SELECT 
-                    q.QuizId,
-                    q.Title,
-                    q.AvatarURL,
-                    a.Email AS CreatedBy,
-                    tpc.TopicName,
-                    ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions
-                FROM Quizzes q
-                LEFT JOIN TeacherProfile t
-                    ON q.TeacherId = t.TeacherId
-                LEFT JOIN Questions ques
-                    ON q.QuizId = ques.QuizId AND ques.IsDeleted = 0
-                LEFT JOIN Accounts a
-                    ON q.TeacherId = a.AccountId
-                JOIN Topics tpc
-                    ON q.TopicId = tpc.TopicId
-                WHERE q.IsPrivate = 0       
-                GROUP BY q.QuizId, q.Title, q.AvatarURL, t.FullName, a.Email, tpc.TopicName
-                ORDER BY q.QuizId
-                OFFSET @Skip ROWS
-                FETCH NEXT @Take ROWS ONLY;
+                        SELECT 
+                            q.QuizId,
+                            q.Title,
+                            q.AvatarURL,
+                            a.Email AS CreatedBy,
+                            tpc.TopicName,
+                            ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions
+                        FROM Quizzes q
+                        LEFT JOIN TeacherProfile t
+                            ON q.TeacherId = t.TeacherId
+                        LEFT JOIN Questions ques
+                            ON q.QuizId = ques.QuizId AND ques.IsDeleted = 0
+                        LEFT JOIN Accounts a
+                            ON q.TeacherId = a.AccountId
+                        JOIN Topics tpc
+                            ON q.TopicId = tpc.TopicId
+                        WHERE q.IsPrivate = 0
+                        GROUP BY q.QuizId, q.Title, q.AvatarURL, a.Email, tpc.TopicName, q.CreateAt
+                        ORDER BY q.CreateAt DESC, q.QuizId
+                        OFFSET @Skip ROWS
+                        FETCH NEXT @Take ROWS ONLY;
             ";
                     using (SqlCommand cmd = new SqlCommand(query, connection))
                     {

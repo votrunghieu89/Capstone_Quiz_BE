@@ -80,7 +80,7 @@ CREATE TABLE Quizzes (
     QuizId INT IDENTITY(1,1) PRIMARY KEY,
     TeacherId INT NOT NULL,
     FolderId INT NOT NULL,
-    TopicId INT NOT NULL,
+    TopicId INT NOT NULL UNIQUE,
     Title NVARCHAR(100) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
     IsPrivate BIT NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE OfflineResults (
     GroupId INT NULL,
     StudentId INT NOT NULL,
     QuizId INT NOT NULL,
-    CorrecCount INT NOT NULL DEFAULT 0,
+    CorrectCount INT NOT NULL DEFAULT 0,
     WrongCount INT NOT NULL DEFAULT 0 ,
     TotalQuestion INT NOT NULL DEFAULT 0 ,
     StartDate DATETIME2 NOT NULL,
@@ -158,7 +158,7 @@ CREATE TABLE OnlineResults (
     OnlineReportId INT NOT NULL,
     QuizId INT NOT NULL,
     Score INT NOT NULL,
-    CorrecCount INT NULL,
+    CorrectCount INT NULL,
     WrongCount INT NULL,
     TotalQuestion INT NULL,
     RANK INT NULL,
@@ -177,19 +177,6 @@ CREATE TABLE QuizzFavourite (
     FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
 );
 
--- Bảng QuestionStats
-CREATE TABLE QuestionStats (
-    QuestionStatsId INT IDENTITY(1,1) PRIMARY KEY,
-    QuizId INT,
-    QuestionId INT,
-    CorrecCount INT,
-    WrongCount INT,
-    TotalAnswer INT,
-    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
-    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
-);
-
 -- Bảng OfflineWrongAnswers (Changed SelectedOptionId and CorrectOptionId to INT)
 CREATE TABLE OfflineWrongAnswers (
     OffWrongId INT IDENTITY(1,1) PRIMARY KEY,
@@ -206,7 +193,7 @@ CREATE TABLE OfflineWrongAnswers (
 
 CREATE TABLE OfflineReports(
     OfflineReportId INT IDENTITY(1,1) PRIMARY KEY,
-    QGId INT NOT NULL,
+    QGId INT NOT NULL UNIQUE,
     QuizId INT NOT NULL,
     ReportName NVARCHAR(100) NOT NULL,
     HighestScore INT NOT NULL,
@@ -214,8 +201,7 @@ CREATE TABLE OfflineReports(
     AverageScore Decimal(5,2) NOT NULL,
     TotalParticipants INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId)
 );
 
 CREATE TABLE OnlineReports(
@@ -240,9 +226,6 @@ CREATE TABLE OnlineWrongAnswer  (
     SelectedOptionId INT NULL,
     CorrectOptionId INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId),
-    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId),
-    FOREIGN KEY (SelectedOptionId) REFERENCES Options(OptionId),
-    FOREIGN KEY (CorrectOptionId) REFERENCES Options(OptionId)
+    FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId)
 );
 
