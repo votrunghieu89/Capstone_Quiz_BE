@@ -264,17 +264,17 @@ namespace Capstone.SignalR
             }
         }
 
-        public async Task<StudentCompleteResultDTO> StudentComplete(string roomCode, string studentId)
+        public async Task StudentComplete(string roomCode, string studentId)
         {
             // 1. Lấy thông tin phòng
             var jsonRoomRedis = await _redis.GetStringAsync($"quiz:room:{roomCode}");
-            if (string.IsNullOrEmpty(jsonRoomRedis)) return null;
+            if (string.IsNullOrEmpty(jsonRoomRedis)) return ;
             var roomRedis = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(jsonRoomRedis);
-            if (roomRedis == null) return null;
+            if (roomRedis == null) return ;
 
             // 2. Lấy danh sách câu hỏi, đáp án
             var jsonlistQuestion = await _redis.GetStringAsync($"quiz_questions_{roomRedis.QuizId}_Answer");
-            if (string.IsNullOrEmpty(jsonlistQuestion)) return null;
+            if (string.IsNullOrEmpty(jsonlistQuestion)) return ;
 
             var listQuestion = JsonConvert.DeserializeObject<List<GetQuizQuestionsDTO>>(jsonlistQuestion);
 
@@ -285,17 +285,19 @@ namespace Capstone.SignalR
             // Kết quả
             Dictionary<string, string> StudentDetail = await _redis.HGetAllAsync($"quiz:room:{roomCode}:student:{studentId}:detail");
 
+
+            var wrongAnswersDict = studentData.WrongAnswerRedisDTOs.ToDictionary(w => w.QuestionId, w => w);
             var resultQuestions = new List<QuestionResultDTO>();
             foreach (var q in listQuestion)
             {
                 // Kiểm tra học sinh có sai ở câu này không
-                var wrong = studentData.WrongAnswerRedisDTOs.FirstOrDefault(w => w.QuestionId == q.QuestionId);
+                wrongAnswersDict.TryGetValue(q.QuestionId, out var wrong);
                 var optionResults = q.Options.Select(o => new OptionResultDTO
                 {
                     OptionId = o.OptionId,
                     OptionContent = o.OptionContent,
                     IsCorrect = o.IsCorrect,
-                    IsSelectedWrong = wrong != null && wrong.SelectedOptionId == o.OptionId
+                    IsSelectedWrong = wrong != null && wrong.SelectedOptionId == o.OptionId 
                 }).ToList();
 
                 resultQuestions.Add(new QuestionResultDTO
@@ -316,6 +318,13 @@ namespace Capstone.SignalR
                 Rank = Convert.ToInt32(StudentDetail["Rank"]),
                 Questions = resultQuestions
             };
+            var connectionEntry = StudentConnections.FirstOrDefault(x => x.Value.StudentId == studentId);
+
+            if (connectionEntry.Key != null)
+            {
+                var Connection = connectionEntry.Key;
+                await Clients.Client(Connection).SendAsync("CompleteQuiz", studentCompleteResultDTO);
+            }
         }
     }
 }

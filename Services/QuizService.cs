@@ -145,56 +145,30 @@ namespace Capstone.Services
 
         public async Task<string> DeleteQuiz(int quizId)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Lấy quiz
-                var quiz = await _context.quizzes
-                    .FirstOrDefaultAsync(q => q.QuizId == quizId);
-                var oldAvatarURL = quiz?.AvatarURL;
-                if (quiz == null)
-                {
-                    _logger.LogWarning("Quiz not found for quizId: {QuizId}", quizId);
-                    return null;
-                }
+                var quiz = await _context.quizzes.FirstOrDefaultAsync(q => q.QuizId == quizId);
 
-                // 2. Lấy tất cả questions thuộc quiz
-                var questions = await _context.questions
+                if (quiz == null) return null;
+
+                var oldAvatarURL = quiz.AvatarURL;
+
+                // Xóa quiz, các bảng con tự động xóa nhờ cascade delete
+                await _context.quizzes
                     .Where(q => q.QuizId == quizId)
-                    .ToListAsync();
+                    .ExecuteDeleteAsync();
 
-                if (questions.Any())
-                {
-                    // 3. Lấy tất cả options của các questions
-                    var questionIds = questions.Select(q => q.QuestionId).ToList();
-                    var options = await _context.options
-                        .Where(o => questionIds.Contains(o.QuestionId))
-                        .ToListAsync();
-
-                    if (options.Any())
-                    {
-                        _context.options.RemoveRange(options);
-                        await _context.SaveChangesAsync();
-                    }
-
-                    _context.questions.RemoveRange(questions);
-                    await _context.SaveChangesAsync();
-                }
-
-                // 4. Xóa quiz
-                _context.quizzes.Remove(quiz);
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
                 return oldAvatarURL;
+
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+
                 _logger.LogError(ex, "Error deleting quiz with Id={QuizId}", quizId);
                 return null;
             }
-        } 
+        }
+        
 
         public async Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO dto)
         {

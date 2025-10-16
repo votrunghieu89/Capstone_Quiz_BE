@@ -18,7 +18,7 @@ CREATE TABLE StudentProfile (
     IdUnique NVARCHAR(100) NOT NULL UNIQUE,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
-    FOREIGN KEY (StudentId) REFERENCES Accounts(AccountId)
+    FOREIGN KEY (StudentId) REFERENCES Accounts(AccountId) ON DELETE CASCADE
 );
 
 -- Bảng TeacherProfile (1-1 với Accounts)
@@ -32,7 +32,7 @@ CREATE TABLE TeacherProfile (
     OrganizationAddress NVARCHAR(100) NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
-    FOREIGN KEY (TeacherId) REFERENCES Accounts(AccountId)
+    FOREIGN KEY (TeacherId) REFERENCES Accounts(AccountId) ON DELETE CASCADE
 );
 
 -- Bảng Groups
@@ -43,7 +43,7 @@ CREATE TABLE Groups (
     GroupDescription NVARCHAR(255) NULL,
     IdUnique NVARCHAR(100) NOT NULL UNIQUE,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId) ON DELETE CASCADE
 );
 
 -- Bảng Student_Group (N-M giữa StudentProfile và Groups)
@@ -53,7 +53,7 @@ CREATE TABLE Student_Group (
     GroupId INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
-    FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
+    FOREIGN KEY (GroupId) REFERENCES Groups(GroupId) ON DELETE CASCADE
 );
 
 -- Bảng Topics
@@ -72,7 +72,7 @@ CREATE TABLE QuizzFolders (
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
     FOREIGN KEY (ParentFolderId) REFERENCES QuizzFolders(FolderId),
-    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId) ON DELETE CASCADE
 );
 
 -- Bảng Quizzes
@@ -88,7 +88,7 @@ CREATE TABLE Quizzes (
     TotalParticipants INT NOT NULL DEFAULT 0,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
-    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId),
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId) ON DELETE CASCADE,
     FOREIGN KEY (FolderId) REFERENCES QuizzFolders(FolderId),
     FOREIGN KEY (TopicId) REFERENCES Topics(TopicId)
 );
@@ -99,11 +99,11 @@ CREATE TABLE Quizz_Group (
     QuizId INT NOT NULL,
     GroupId INT NOT NULL,
     Message NVARCHAR(MAX) NULL,
-    ExpiredTime Datetime2  NOT NULL,
+    ExpiredTime Datetime2 NOT NULL,
     MaxAttempts INT NOT NULL DEFAULT 1,
     Status NVARCHAR(10) NOT NULL DEFAULT 'Pending' CHECK (Status IN ('Pending','Completed')),
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId) ON DELETE CASCADE,
     FOREIGN KEY (GroupId) REFERENCES Groups(GroupId)
 );
 
@@ -113,11 +113,11 @@ CREATE TABLE Questions (
     QuizId INT NOT NULL,
     QuestionType NVARCHAR(10) NOT NULL CHECK (QuestionType IN ('MCQ','TF')),
     QuestionContent NVARCHAR(MAX) NOT NULL,
-    Time INT NUll,
+    Time INT NULL,
     IsDeleted BIT NOT NULL DEFAULT 0,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId) ON DELETE CASCADE
 );
 
 -- Bảng Options
@@ -128,7 +128,7 @@ CREATE TABLE Options (
     IsCorrect BIT NOT NULL,
     IsDeleted BIT NOT NULL DEFAULT 0,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
+    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId) ON DELETE CASCADE
 );
 
 CREATE TABLE OfflineResults (
@@ -138,19 +138,32 @@ CREATE TABLE OfflineResults (
     StudentId INT NOT NULL,
     QuizId INT NOT NULL,
     CorrectCount INT NOT NULL DEFAULT 0,
-    WrongCount INT NOT NULL DEFAULT 0 ,
-    TotalQuestion INT NOT NULL DEFAULT 0 ,
+    WrongCount INT NOT NULL DEFAULT 0,
+    TotalQuestion INT NOT NULL DEFAULT 0,
     StartDate DATETIME2 NOT NULL,
     EndDate DATETIME2 NOT NULL,
-    Duration INT NOT NULL, -- Duration in minutes
+    Duration INT NOT NULL,
     Score INT NOT NULL,
     RANK INT NULL,
     CountAttempts INT NULL DEFAULT 1,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (StudentId) REFERENCES StudentProfile(StudentId),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId) ON DELETE CASCADE
 );
-
+CREATE TABLE OnlineReports(
+    OnlineReportId INT IDENTITY(1,1) PRIMARY KEY,
+    QuizId INT NOT NULL,
+    TeacherId INT NOT NULL,
+    ReportName NVARCHAR(100) NOT NULL,
+    HighestScore INT NOT NULL,
+    LowestScore INT NOT NULL,
+    AverageScore Decimal(5,2) NOT NULL,
+    TotalParticipants INT NOT NULL,
+    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId) ON DELETE CASCADE,
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
+    
+);
 -- Bảng OnlineResults
 CREATE TABLE OnlineResults (
     OnlResultId INT IDENTITY(1,1) PRIMARY KEY,
@@ -163,18 +176,19 @@ CREATE TABLE OnlineResults (
     TotalQuestion INT NULL,
     RANK INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId) ON DELETE CASCADE,
     FOREIGN KEY (OnlineReportId) REFERENCES OnlineReports(OnlineReportId)
 );
 
--- Bảng QuizzFavourite
+
+-- QuizzFavourite → Quizzes
 CREATE TABLE QuizzFavourite (
     FavouriteId INT IDENTITY(1,1) PRIMARY KEY,
     AccountId INT NOT NULL,
     QuizId INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     FOREIGN KEY (AccountId) REFERENCES Accounts(AccountId),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId)
+    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId) ON DELETE CASCADE
 );
 
 -- Bảng OfflineWrongAnswers (Changed SelectedOptionId and CorrectOptionId to INT)
@@ -185,10 +199,8 @@ CREATE TABLE OfflineWrongAnswers (
     SelectedOptionId INT NULL,
     CorrectOptionId INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (OffResultId) REFERENCES OfflineResults(OffResultId),
-    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId),
-    FOREIGN KEY (SelectedOptionId) REFERENCES Options(OptionId),
-    FOREIGN KEY (CorrectOptionId) REFERENCES Options(OptionId)
+    FOREIGN KEY (OffResultId) REFERENCES OfflineResults(OffResultId) ON DELETE CASCADE,
+    FOREIGN KEY (QuestionId) REFERENCES Questions(QuestionId)
 );
 
 CREATE TABLE OfflineReports(
@@ -201,31 +213,17 @@ CREATE TABLE OfflineReports(
     AverageScore Decimal(5,2) NOT NULL,
     TotalParticipants INT NOT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId)
+    FOREIGN KEY (QGId) REFERENCES Quizz_Group(QGId) ON DELETE CASCADE
 );
 
-CREATE TABLE OnlineReports(
-    OnlineReportId INT IDENTITY(1,1) PRIMARY KEY,
-    QuizId INT NOT NULL,
-    TeacherId INT NOT NULL,
-    ReportName NVARCHAR(100) NOT NULL,
-    HighestScore INT NOT NULL,
-    LowestScore INT NOT NULL,
-    AverageScore Decimal(5,2) NOT NULL,
-    TotalParticipants INT NOT NULL,
-    CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (QuizId) REFERENCES Quizzes(QuizId),
-    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId)
-    
-);
 
-CREATE TABLE OnlineWrongAnswer  (
+CREATE TABLE OnlineWrongAnswer (
     OnlWrongId INT IDENTITY(1,1) PRIMARY KEY,
     OnlResultId INT NOT NULL,
     QuestionId INT NOT NULL,
     SelectedOptionId INT NULL,
     CorrectOptionId INT NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId)
+    FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId) ON DELETE CASCADE
 );
 
