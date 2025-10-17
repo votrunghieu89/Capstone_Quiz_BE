@@ -124,6 +124,7 @@ builder.Services.AddScoped<IAdminRepository,AdminService>();
 builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddScoped<IStudentReportRepository, StudentReportService>();
 builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
+builder.Services.AddScoped<IOfflineQuizRepository, OfflineQuizService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
