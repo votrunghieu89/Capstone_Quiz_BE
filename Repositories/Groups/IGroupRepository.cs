@@ -14,7 +14,7 @@ namespace Capstone.Repositories.Groups
         public Task<List<AllGroupDTO>> GetAllGroupsbyTeacherId(int TeacherId); //
 
         public Task<JoinGroupResult> InsertStudentToGroup(int groupId, string IdUnique); // 
-        public Task<bool> RemoveStudentFromGroup(int groupId, int studentId); // 
+        public Task<bool> RemoveStudentFromGroup(int groupId, int studentId, int teacherId); // 
         public Task<List<ViewStudentDTO>> GetAllStudentsByGroupId(int groupId);   //
 
         public Task<InsertQuiz> InsertQuizToGroup(InsertQuiz insertQuiz); //
@@ -23,7 +23,7 @@ namespace Capstone.Repositories.Groups
 
         // For Student
         public Task<List<AllGroupDTO>> GetAllGroupsByStudentId(int studentId); //
-        public Task<bool> LeaveGroup(int groupId, int studentId); // 
+        public Task<bool> LeaveGroup(int groupId, int studentId, int teacherId); // 
         public Task<JoinGroupResult> JoinGroupByInvite(string inviteCode, int studentId);
 
         

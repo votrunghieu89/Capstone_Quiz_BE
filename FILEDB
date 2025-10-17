@@ -80,7 +80,7 @@ CREATE TABLE Quizzes (
     QuizId INT IDENTITY(1,1) PRIMARY KEY,
     TeacherId INT NOT NULL,
     FolderId INT NOT NULL,
-    TopicId INT NOT NULL UNIQUE,
+    TopicId INT NOT NULL,
     Title NVARCHAR(100) NOT NULL,
     Description NVARCHAR(MAX) NOT NULL,
     IsPrivate BIT NOT NULL,

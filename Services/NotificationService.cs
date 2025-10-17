@@ -138,7 +138,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<GetNotificationDTO> GetAllNotifications(int accountId)
+        public async Task<List<GetNotificationDTO>> GetAllNotifications(int accountId)
         {
             try
             {
@@ -153,24 +153,26 @@ namespace Capstone.Services
                         IsRead = n.IsRead,
                         CreateAt = n.CreateAt
                     })
-                    .FirstOrDefaultAsync();
+                    .ToListAsync();
 
                 if (notification != null)
                 {
                     _logger.LogInformation("Retrieved notification for account: AccountId={AccountId}, NotificationId={NotificationId}",
-                        accountId, notification.NotificationId);
+                        accountId, notification);
+                    return notification;
                 }
                 else
                 {
                     _logger.LogInformation("No notifications found for account: AccountId={AccountId}", accountId);
+                    return new List<GetNotificationDTO>();
                 }
 
-                return notification;
+               
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving notification: AccountId={AccountId}", accountId);
-                return null;
+                return new List<GetNotificationDTO>(); 
             }
         }
         public async Task<bool> DeleteNotification()

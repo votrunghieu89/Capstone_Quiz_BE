@@ -602,8 +602,7 @@ namespace Capstone.Services
                         GROUP BY q.QuizId, q.Title, q.AvatarURL, a.Email, tpc.TopicName, q.CreateAt
                         ORDER BY q.CreateAt DESC, q.QuizId
                         OFFSET @Skip ROWS
-                        FETCH NEXT @Take ROWS ONLY;
-            ";
+                        FETCH NEXT @Take ROWS ONLY;";
                     using (SqlCommand cmd = new SqlCommand(query, connection))
                     {
                         cmd.Parameters.AddWithValue("@Skip", skip);
@@ -630,7 +629,14 @@ namespace Capstone.Services
                         }
                     }
                 }
-                await _redis.SetStringAsync($"all_quizzes_page_{page}_size_{pageSize}", JsonSerializer.Serialize(result), TimeSpan.FromHours(3));
+                if (result.Count > 0) {
+                    Console.WriteLine("121ewe");
+                }
+                else
+                {
+                    Console.WriteLine("zxczxc");
+                }
+                    await _redis.SetStringAsync($"all_quizzes_page_{page}_size_{pageSize}", JsonSerializer.Serialize(result), TimeSpan.FromHours(3));
             }
             catch (Exception ex)
             {

@@ -16,12 +16,6 @@ namespace Capstone.Controllers
             _logger = logger;
             _notificationService = notificationService;
         }
-
-        // ===== GET METHODS =====
-
-        /// <summary>
-        /// Get the latest notification for a specific account
-        /// </summary>
         [HttpGet("latest/{accountId:int}")]
         public async Task<IActionResult> GetAllNotifications(int accountId)
         {
@@ -49,65 +43,6 @@ namespace Capstone.Controllers
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
-
-
-        // ===== POST METHODS =====
-
-        /// <summary>
-        /// Create a new notification
-        /// </summary>
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateNotification([FromBody] InsertNewNotificationDTO notificationDto)
-        {
-            try
-            {
-                if (notificationDto == null)
-                {
-                    _logger.LogWarning("CreateNotification: Null notification DTO provided");
-                    return BadRequest(new { message = "Invalid notification data" });
-                }
-
-                if (notificationDto.SenderId <= 0 || notificationDto.ReceiverId <= 0)
-                {
-                    _logger.LogWarning("CreateNotification: Invalid sender or receiver ID: SenderId={SenderId}, ReceiverId={ReceiverId}",
-                        notificationDto.SenderId, notificationDto.ReceiverId);
-                    return BadRequest(new { message = "Invalid sender or receiver ID" });
-                }
-
-                if (string.IsNullOrWhiteSpace(notificationDto.Message))
-                {
-                    _logger.LogWarning("CreateNotification: Empty message provided");
-                    return BadRequest(new { message = "Message cannot be empty" });
-                }
-
-                var success = await _notificationService.InsertNewNotification(notificationDto);
-
-                if (success)
-                {
-                    _logger.LogInformation("Successfully created notification: SenderId={SenderId}, ReceiverId={ReceiverId}",
-                        notificationDto.SenderId, notificationDto.ReceiverId);
-                    return Ok(new { message = "Notification created successfully" });
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to create notification: SenderId={SenderId}, ReceiverId={ReceiverId}",
-                        notificationDto.SenderId, notificationDto.ReceiverId);
-                    return BadRequest(new { message = "Failed to create notification" });
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating notification: SenderId={SenderId}, ReceiverId={ReceiverId}",
-                    notificationDto?.SenderId, notificationDto?.ReceiverId);
-                return StatusCode(500, new { message = "Internal server error" });
-            }
-        }
-
-        // ===== PUT METHODS =====
-
-        /// <summary>
-        /// Mark a notification as read
-        /// </summary>
         [HttpPut("mark-read/{notificationId:int}")]
         public async Task<IActionResult> MarkAsRead(int notificationId)
         {

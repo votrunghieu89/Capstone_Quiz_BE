@@ -325,7 +325,7 @@ namespace Capstone.Services
                             MaxAttempts = insertQuiz.MaxAttempts,
                             CreateAt = DateTime.Now
                         };
-
+                        Console.WriteLine("step1");
                         await _appDbContext.quizzGroups.AddAsync(quizzGroupModel);
                         await _appDbContext.SaveChangesAsync();
 
@@ -334,7 +334,7 @@ namespace Capstone.Services
                             .Where(q => q.QuizId == insertQuiz.QuizId)
                             .Select(q => q.Title)
                             .FirstOrDefaultAsync();
-
+                        Console.WriteLine("step2");
                         // 3️⃣ Tạo report
                         var newReport = new OfflineReportsModel
                         {
@@ -347,7 +347,7 @@ namespace Capstone.Services
                             TotalParticipants = 0,
                             CreateAt = DateTime.Now
                         };
-
+                        Console.WriteLine("step3");
                         await _appDbContext.offlinereports.AddAsync(newReport);
                         await _appDbContext.SaveChangesAsync();
                         // Insert Notification
@@ -358,6 +358,7 @@ namespace Capstone.Services
                         string message = $"A new quiz has been created in {groupName} group";
                         foreach (var student in studentId)
                         {
+                            Console.WriteLine("step4");
                             InsertNewNotificationDTO newNotifcation = new InsertNewNotificationDTO()
                             {
                                 SenderId = insertQuiz.TeacherId,
@@ -365,6 +366,7 @@ namespace Capstone.Services
                                 Message = message
                             };
                             bool isInsert = await _notificationRepository.InsertNewNotification(newNotifcation);
+                            Console.WriteLine("step5");
                         }
                         await transaction.CommitAsync();
                         // gửi tin realtime 
@@ -373,6 +375,7 @@ namespace Capstone.Services
 
                             await _hubContext.Clients.User(student.ToString())
                                 .SendAsync("InsertQuizToGroupNotification", message);
+                            Console.WriteLine("step6");
                         }
                         _logger.LogInformation(
                             "InsertQuizToGroup: Successfully inserted QuizId={QuizId} into GroupId={GroupId} with ReportId={ReportId}",

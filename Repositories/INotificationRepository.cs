@@ -17,7 +17,7 @@ namespace Capstone.Repositories
         Task<bool> InsertNewNotification(InsertNewNotificationDTO insertNewNotificationDTO);
 
       
-        Task<GetNotificationDTO> GetAllNotifications(int accountId);
+        Task<List<GetNotificationDTO>> GetAllNotifications(int accountId);
 
    
         Task<bool> DeleteNotification();
