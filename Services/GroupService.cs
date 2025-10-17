@@ -1,7 +1,11 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Group;
+using Capstone.DTOs.Notification;
 using Capstone.Model;
+using Capstone.Repositories;
 using Capstone.Repositories.Groups;
+using Capstone.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using static Capstone.ENUMs.GroupEnum;
 
@@ -9,15 +13,19 @@ namespace Capstone.Services
 {
     public class GroupService : IGroupRepository
     {
-        private  readonly ILogger<GroupService> _logger;
+        private readonly ILogger<GroupService> _logger;
         private readonly Redis _redis;
-        private readonly AppDbContext _appDbContext; 
-
-        public GroupService(ILogger<GroupService> logger, Redis redis, AppDbContext appDbContext)
+        private readonly AppDbContext _appDbContext;
+        private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly INotificationRepository _notificationRepository;
+        public GroupService(ILogger<GroupService> logger, Redis redis, AppDbContext appDbContext,
+            IHubContext<NotificationHub> hubContext, INotificationRepository notificationRepository)
         {
             _logger = logger;
             _redis = redis;
             _appDbContext = appDbContext;
+            _hubContext = hubContext;
+            _notificationRepository = notificationRepository;
         }
 
         public async Task<GroupModel> CreateGroup(GroupModel groupModel)
@@ -72,20 +80,20 @@ namespace Capstone.Services
                     .ExecuteDeleteAsync();
                 _logger.LogInformation("DeleteGroup: Deleted {Count} quizz-group relations related to GroupId={GroupId}", deletedQuizzGroups, groupId);
 
-                
+
                 int deletedStudentGroups = await _appDbContext.studentGroups
                     .Where(sg => sg.GroupId == groupId)
                     .ExecuteDeleteAsync();
                 _logger.LogInformation("DeleteGroup: Deleted {Count} student-group relations related to GroupId={GroupId}", deletedStudentGroups, groupId);
 
-              
+
                 int isDelete = await _appDbContext.groups
                     .Where(g => g.GroupId == groupId)
                     .ExecuteDeleteAsync();
 
                 if (isDelete > 0)
                 {
-                    await transaction.CommitAsync(); 
+                    await transaction.CommitAsync();
                     _logger.LogInformation("DeleteGroup: Successfully deleted GroupId={GroupId}", groupId);
                     return true;
                 }
@@ -98,7 +106,7 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync(); 
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "DeleteGroup: Error deleting group - GroupId={GroupId}", groupId);
                 return false;
             }
@@ -179,18 +187,18 @@ namespace Capstone.Services
                 var quizzes = await (from gq in _appDbContext.quizzGroups
                                      join q in _appDbContext.quizzes on gq.QuizId equals q.QuizId
                                      join t in _appDbContext.teacherProfiles on q.TeacherId equals t.TeacherId
-                                     join r in _appDbContext.offlinereports on gq.QGId equals r.QGId 
+                                     join r in _appDbContext.offlinereports on gq.QGId equals r.QGId
                                      where gq.GroupId == groupId
                                      orderby gq.CreateAt descending
-                                     select new 
+                                     select new
                                      {
-                                        QGId = gq.QGId,
-                                        quizId = q.QuizId,
-                                        Title = r.ReportName,
-                                        TeacherName = t.FullName,
-                                        DateCreated = gq.CreateAt,
-                                        ExpiredDate = gq.ExpiredTime,
-                                        Message = gq.Message
+                                         QGId = gq.QGId,
+                                         quizId = q.QuizId,
+                                         Title = r.ReportName,
+                                         TeacherName = t.FullName,
+                                         DateCreated = gq.CreateAt,
+                                         ExpiredDate = gq.ExpiredTime,
+                                         Message = gq.Message
                                      }).ToListAsync();
                 List<ViewQuizDTO> result = new List<ViewQuizDTO>();
                 foreach (var quiz in quizzes)
@@ -240,18 +248,18 @@ namespace Capstone.Services
             try
             {
                 var students = await (from sg in _appDbContext.studentGroups
-                                join sp in _appDbContext.studentProfiles on sg.StudentId equals sp.StudentId
-                                join a in _appDbContext.authModels on sp.StudentId equals a.AccountId
-                                where sg.GroupId == groupId
-                                select new ViewStudentDTO
-                                {
-                                    StudentId = sp.StudentId,
-                                    FullName = sp.FullName,
-                                    Email = a.Email,
-                                    Avatar = sp.AvatarURL,
-                                    DateJoined = sg.CreateAt,
-                                    Permission = "Student"
-                                }).ToListAsync();
+                                      join sp in _appDbContext.studentProfiles on sg.StudentId equals sp.StudentId
+                                      join a in _appDbContext.authModels on sp.StudentId equals a.AccountId
+                                      where sg.GroupId == groupId
+                                      select new ViewStudentDTO
+                                      {
+                                          StudentId = sp.StudentId,
+                                          FullName = sp.FullName,
+                                          Email = a.Email,
+                                          Avatar = sp.AvatarURL,
+                                          DateJoined = sg.CreateAt,
+                                          Permission = "Student"
+                                      }).ToListAsync();
                 if (students.Any())
                 {
                     _logger.LogInformation("GetAllStudentsByGroupId: Retrieved {Count} students for GroupId={GroupId}", students.Count, groupId);
@@ -264,10 +272,10 @@ namespace Capstone.Services
                 }
 
             }
-            catch( Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllStudentsByGroupId: Error retrieving students for GroupId={GroupId}", groupId);
-                return new List<ViewStudentDTO>(); 
+                return new List<ViewStudentDTO>();
             }
         }
 
@@ -290,7 +298,7 @@ namespace Capstone.Services
                     return null;
                 }
             }
-            catch( Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "GetGroupDetailById: Error retrieving group details for GroupId={GroupId}", groupId);
                 return null;
@@ -342,9 +350,30 @@ namespace Capstone.Services
 
                         await _appDbContext.offlinereports.AddAsync(newReport);
                         await _appDbContext.SaveChangesAsync();
-
+                        // Insert Notification
+                        List<int> studentId = await _appDbContext.studentGroups.Where(sg => sg.GroupId == insertQuiz.GroupId)
+                            .Select(sg => sg.StudentId)
+                            .ToListAsync();
+                        var groupName = await _appDbContext.groups.Where(g => g.GroupId == insertQuiz.GroupId).Select(g => g.GroupName).FirstOrDefaultAsync();
+                        string message = $"A new quiz has been created in {groupName} group";
+                        foreach (var student in studentId)
+                        {
+                            InsertNewNotificationDTO newNotifcation = new InsertNewNotificationDTO()
+                            {
+                                SenderId = insertQuiz.TeacherId,
+                                ReceiverId = student,
+                                Message = message
+                            };
+                            bool isInsert = await _notificationRepository.InsertNewNotification(newNotifcation);
+                        }
                         await transaction.CommitAsync();
+                        // gửi tin realtime 
+                        foreach (var student in studentId)
+                        {
 
+                            await _hubContext.Clients.User(student.ToString())
+                                .SendAsync("InsertQuizToGroupNotification", message);
+                        }
                         _logger.LogInformation(
                             "InsertQuizToGroup: Successfully inserted QuizId={QuizId} into GroupId={GroupId} with ReportId={ReportId}",
                             insertQuiz.QuizId, insertQuiz.GroupId, newReport.OfflineReportId
@@ -397,7 +426,7 @@ namespace Capstone.Services
                 int result = await _appDbContext.SaveChangesAsync();
                 return JoinGroupResult.Success;
             }
-            catch( Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "InsertStudentToGroup: Error inserting student with IdUnique={IdUnique} into GroupId={GroupId}", IdUnique, groupId);
                 return JoinGroupResult.Error;
@@ -409,14 +438,14 @@ namespace Capstone.Services
             _logger.LogInformation("JoinGroupByInvite: Start - InviteCode={InviteCode}, StudentId={StudentId}", inviteCode, studentId);
             try
             {
-                
+
                 var group = await _appDbContext.groups
                     .FirstOrDefaultAsync(g => g.IdUnique == inviteCode);
 
                 if (group == null)
                 {
                     _logger.LogWarning("JoinGroupByInvite: Invite code not found - InviteCode={InviteCode}", inviteCode);
-                    return JoinGroupResult.Fail ;
+                    return JoinGroupResult.Fail;
                 }
 
                 // Check student đã trong group chưa
@@ -426,10 +455,10 @@ namespace Capstone.Services
                 if (alreadyInGroup)
                 {
                     _logger.LogInformation("JoinGroupByInvite: Student already in group - StudentId={StudentId}, GroupId={GroupId}", studentId, group.GroupId);
-                    return JoinGroupResult.AlreadyInGroup; 
+                    return JoinGroupResult.AlreadyInGroup;
                 }
 
-                
+
                 var studentGroup = new StudentGroupModel
                 {
                     StudentId = studentId,
@@ -450,34 +479,89 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<bool> LeaveGroup(int groupId, int studentId)
+        public async Task<bool> LeaveGroup(int groupId, int studentId, int teacherId)
         {
+
             _logger.LogInformation("LeaveGroup: Start - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+
             try
             {
-                int isDelete = await _appDbContext.studentGroups
-                    .Where(sg => sg.GroupId == groupId && sg.StudentId == studentId)
-                    .ExecuteDeleteAsync();
-                if (isDelete > 0)
+
+                string? groupName = await _appDbContext.groups
+                    .Where(g => g.GroupId == groupId)
+                    .Select(g => g.GroupName)
+                    .FirstOrDefaultAsync();
+
+                if (groupName == null)
                 {
-                    _logger.LogInformation("LeaveGroup: Success - StudentId={StudentId} left GroupId={GroupId}", studentId, groupId);
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("LeaveGroup: Student not found in group - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+
+                    _logger.LogWarning("LeaveGroup: Group not found. GroupId={GroupId}", groupId);
                     return false;
                 }
 
+                using (var transaction = await _appDbContext.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+
+                        int rowsDeleted = await _appDbContext.studentGroups
+                            .Where(sg => sg.GroupId == groupId && sg.StudentId == studentId)
+                            .ExecuteDeleteAsync();
+
+
+                        if (rowsDeleted > 0)
+                        {
+                            string message = $"Student ID {studentId} has left the group '{groupName}'.";
+
+                            InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
+                            {
+
+                                SenderId = studentId,
+                                ReceiverId = teacherId,
+                                Message = message
+                            };
+
+                            bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
+
+                            if (!isInsertSuccess)
+                            {
+                                // FIX 3: Change Log Message
+                                _logger.LogError("LeaveGroup: Failed to insert notification for TeacherId={TeacherId}", teacherId);
+                                await transaction.RollbackAsync();
+                                return false;
+                            }
+
+                            // 5. Commit transaction
+                            await transaction.CommitAsync();
+
+
+                            await _hubContext.Clients.User(teacherId.ToString()).SendAsync("StudentLeftGroup", message);
+
+                            _logger.LogInformation("LeaveGroup: Success - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                            return true;
+                        }
+                        else
+                        {
+
+                            _logger.LogWarning("LeaveGroup: Student not found in group or already left. StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                            await transaction.RollbackAsync();
+                            return false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, "LeaveGroup: Transaction failed for StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                        return false;
+                    }
+                }
             }
-            catch (Exception ex) { 
-                _logger.LogError(ex, "LeaveGroup: Error student leaving group - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RemoveStudentFromGroup: Repository operation failed for StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
                 return false;
             }
-            
-            
         }
-
         public async Task<bool> RemoveQuizFromGroup(int groupId, int quizId)
         {
             _logger.LogInformation("RemoveQuizFromGroup: Start - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
@@ -524,31 +608,86 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<bool> RemoveStudentFromGroup(int groupId, int studentId)
+        public async Task<bool> RemoveStudentFromGroup(int groupId, int studentId, int teacherId)
         {
             _logger.LogInformation("RemoveStudentFromGroup: Start - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+
             try
             {
-                int isDelete = await _appDbContext.studentGroups
-                    .Where(sg => sg.GroupId == groupId && sg.StudentId == studentId)
-                    .ExecuteDeleteAsync();
-                if (isDelete > 0)
+                
+                string? groupName = await _appDbContext.groups
+                    .Where(g => g.GroupId == groupId)
+                    .Select(g => g.GroupName)
+                    .FirstOrDefaultAsync();
+
+                if (groupName == null)
                 {
-                    _logger.LogInformation("RemoveStudentFromGroup: Success - StudentId={StudentId} removed from GroupId={GroupId}", studentId, groupId);
-                    return true;
-                }
-                else
-                {
-                    _logger.LogWarning("RemoveStudentFromGroup: No student found in group to remove - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                    _logger.LogWarning("RemoveStudentFromGroup: Group not found. GroupId={GroupId}", groupId);
                     return false;
+                }
+
+                using (var transaction = await _appDbContext.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        int rowsDeleted = await _appDbContext.studentGroups
+                            .Where(sg => sg.GroupId == groupId && sg.StudentId == studentId)
+                            .ExecuteDeleteAsync();
+
+                      
+                        if (rowsDeleted > 0)
+                        {
+                            
+                            string message = $"You have been removed from the group '{groupName}'.";
+
+                            InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
+                            {
+                                SenderId = teacherId,
+                                ReceiverId = studentId,
+                                Message = message
+                            };
+
+                            bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
+
+                            if (!isInsertSuccess)
+                            {
+                                _logger.LogError("RemoveStudentFromGroup: Failed to insert notification for StudentId={StudentId}", studentId);
+                                await transaction.RollbackAsync();
+                                return false;
+                            }
+
+                          
+                            await transaction.CommitAsync();
+
+                        
+                            await _hubContext.Clients.User(studentId.ToString()).SendAsync("RemoveStudentFromGroup", message);
+
+                            _logger.LogInformation("RemoveStudentFromGroup: Success - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                            return true;
+                        }
+                        else
+                        {
+                           
+                            _logger.LogWarning("RemoveStudentFromGroup: Student not found in group or already removed. StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                            await transaction.RollbackAsync();
+                            return false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        _logger.LogError(ex, "RemoveStudentFromGroup: Transaction failed for StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
+                        return false;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "RemoveStudentFromGroup: Error removing StudentId={StudentId} from GroupId={GroupId}", studentId, groupId);
+                _logger.LogError(ex, "RemoveStudentFromGroup: Repository operation failed for StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
                 return false;
             }
         }
+        
         public async Task<UpdateGroupDTO> updateGroup(UpdateGroupDTO groupModel)
         {
             _logger.LogInformation("updateGroup: Start - GroupId={GroupId}, GroupName={GroupName}", groupModel?.GroupId, groupModel?.GroupName);

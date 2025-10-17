@@ -48,5 +48,8 @@ namespace Capstone.Database
         // Reports
         public DbSet<OfflineReportsModel> offlinereports { get; set; }
         public DbSet<OnlineReportModel> onlinereports { get; set; }
+
+        // Notification
+        public DbSet<NotificationModel> notifications { get; set; }
     }
 }

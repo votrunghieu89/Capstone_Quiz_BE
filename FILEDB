@@ -227,3 +227,11 @@ CREATE TABLE OnlineWrongAnswer (
     FOREIGN KEY (OnlResultId) REFERENCES OnlineResults(OnlResultId) ON DELETE CASCADE
 );
 
+CREATE TABLE Notifications (
+    NotificationId INT IDENTITY(1,1) PRIMARY KEY,
+    SenderId INT NOT NULL,
+    ReceiverId INT NOT NULL,
+    Message NVARCHAR(MAX) NOT NULL,
+    IsRead BIT NOT NULL,
+    CreateAt DATETIME NOT NULL
+);

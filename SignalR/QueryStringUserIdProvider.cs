@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace Capstone.Notification
+namespace Capstone.SignalR
 {
-    public class QueryStringUserIdProvider : IUserIdProvider
+    public class QueryStringUserIdProvider
     {
         public string? GetUserId(HubConnectionContext connection)
         {

@@ -212,7 +212,7 @@ namespace Capstone.Controllers
                     return StatusCode(500, "Failed to insert quiz to group");
                 }
                 _logger.LogInformation("insertQuizToGroup: Success - QuizId={QuizId}, GroupId={GroupId}", request.QuizId, request.GroupId);
-                return Ok(result);
+                return StatusCode(200, result);
             }
             catch (Exception ex)
             {
@@ -310,12 +310,12 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("leaveGroup/{groupId}/{studentId}")]
-        public async Task<IActionResult> LeaveGroup(int groupId, int studentId)
+        public async Task<IActionResult> LeaveGroup(int groupId, int studentId, int teacherId)
         {
             _logger.LogInformation("leaveGroup: Start - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
             try
             {
-                var result = await _groupRepository.LeaveGroup(groupId, studentId);
+                var result = await _groupRepository.LeaveGroup(groupId, studentId, teacherId);
                 if (result)
                 {
                     _logger.LogInformation("leaveGroup: Success - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
@@ -335,12 +335,12 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("removeStudentFromGroup/{groupId}/{studentId}")]
-        public async Task<IActionResult> RemoveStudentFromGroup(int groupId, int studentId)
+        public async Task<IActionResult> RemoveStudentFromGroup(int groupId, int studentId, int teacherId)
         {
             _logger.LogInformation("removeStudentFromGroup: Start - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
             try
             {
-                var result = await _groupRepository.RemoveStudentFromGroup(groupId, studentId);
+                var result = await _groupRepository.RemoveStudentFromGroup(groupId, studentId, teacherId);
                 if (result)
                 {
                     _logger.LogInformation("removeStudentFromGroup: Success - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);

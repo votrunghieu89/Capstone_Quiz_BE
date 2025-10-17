@@ -1,6 +1,5 @@
 ﻿using Capstone.Database;
 using Capstone.Model;
-using Capstone.Notification;
 using Capstone.Repositories;
 using Capstone.Repositories.Admin;
 using Capstone.Repositories.Groups;
@@ -124,9 +123,10 @@ builder.Services.AddScoped<IAdminRepository,AdminService>();
 builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddScoped<IStudentReportRepository, StudentReportService>();
 builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
+builder.Services.AddScoped<INotificationRepository, NotificationService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
-builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
+//builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
 builder.Services.AddScoped<ConnectionService>();
 builder.Services.AddScoped<IFavouriteRepository , FavouriteService>();
 var app = builder.Build();
@@ -161,5 +161,5 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<QuizHub>("/QuizHub");
-
+app.MapHub<NotificationHub>("/NotificationHub");
 app.Run();
