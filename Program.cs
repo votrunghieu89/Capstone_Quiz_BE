@@ -142,16 +142,16 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
-    RequestPath = "/ProfileImage"
-});
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
-    RequestPath = "/QuizImage"
-});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
+//    RequestPath = "/ProfileImage"
+//});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
+//    RequestPath = "/QuizImage"
+//});
 app.UseRouting();
 
 app.UseCors("AllowFrontend");

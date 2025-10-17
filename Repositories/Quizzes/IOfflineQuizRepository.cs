@@ -8,5 +8,6 @@ namespace Capstone.Repositories.Quizzes
         Task<bool> StartOfflineQuiz(StartOfflineQuizDTO dto);
         Task<OfflineResultViewDTO> SubmitOfflineQuiz(FinishOfflineQuizDTO dto);
         Task<OfflineResultViewDTO?> GetOfflineResult(int studentId, int quizId);
+        Task<bool> ProcessStudentAnswer(StudentAnswerSubmissionDTO dto);
     }
 }
