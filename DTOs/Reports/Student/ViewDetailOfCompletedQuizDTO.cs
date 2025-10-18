@@ -9,6 +9,7 @@ namespace Capstone.DTOs.Reports.Student
         public int NumberOfWrongAnswers { get; set; }
         public int TotalQuestions { get; set; }
         public int FinalScore { get; set; }
+        public int? Rank { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime CompletedAt { get; set; }
         public string CreatedBy { get; set; } = string.Empty;

@@ -3,7 +3,7 @@
     public class ViewOfflineStudentReportEachQuizDTO
     {
         public string Fullname { get; set; } = string.Empty;
-        public int Rank { get; set; }
+        public int? Rank { get; set; }
         public int NumberOfCorrectAnswers { get; set; }
         public int NumberOfWrongAnswers { get; set; }
         public int TotalQuestions { get; set; }

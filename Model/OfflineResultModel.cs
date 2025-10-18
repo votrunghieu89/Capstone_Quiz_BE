@@ -34,7 +34,7 @@ namespace Capstone.Model
         [Column("Score")]
         public int Score { get; set; }
         [Column("RANK")]
-        public int RANK { get; set; }
+        public int? RANK { get; set; }
         [Column("CountAttempts")]   
         public int CountAttempts { get; set; }
         [Column("CreateAt")]

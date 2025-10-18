@@ -98,6 +98,7 @@ namespace Capstone.Services
                 NumberOfWrongAnswers = wrongCount,
                 TotalQuestions = totalQuestions,
                 FinalScore = result.Score,
+                Rank = result.RANK,
                 StartDate = result.StartDate,
                 CompletedAt = result.CreateAt,
                 CreatedBy = quiz.CreatedBy,
