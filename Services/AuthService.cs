@@ -120,8 +120,8 @@ namespace Capstone.Services
                             TeacherId = authModel.AccountId,
                             FullName = authRegisterDTO.FullName,
                             IdUnique = uniqueId,
-                            OrganizationName = authRegisterDTO.OrganizationName,
-                            OrganizationAddress = authRegisterDTO.OrganizationAddress,
+                            OrganizationName = authRegisterDTO.OrganizationName ?? null,
+                            OrganizationAddress = authRegisterDTO.OrganizationAddress ?? null,
                         };
                         await _context.teacherProfiles.AddAsync(teacherProfile);
                         await _context.SaveChangesAsync();
@@ -333,7 +333,7 @@ namespace Capstone.Services
                 return null;
             }
         }
-        public async Task<AuthLoginResponse> LoginGoogle(string email)
+        public async Task<AuthLoginResponse> LoginGoogleforStudent(string email)
         {
             try
             {
@@ -364,6 +364,39 @@ namespace Capstone.Services
                 return null;
             }
         }
+
+        public async Task<AuthLoginResponse> LoginGoogleforTeacher(string email)
+        {
+            try
+            {
+                var user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == email);
+                if (user == null)
+                {
+                    _logger.LogWarning("LoginGoogle: email not found '{Email}'.", email);
+                    return null;
+                }
+                var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
+                var refreshToken = _token.generateRefreshToken();
+                bool setRefresh = await _redis.SetStringAsync($"RefressToken_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
+                bool setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
+                AuthLoginResponse response = new AuthLoginResponse
+                {
+                    AccountId = user.AccountId,
+                    Email = user.Email,
+                    Role = user.Role,
+                    AccesToken = accessToken,
+                    RefreshToken = refreshToken,
+                };
+                _logger.LogInformation("User logged in via Google. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during Google login for Email={Email}", email);
+                return null;
+            }
+        }
+
 
         public async Task<bool> RegisterAccountAdmin(AuthModel adminAccount)
         {

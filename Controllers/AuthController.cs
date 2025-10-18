@@ -349,8 +349,8 @@ namespace Capstone.Controllers
         }
 
         // Google Login API
-        [HttpPost("googleLogin")]
-        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto request)
+        [HttpPost("googleLoginStudent")]
+        public async Task<IActionResult> GoogleLoginStudent([FromBody] GoogleLoginDto request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.IdToken))
             {
@@ -377,7 +377,53 @@ namespace Capstone.Controllers
                     var isRegistered = await _authRepository.RegisterStudent(newAccout);
                     _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
                 }
-                var loginResponse = await _authRepository.LoginGoogle(googleResponse.Email); // có trả về accessTOken và refreshToken
+                var loginResponse = await _authRepository.LoginGoogleforStudent(googleResponse.Email); // có trả về accessTOken và refreshToken
+                if (loginResponse == null)
+                {
+                    _logger.LogWarning("googleLogin: Login via Google failed for Email={Email}", googleResponse.Email);
+                    return Unauthorized(new { message = "Login failed. Please try again." });
+                }
+                _logger.LogInformation("googleLogin: User logged in via Google. Email={Email}", googleResponse.Email);
+                return Ok(loginResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "googleLogin: Error processing Google login");
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        [HttpPost("googleLoginTeacher")]
+        public async Task<IActionResult> GoogleLoginTeacher([FromBody] GoogleLoginDto request)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.IdToken))
+            {
+                _logger.LogWarning("googleLogin: Missing IdToken in request");
+                return BadRequest(new { message = "IdToken is required." });
+            }
+            try
+            {
+                var googleResponse = await _googleService.checkIdToken(request.IdToken); // return Email, name, and avartarURL
+                if (googleResponse == null)
+                {
+                    _logger.LogWarning("googleLogin: Invalid IdToken provided");
+                    return BadRequest(new { message = "Invalid IdToken." });
+                }
+                var checkIsEmail = await _authRepository.isEmailExist(googleResponse.Email);
+                if (checkIsEmail == 0)
+                {
+                    var newAccout = new AuthRegisterTeacherDTO
+                    {
+                        Email = googleResponse.Email,
+                        PasswordHash = Guid.NewGuid().ToString(),
+                        FullName = googleResponse.Name,
+                        OrganizationAddress = null,
+                        OrganizationName = null
+                    };
+                    var isRegistered = await _authRepository.RegisterTeacher(newAccout);
+                    _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
+                }
+                var loginResponse = await _authRepository.LoginGoogleforTeacher(googleResponse.Email); // có trả về accessTOken và refreshToken
                 if (loginResponse == null)
                 {
                     _logger.LogWarning("googleLogin: Login via Google failed for Email={Email}", googleResponse.Email);

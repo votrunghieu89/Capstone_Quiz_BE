@@ -30,7 +30,7 @@ namespace Capstone.Model
         [Column("OrganizationName")]
         [Required]
         [MaxLength(100)]
-        public string OrganizationName { get; set; } = string.Empty;
+        public string? OrganizationName { get; set; } = string.Empty;
 
         [Column("OrganizationAddress")]
         [MaxLength(100)]

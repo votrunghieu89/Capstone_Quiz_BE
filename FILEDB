@@ -28,7 +28,7 @@ CREATE TABLE TeacherProfile (
     PhoneNumber NVARCHAR(100) NULL,
     AvatarURL NVARCHAR(100) NULL,
     IdUnique NVARCHAR(100) NOT NULL UNIQUE,
-    OrganizationName NVARCHAR(100) NOT NULL,
+    OrganizationName NVARCHAR(100) NULL,
     OrganizationAddress NVARCHAR(100) NULL,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,
