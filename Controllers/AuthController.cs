@@ -1,5 +1,6 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Auth;
+using Capstone.ENUMs;
 using Capstone.Repositories;
 using Capstone.Security;
 using Capstone.Services;
@@ -160,14 +161,19 @@ namespace Capstone.Controllers
                 }
 
                 var loginResponse = await _authRepository.Login(authLoginDTO);
-                if (loginResponse == null)
-                {
-                    _logger.LogWarning("login: Authentication failed for Email={Email}", authLoginDTO.Email);
-                    return Unauthorized(new { message = "Invalid email or password." });
+                switch (loginResponse.Status) {
+                    case AuthEnum.Login.Success:
+                        return Ok(loginResponse.AuthLoginResponse);
+                    case AuthEnum.Login.Error:
+                        return StatusCode(500, new { message = "A server error prevented login." });
+                    case AuthEnum.Login.WrongEmailOrPassword:
+                        return Unauthorized(new { message = "Invalid email or password." });
+                    case AuthEnum.Login.AccountHasBanned:
+                        return StatusCode(403, new { message = "Your account has been suspended or banned." });
+                    default:
+                        _logger.LogError("login failed: Unhandled status case for Email={Email}, Status={Status}", authLoginDTO.Email, loginResponse.Status);
+                        return StatusCode(500, new { message = "An unexpected error occurred." });
                 }
-
-                _logger.LogInformation("login: User authenticated. AccountId={AccountId}, Email={Email}", loginResponse.AccountId, loginResponse.Email);
-                return Ok(loginResponse);
             }
             catch (Exception ex)
             {
@@ -365,8 +371,8 @@ namespace Capstone.Controllers
                     _logger.LogWarning("googleLogin: Invalid IdToken provided");
                     return BadRequest(new { message = "Invalid IdToken." });
                 }
-                var checkIsEmail =  await _authRepository.isEmailExist(googleResponse.Email);
-                if(checkIsEmail == 0)
+                var checkIsEmail = await _authRepository.isEmailExist(googleResponse.Email);
+                if (checkIsEmail == 0)
                 {
                     var newAccout = new AuthRegisterStudentDTO
                     {
@@ -378,18 +384,24 @@ namespace Capstone.Controllers
                     _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
                 }
                 var loginResponse = await _authRepository.LoginGoogleforStudent(googleResponse.Email); // có trả về accessTOken và refreshToken
-                if (loginResponse == null)
+                switch (loginResponse.Status)
                 {
-                    _logger.LogWarning("googleLogin: Login via Google failed for Email={Email}", googleResponse.Email);
-                    return Unauthorized(new { message = "Login failed. Please try again." });
+                    case AuthEnum.Login.Success:
+                        return Ok(loginResponse.AuthLoginResponse);
+                    case AuthEnum.Login.Error:
+                        return StatusCode(500, new { message = "A server error prevented login." });
+                    case AuthEnum.Login.WrongEmailOrPassword:
+                        return Unauthorized(new { message = "Invalid email or password." });
+                    case AuthEnum.Login.AccountHasBanned:
+                        return StatusCode(403, new { message = "Your account has been suspended or banned." });
+                    default:
+                        return StatusCode(500, new { message = "An unexpected error occurred." });
                 }
-                _logger.LogInformation("googleLogin: User logged in via Google. Email={Email}", googleResponse.Email);
-                return Ok(loginResponse);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "googleLogin: Error processing Google login");
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(500, new { message = "An unexpected error occurred." });
             }
         }
 
@@ -424,18 +436,24 @@ namespace Capstone.Controllers
                     _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
                 }
                 var loginResponse = await _authRepository.LoginGoogleforTeacher(googleResponse.Email); // có trả về accessTOken và refreshToken
-                if (loginResponse == null)
+                switch (loginResponse.Status)
                 {
-                    _logger.LogWarning("googleLogin: Login via Google failed for Email={Email}", googleResponse.Email);
-                    return Unauthorized(new { message = "Login failed. Please try again." });
+                    case AuthEnum.Login.Success:
+                        return Ok(loginResponse.AuthLoginResponse);
+                    case AuthEnum.Login.Error:
+                        return StatusCode(500, new { message = "A server error prevented login." });
+                    case AuthEnum.Login.WrongEmailOrPassword:
+                        return Unauthorized(new { message = "Invalid email or password." });
+                    case AuthEnum.Login.AccountHasBanned:
+                        return StatusCode(403, new { message = "Your account has been suspended or banned." });
+                    default:
+                        return StatusCode(500, new { message = "An unexpected error occurred." });
                 }
-                _logger.LogInformation("googleLogin: User logged in via Google. Email={Email}", googleResponse.Email);
-                return Ok(loginResponse);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "googleLogin: Error processing Google login");
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(500, new { message = "An unexpected error occurred." });
             }
         }
     }

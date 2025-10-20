@@ -26,6 +26,9 @@ namespace Capstone.Model
         [MaxLength(20)]
         public string Role { get; set; } = string.Empty;
 
+        [Column("IsActive")]
+        public bool IsActive { get; set; }
+
         [Column("CreateAt")]
         [Required]
         public DateTime CreateAt { get; set; } = DateTime.Now;

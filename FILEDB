@@ -6,6 +6,7 @@ CREATE TABLE Accounts (
     Email NVARCHAR(100) NOT NULL UNIQUE,
     PasswordHash NVARCHAR(255) NOT NULL,
     Role NVARCHAR(20) NOT NULL CHECK (Role IN ('Student','Teacher','Admin')),
+    IsActive BIT NOT NULL DEFAULT 1,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL
 );

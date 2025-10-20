@@ -63,6 +63,7 @@ namespace Capstone.Services
                             Email = authRegisterDTO.Email,
                             PasswordHash = Hash.HashPassword(authRegisterDTO.PasswordHash),
                             Role = AuthEnum.Role.Student.ToString(),
+                            IsActive = true,
                             CreateAt = DateTime.Now
                         };
                         await _context.authModels.AddAsync(authModel);
@@ -108,6 +109,7 @@ namespace Capstone.Services
                             Email = authRegisterDTO.Email,
                             PasswordHash = Hash.HashPassword(authRegisterDTO.PasswordHash),
                             Role = AuthEnum.Role.Teacher.ToString(),
+                            IsActive = true,
                             CreateAt = DateTime.Now
                         };
 
@@ -154,7 +156,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<AuthLoginResponse> Login(AuthLoginDTO authLoginDTO)
+        public async Task<AuthLoginResultDTO> Login(AuthLoginDTO authLoginDTO)
         {
             try
             {
@@ -162,13 +164,17 @@ namespace Capstone.Services
                 if (user == null)
                 {
                     _logger.LogWarning("Login attempt failed: email not found '{Email}'.", authLoginDTO.Email);
-                    return null;
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.WrongEmailOrPassword, AuthLoginResponse = null };
                 }
                 bool checkPassword = Hash.VerifyPassword(authLoginDTO.Password, user.PasswordHash);
                 if (!checkPassword)
                 {
                     _logger.LogWarning("Login attempt failed: invalid password for Email='{Email}'.", authLoginDTO.Email);
-                    return null;
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.WrongEmailOrPassword, AuthLoginResponse = null };
+                }
+                if (user.IsActive == false) {
+                    _logger.LogWarning("Account has abnned");
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.AccountHasBanned, AuthLoginResponse = null };
                 }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
@@ -184,12 +190,12 @@ namespace Capstone.Services
                 };
                 bool  setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
                 _logger.LogInformation("User logged in successfully. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
-                return response;
+                return new AuthLoginResultDTO { Status = AuthEnum.Login.Success, AuthLoginResponse = response };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during login for Email={Email}.", authLoginDTO?.Email);
-                return null;
+                return new AuthLoginResultDTO { Status = AuthEnum.Login.Error, AuthLoginResponse = null };
             }
         }
         public async Task<bool> Logout(int accountId)
@@ -333,7 +339,7 @@ namespace Capstone.Services
                 return null;
             }
         }
-        public async Task<AuthLoginResponse> LoginGoogleforStudent(string email)
+        public async Task<AuthLoginResultDTO> LoginGoogleforStudent(string email)
         {
             try
             {
@@ -341,7 +347,11 @@ namespace Capstone.Services
                 if (user == null)
                 {
                     _logger.LogWarning("LoginGoogle: email not found '{Email}'.", email);
-                    return null;
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.WrongEmailOrPassword, AuthLoginResponse = null};
+                }
+                if (user.IsActive == false) {
+                    _logger.LogWarning("Account has been banned");
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.AccountHasBanned, AuthLoginResponse = null };
                 }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
@@ -356,16 +366,16 @@ namespace Capstone.Services
                     RefreshToken = refreshToken,
                 };
                 _logger.LogInformation("User logged in via Google. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
-                return response;
+                return new AuthLoginResultDTO { Status = AuthEnum.Login.Success, AuthLoginResponse = response };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during Google login for Email={Email}", email);
-                return null;
+                return new AuthLoginResultDTO { Status = AuthEnum.Login.Error, AuthLoginResponse = null };
             }
         }
 
-        public async Task<AuthLoginResponse> LoginGoogleforTeacher(string email)
+        public async Task<AuthLoginResultDTO> LoginGoogleforTeacher(string email)
         {
             try
             {
@@ -373,7 +383,12 @@ namespace Capstone.Services
                 if (user == null)
                 {
                     _logger.LogWarning("LoginGoogle: email not found '{Email}'.", email);
-                    return null;
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.WrongEmailOrPassword, AuthLoginResponse = null };
+                }
+                if (user.IsActive == false)
+                {
+                    _logger.LogWarning("Account has been banned");
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.AccountHasBanned, AuthLoginResponse = null };
                 }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
@@ -388,12 +403,12 @@ namespace Capstone.Services
                     RefreshToken = refreshToken,
                 };
                 _logger.LogInformation("User logged in via Google. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
-                return response;
+                return new AuthLoginResultDTO { Status = AuthEnum.Login.Success, AuthLoginResponse = response };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during Google login for Email={Email}", email);
-                return null;
+                return new AuthLoginResultDTO { Status = AuthEnum.Login.Error, AuthLoginResponse = null };
             }
         }
 

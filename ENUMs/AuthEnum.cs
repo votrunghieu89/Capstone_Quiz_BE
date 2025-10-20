@@ -8,5 +8,13 @@
             Teacher,
             Admin
         }
+        public enum Login
+        {
+            WrongEmailOrPassword,
+            AccountHasBanned,
+            Success,
+            Error
+        }
+
     }
 }

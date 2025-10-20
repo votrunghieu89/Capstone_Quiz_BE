@@ -16,111 +16,60 @@ namespace Capstone.Services
             _dbContext = appDbContext;
             _logger = logger;
         }
-        public async Task<bool> DeleteAccount(int accountId)
+        public async Task<bool> BanAccount(int accountId)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
             try
             {
-                var account = await _dbContext.authModels.FirstOrDefaultAsync(a => a.AccountId == accountId);
-                if (account == null)
+                _logger.LogInformation("BanAccount: Starting ban process for AccountId={AccountId}", accountId);
+
+                int affectedRows = await _dbContext.authModels
+                    .Where(a => a.AccountId == accountId)
+                    .ExecuteUpdateAsync(u => u.SetProperty(a => a.IsActive, a => false));
+
+                if (affectedRows > 0)
                 {
-                    _logger.LogWarning("Account {accountId} not found.", accountId);
+                    _logger.LogInformation("BanAccount: Successfully banned AccountId={AccountId}", accountId);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("BanAccount: No records were updated for AccountId={AccountId}", accountId);
                     return false;
                 }
-
-                if (account.Role == "Student")
-                {
-                    // xoá dữ liệu liên quan đến Student
-                    await _dbContext.offlineResults.Where(r => r.StudentId == accountId).ExecuteDeleteAsync();
-                    await _dbContext.onlineResults.Where(r => r.StudentName == account.Email).ExecuteDeleteAsync();
-                    await _dbContext.quizzFavourites.Where(f => f.AccountId == accountId).ExecuteDeleteAsync();
-                    await _dbContext.studentGroups.Where(sg => sg.StudentId == accountId).ExecuteDeleteAsync();
-                    await _dbContext.studentProfiles.Where(p => p.StudentId == accountId).ExecuteDeleteAsync();
-                }
-                else if (account.Role == "Teacher")
-                {
-                    // lấy tất cả QuizId của Teacher
-                    var quizIds = await _dbContext.quizzes
-                        .Where(q => q.TeacherId == accountId)
-                        .Select(q => q.QuizId)
-                        .ToListAsync();
-
-                    if (quizIds.Any())
-                    {
-                        // xoá Options liên quan tới Question trong Quiz
-                        var questionIds = await _dbContext.questions
-                            .Where(q => quizIds.Contains(q.QuizId))
-                            .Select(q => q.QuestionId)
-                            .ToListAsync();
-
-                        if (questionIds.Any())
-                        {
-                            await _dbContext.options
-                                .Where(o => questionIds.Contains(o.QuestionId))
-                                .ExecuteDeleteAsync();
-                        }
-
-                        // xoá OnlineResults và OfflineResults liên quan tới các Quiz
-                        await _dbContext.onlineResults
-                            .Where(r => quizIds.Contains(r.QuizId))
-                            .ExecuteDeleteAsync();
-
-                        await _dbContext.offlineResults
-                            .Where(r => quizIds.Contains(r.QuizId))
-                            .ExecuteDeleteAsync();
-
-                        // xoá Questions, QuestionStats, Quiz_Group và Quizzes
-                        await _dbContext.questions
-                            .Where(q => quizIds.Contains(q.QuizId))
-                            .ExecuteDeleteAsync();
-
-                        await _dbContext.questionStats
-                            .Where(qs => quizIds.Contains(qs.QuizId))
-                            .ExecuteDeleteAsync();
-
-                        await _dbContext.quizzGroups
-                            .Where(qg => quizIds.Contains(qg.QuizId))
-                            .ExecuteDeleteAsync();
-
-                        await _dbContext.quizzes
-                            .Where(q => quizIds.Contains(q.QuizId))
-                            .ExecuteDeleteAsync();
-                    }
-  
-
-                    // lấy tất cả GroupId của Teacher
-                    var groupIds = await _dbContext.groups
-                        .Where(g => g.TeacherId == accountId)
-                        .Select(g => g.GroupId)
-                        .ToListAsync();
-
-                    if (groupIds.Any())
-                    {
-                        await _dbContext.studentGroups.Where(sg => groupIds.Contains(sg.GroupId)).ExecuteDeleteAsync();
-                        await _dbContext.quizzGroups.Where(qg => groupIds.Contains(qg.GroupId)).ExecuteDeleteAsync();
-                        await _dbContext.groups.Where(g => groupIds.Contains(g.GroupId)).ExecuteDeleteAsync();
-                    }
-
-                    // xoá Folder và TeacherProfile
-                    await _dbContext.quizzFolders.Where(f => f.TeacherId == accountId).ExecuteDeleteAsync();
-                    await _dbContext.teacherProfiles.Where(tp => tp.TeacherId == accountId).ExecuteDeleteAsync();
-                }
-
-                // xoá Account
-                await _dbContext.authModels.Where(a => a.AccountId == accountId).ExecuteDeleteAsync();
-
-                await transaction.CommitAsync();
-                _logger.LogInformation("Deleted account {accountId} with role {role}", accountId, account.Role);
-                return true;
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error deleting account {accountId}", accountId);
+                _logger.LogError(ex, "BanAccount: Error while banning AccountId={AccountId}", accountId);
                 return false;
             }
         }
+        public async Task<bool> UnBanAccount(int accountId)
+        {
+            try
+            {
+                _logger.LogInformation("UnBanAccount: Starting unban process for AccountId={AccountId}", accountId);
 
+                int affectedRows = await _dbContext.authModels
+                    .Where(a => a.AccountId == accountId)
+                    .ExecuteUpdateAsync(u => u.SetProperty(a => a.IsActive, a => true));
+
+                if (affectedRows > 0)
+                {
+                    _logger.LogInformation("UnBanAccount: Successfully unbanned AccountId={AccountId}", accountId);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("UnBanAccount: No records were updated for AccountId={AccountId}", accountId);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UnBanAccount: Error while unbanning AccountId={AccountId}", accountId);
+                return false;
+            }
+        }
 
 
         public async Task<List<AllAccountByRoleDTO>> GetAllAccountByRole(int page, int pageSize)
@@ -133,10 +82,11 @@ namespace Capstone.Services
                     .Take(pageSize)
                     .Select(acc => new AllAccountByRoleDTO
                     {
+                        AccountId = acc.AccountId,
                         Email = acc.Email,
                         Role = acc.Role,
+                        IsActive = acc.IsActive,
                         CreateAt = acc.CreateAt,
-                        UpdateAt = (DateTime)acc.UpdateAt
                     })
                     .ToListAsync();
             }
