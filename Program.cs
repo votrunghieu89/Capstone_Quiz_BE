@@ -118,8 +118,12 @@ builder.Services.AddScoped<IAdminRepository, AdminService>();
 builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddScoped<IStudentReportRepository, StudentReportService>();
 builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
+<<<<<<< HEAD
 builder.Services.AddScoped<INotificationRepository, NotificationService>();
 builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();   // ✅ thêm
+=======
+builder.Services.AddScoped<IOfflineQuizRepository, OfflineQuizService>();
+>>>>>>> origin/Module_Offline
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
@@ -135,6 +139,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+<<<<<<< HEAD
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
@@ -145,6 +150,19 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
     RequestPath = "/QuizImage"
 });
+=======
+// Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
+//    RequestPath = "/ProfileImage"
+//});
+//app.UseStaticFiles(new StaticFileOptions
+//{
+//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
+//    RequestPath = "/QuizImage"
+//});
+>>>>>>> origin/Module_Offline
 app.UseRouting();
 
 app.UseCors("AllowFrontend");
