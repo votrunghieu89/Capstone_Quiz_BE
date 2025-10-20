@@ -19,30 +19,28 @@ using StackExchange.Redis;
 using System.Text;
 using Capstone.Repositories.Histories;
 using Capstone.SignalR;
+using Capstone.Repositories.Folder; // ✅ thêm từ feature_TeacherFolder
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSwaggerGen(option =>
 {
     option.SwaggerDoc("v1", new OpenApiInfo { Title = "Integration System API", Version = "v1" });
-    // Định nghĩa Security Scheme cho Bearer Token (JWT)
     option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
         Description = "Please enter a valid JWT token prefixed with 'Bearer ' (e.g., 'Bearer eyJhbGciOi...')",
         Name = "Authorization",
-        Type = SecuritySchemeType.Http, // Sử dụng HTTP authentication
-        BearerFormat = "JWT",           // Định dạng là JWT
-        Scheme = "Bearer"               // Scheme là Bearer
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
     });
-    // Yêu cầu Security Scheme này cho các endpoint cần bảo vệ
     option.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -51,17 +49,16 @@ builder.Services.AddSwaggerGen(option =>
                 Reference = new OpenApiReference
                 {
                     Type=ReferenceType.SecurityScheme,
-                    Id="Bearer" // Phải khớp với tên trong AddSecurityDefinition
+                    Id="Bearer"
                 }
             },
-            new string[]{} // Không cần scopes cụ thể
+            new string[]{}
         }
     });
 });
 
 builder.Services.AddSignalR();
 
-// 2. Cấu hình Authentication với JWT
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -80,18 +77,16 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
-//
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.Configure<GoogleSetting>(
     builder.Configuration.GetSection("GoogleAuth"));
 
-// Đọc cấu hình Redis từ appsettings.json
 var redisSettings = new RedisSetting();
 builder.Configuration.GetSection("Redis").Bind(redisSettings);
 
-// Tạo cấu hình Redis
 var redisOptions = new ConfigurationOptions
 {
     EndPoints = { $"{redisSettings.Host}:{redisSettings.Port}" },
@@ -110,7 +105,7 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
-// Đăng ký các dịch vụ cần thiết
+// ✅ Đăng ký đầy đủ services từ cả hai nhánh
 builder.Services.AddScoped<Token>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<GoogleService>();
@@ -119,19 +114,19 @@ builder.Services.AddScoped<IStudentProfileRepository, StudenProfileService>();
 builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
 builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddScoped<IGroupRepository, GroupService>();
-builder.Services.AddScoped<IAdminRepository,AdminService>();
+builder.Services.AddScoped<IAdminRepository, AdminService>();
 builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddScoped<IStudentReportRepository, StudentReportService>();
 builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
 builder.Services.AddScoped<INotificationRepository, NotificationService>();
+builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();   // ✅ thêm
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
-//builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
 builder.Services.AddScoped<ConnectionService>();
-builder.Services.AddScoped<IFavouriteRepository , FavouriteService>();
+builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
+
 var app = builder.Build();
 
-// Swagger chỉ nên bật khi dev
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -140,7 +135,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
@@ -155,11 +149,11 @@ app.UseRouting();
 
 app.UseCors("AllowFrontend");
 
-// Authentication trước Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<QuizHub>("/QuizHub");
 app.MapHub<NotificationHub>("/NotificationHub");
+
 app.Run();
