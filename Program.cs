@@ -19,7 +19,7 @@ using StackExchange.Redis;
 using System.Text;
 using Capstone.Repositories.Histories;
 using Capstone.SignalR;
-using Capstone.Repositories.Folder; // ✅ thêm từ feature_TeacherFolder
+using Capstone.Repositories.Folder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -105,7 +105,7 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
-// ✅ Đăng ký đầy đủ services từ cả hai nhánh
+// ✅ Đăng ký đầy đủ services (kết hợp các nhánh)
 builder.Services.AddScoped<Token>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<GoogleService>();
@@ -118,12 +118,9 @@ builder.Services.AddScoped<IAdminRepository, AdminService>();
 builder.Services.AddScoped<ITeacherReportRepository, TeacherReportService>();
 builder.Services.AddScoped<IStudentReportRepository, StudentReportService>();
 builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
-<<<<<<< HEAD
 builder.Services.AddScoped<INotificationRepository, NotificationService>();
-builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();   // ✅ thêm
-=======
 builder.Services.AddScoped<IOfflineQuizRepository, OfflineQuizService>();
->>>>>>> origin/Module_Offline
+builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
@@ -139,7 +136,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-<<<<<<< HEAD
+// Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
@@ -150,19 +147,7 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
     RequestPath = "/QuizImage"
 });
-=======
-// Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
-//app.UseStaticFiles(new StaticFileOptions
-//{
-//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
-//    RequestPath = "/ProfileImage"
-//});
-//app.UseStaticFiles(new StaticFileOptions
-//{
-//    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
-//    RequestPath = "/QuizImage"
-//});
->>>>>>> origin/Module_Offline
+
 app.UseRouting();
 
 app.UseCors("AllowFrontend");

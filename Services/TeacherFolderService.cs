@@ -120,7 +120,7 @@ namespace Capstone.Services
                     {
                         QuizzId = q.QuizId,
                         Title = q.Title,
-                        AvatarURL = q.AvartarURL,
+                        AvatarURL = q.AvatarURL,
                         TotalQuestion = q.Questions.Count,
                         TeacherName = teacherEmail
                     })
