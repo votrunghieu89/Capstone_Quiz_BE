@@ -187,6 +187,8 @@ namespace Capstone.Controllers
         {
             try
             {
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+             ?? HttpContext.Connection.RemoteIpAddress?.ToString();
                 if (authRegisterDTO == null)
                 {
                     _logger.LogWarning("registerStudent: Request body null");
@@ -212,7 +214,7 @@ namespace Capstone.Controllers
                     return BadRequest(new { message = "Email already exists. Please use a different email." });
                 }
 
-                var isRegistered = await _authRepository.RegisterStudent(authRegisterDTO);
+                var isRegistered = await _authRepository.RegisterStudent(authRegisterDTO, ipAddess);
                 if (!isRegistered)
                 {
                     _logger.LogError("registerStudent: Registration failed for Email={Email}", authRegisterDTO.Email);
@@ -365,6 +367,11 @@ namespace Capstone.Controllers
             }
             try
             {
+                var ipAddress = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                if (ipAddress == null)
+                {
+                    return BadRequest(new { message = "Invalid Ip address." });
+                }
                 var googleResponse = await _googleService.checkIdToken(request.IdToken); // return Email, name, and avartarURL
                 if (googleResponse == null)
                 {
@@ -380,7 +387,7 @@ namespace Capstone.Controllers
                         PasswordHash = Guid.NewGuid().ToString(),
                         FullName = googleResponse.Name
                     };
-                    var isRegistered = await _authRepository.RegisterStudent(newAccout);
+                    var isRegistered = await _authRepository.RegisterStudent(newAccout, ipAddress);
                     _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
                 }
                 var loginResponse = await _authRepository.LoginGoogleforStudent(googleResponse.Email); // có trả về accessTOken và refreshToken

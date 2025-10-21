@@ -1,14 +1,18 @@
 ﻿using Capstone.Database;
 using Capstone.Model;
+using Capstone.RabbitMQ;
 using Capstone.Repositories;
 using Capstone.Repositories.Admin;
-using Capstone.Repositories.Groups;
-using Capstone.Repositories.Profiles;
 using Capstone.Repositories.Favourite;
+using Capstone.Repositories.Folder;
+using Capstone.Repositories.Groups;
+using Capstone.Repositories.Histories;
+using Capstone.Repositories.Profiles;
 using Capstone.Repositories.Quizzes;
 using Capstone.Security;
 using Capstone.Services;
 using Capstone.Settings;
+using Capstone.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -17,9 +21,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
-using Capstone.Repositories.Histories;
-using Capstone.SignalR;
-using Capstone.Repositories.Folder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -125,6 +126,12 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
+builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
+builder.Services.AddSingleton<RabbitMQProducer>();
+builder.Services.AddScoped<MongoDbContext>();
+builder.Services.AddHostedService<AuditLogConsumer>();
+
 
 var app = builder.Build();
 

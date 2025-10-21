@@ -6,7 +6,7 @@ namespace Capstone.Repositories
     public interface IAuthRepository
     {
         Task<int> isEmailExist(string email);
-        Task<bool> RegisterStudent(AuthRegisterStudentDTO authRegisterDTO);
+        Task<bool> RegisterStudent(AuthRegisterStudentDTO authRegisterDTO, string IpAddress);
         Task<bool> RegisterTeacher(AuthRegisterTeacherDTO authRegisterDTO);
         Task<AuthLoginResultDTO> Login(AuthLoginDTO authLoginDTO);
         Task<bool> ChangePassword(AuthChangePasswordDTO changePasswordDTO);

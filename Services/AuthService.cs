@@ -2,10 +2,12 @@
 using Capstone.DTOs.Auth;
 using Capstone.ENUMs;
 using Capstone.Model;
+using Capstone.RabbitMQ;
 using Capstone.Repositories;
 using Capstone.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -18,13 +20,15 @@ namespace Capstone.Services
         public readonly ILogger<AuthService> _logger;
         public readonly Token _token;
         private readonly Redis _redis;
-        public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger, Token token, Redis redis)
+        private readonly RabbitMQProducer _rabbitMQ;
+        public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger, Token token, Redis redis, RabbitMQProducer rabbitMQ)
         {
             _context = context;
             _connection = configuration.GetConnectionString("DefaultConnection") ?? "";
             _logger = logger;
             _token = token;
             _redis = redis;
+            _rabbitMQ = rabbitMQ;
         }
         public static string GenerateIdUnique(int accountId, DateTime createAt)
         {
@@ -50,7 +54,7 @@ namespace Capstone.Services
                 return 0;
             }
         }
-        public async Task<bool> RegisterStudent(AuthRegisterStudentDTO authRegisterDTO)
+        public async Task<bool> RegisterStudent(AuthRegisterStudentDTO authRegisterDTO, string IpAddress)
         {
             try
             {
@@ -79,6 +83,16 @@ namespace Capstone.Services
                         await _context.studentProfiles.AddAsync(studentProfile);
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
+
+                        var log = new AuditLogModel()
+                        {
+                            AccountId = authModel.AccountId,
+                            Action = "Register a new student account",
+                            Description = $"Create a new student account with ID:{authModel.AccountId}",
+                            Timestamp = authModel.CreateAt,
+                            IpAddress = IpAddress
+                        };
+                        await _rabbitMQ.SendMessageAsync(JsonConvert.SerializeObject(log));
                         _logger.LogInformation("Student registered successfully. AccountId={AccountId}, Email={Email}", authModel.AccountId, authModel.Email);
                         return true;
                     }
