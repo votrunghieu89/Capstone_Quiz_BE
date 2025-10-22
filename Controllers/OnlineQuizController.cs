@@ -73,7 +73,9 @@ namespace Capstone.Controllers
                     TotalParticipants = newResultDTO.Count,
                     InsertOnlineResultDTO = newResultDTO
                 };
-                bool isSuccess = await _onlineQuizRepository.InsertOnlineReport(newReport);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                bool isSuccess = await _onlineQuizRepository.InsertOnlineReport(newReport,accountId,ipAddess);
                 if (isSuccess)
                 {
                     return Ok(new { message = "Insert online report successfully" });
@@ -138,14 +140,14 @@ namespace Capstone.Controllers
                         await _redis.SetStringAsync(studentJsonKey, JsonConvert.SerializeObject(studentData), TimeSpan.FromHours(3));
                     }
                 }
+                // Gọi hàm update trả về leaderboard ở đây
                 string roomJson = await _redis.GetStringAsync($"quiz:room:{onlineAnswerDTO.roomCode}");
                 if (!string.IsNullOrEmpty(roomJson))
                 {
                     var roomData = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(roomJson);
                     if (roomData != null && !string.IsNullOrEmpty(roomData.TeacherConnectionId))
                     {
-                        await _quizHub.Clients.Client(roomData.TeacherConnectionId)
-                            .SendAsync("UpdateLeaderBoard", onlineAnswerDTO.roomCode);
+                        bool isUpdateLeaderBoard = await _onlineQuizRepository.updateLeaderBoard(onlineAnswerDTO.roomCode);
                     }
                 }
                 return Ok(new { isCorrect });

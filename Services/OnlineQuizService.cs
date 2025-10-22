@@ -1,9 +1,18 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Quizzes.QuizzOnline;
 using Capstone.Model;
+using Capstone.RabbitMQ;
 using Capstone.Repositories.Quizzes;
+using Capstone.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Capstone.Services
 {
@@ -12,36 +21,45 @@ namespace Capstone.Services
         private readonly ILogger<OnlineQuizService> _logger;
         private readonly AppDbContext _context;
         private readonly Redis _redis;
+        private readonly RabbitMQProducer _rabbitMQ;
         private readonly string connectionString;
+        private readonly IHubContext<QuizHub> _quizHub;
 
-        public OnlineQuizService(AppDbContext context, Redis redis, IConfiguration configuration, ILogger<OnlineQuizService> logger)
+        public OnlineQuizService(AppDbContext context, Redis redis,
+            IConfiguration configuration, ILogger<OnlineQuizService> logger, RabbitMQProducer rabbitMQ,
+            IHubContext<QuizHub> quizHub)
         {
             _context = context;
             _redis = redis;
             connectionString = configuration.GetConnectionString("DefaultConnection") ?? "";
             _logger = logger;
+            _rabbitMQ = rabbitMQ;
+            _quizHub = quizHub;
+
         }
-        public async Task<bool> InsertOnlineReport(InsertOnlineReportDTO insertOnlineReportDTO)
+
+
+        public async Task<bool> InsertOnlineReport(InsertOnlineReportDTO insertOnlineReportDTO, int accountId, string ipAddress)
         {
+            _logger.LogInformation("InsertOnlineReport: Start - QuizId={QuizId}, AccountId={AccountId}", insertOnlineReportDTO.QuizId, accountId);
             try
             {
-                // Bắt đầu Transaction để đảm bảo tính toàn vẹn (ACID) cho Report, Results, và Wrong Answers.
+
                 using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
                     try
                     {
                         // 1. TẠO ONLINE REPORT
-                        // Lấy tên Quiz để đặt làm ReportName
                         var ReportName = await _context.quizzes
-                                                    .Where(q => q.QuizId == insertOnlineReportDTO.QuizId)
-                                                    .Select(q => q.Title)
-                                                    .FirstOrDefaultAsync();
+                                                     .Where(q => q.QuizId == insertOnlineReportDTO.QuizId)
+                                                     .Select(q => q.Title)
+                                                     .FirstOrDefaultAsync();
 
                         var newRerport = new OnlineReportModel()
                         {
                             QuizId = insertOnlineReportDTO.QuizId,
                             TeacherId = insertOnlineReportDTO.TeacherId,
-                            ReportName = ReportName ?? $"Online Report for Quiz {insertOnlineReportDTO.QuizId}", // Đặt tên mặc định nếu Title null
+                            ReportName = ReportName ?? $"Online Report for Quiz {insertOnlineReportDTO.QuizId}",
                             HighestScore = insertOnlineReportDTO.HighestScore,
                             LowestScore = insertOnlineReportDTO.LowestScore,
                             AverageScore = insertOnlineReportDTO.AverageScore,
@@ -50,21 +68,22 @@ namespace Capstone.Services
                         };
 
                         await _context.onlinereports.AddAsync(newRerport);
-                        await _context.SaveChangesAsync(); // Lưu để lấy OnlineReportId
+                        await _context.SaveChangesAsync();
                         int onlineReportId = newRerport.OnlineReportId;
 
                         // 2. TẠO ONLINE RESULTS VÀ ONLINE WRONG ANSWERS
+
                         var resultsToInsert = new List<OnlineResultModel>();
                         var wrongAnswersToInsert = new List<OnlineWrongAnswerModel>();
 
-                        // LẶP QUA TẤT CẢ KẾT QUẢ HỌC SINH TRONG DTO
+
                         foreach (var resultDTO in insertOnlineReportDTO.InsertOnlineResultDTO)
                         {
                             // Tạo OnlineResultModel cho từng học sinh
                             var newResult = new OnlineResultModel()
                             {
                                 OnlineReportId = onlineReportId,
-                                QuizId = insertOnlineReportDTO.QuizId, // Giữ lại QuizId để tối ưu truy vấn (như đã thảo luận)
+                                QuizId = insertOnlineReportDTO.QuizId,
                                 StudentName = resultDTO.StudentName,
                                 Score = resultDTO.Score,
                                 CorrecCount = resultDTO.CorrectCount,
@@ -76,14 +95,12 @@ namespace Capstone.Services
 
                             resultsToInsert.Add(newResult);
 
-                            // Lưu OnlineResultModel vào DbContext (Chưa SaveChanges)
-                            // Lưu ý: Thêm vào danh sách và sẽ gọi AddRangeAsync sau vòng lặp để tối ưu
                         }
 
                         await _context.onlineResults.AddRangeAsync(resultsToInsert);
-                        await _context.SaveChangesAsync(); // LƯU TẤT CẢ RESULTS để lấy OnlResultId cho Wrong Answers
+                        await _context.SaveChangesAsync();
 
-                        // Sau khi lưu Results, OnlResultId đã được tự động gán cho các đối tượng trong resultsToInsert
+
                         for (int i = 0; i < resultsToInsert.Count; i++)
                         {
                             var newResult = resultsToInsert[i];
@@ -91,7 +108,7 @@ namespace Capstone.Services
 
                             int onlineResultId = newResult.OnlResultId;
 
-                            // LẶP QUA TẤT CẢ CÂU TRẢ LỜI SAI CỦA HỌC SINH NÀY
+
                             foreach (var wrongAnswer in resultDTO.wrongAnswerDTOs)
                             {
                                 var newWrongAnswer = new OnlineWrongAnswerModel()
@@ -106,15 +123,29 @@ namespace Capstone.Services
                         }
 
                         await _context.onlineWrongAnswers.AddRangeAsync(wrongAnswersToInsert);
-                        await _context.SaveChangesAsync(); // Lưu tất cả Wrong Answers
+                        await _context.SaveChangesAsync();
 
                         // 3. COMMIT TRANSACTION
                         await transaction.CommitAsync();
+
+                        // Thêm Audit Log (RabbitMQ) sau khi Commit thành công
+                        var log = new AuditLogModel()
+                        {
+                            AccountId = accountId,
+                            Action = "Insert online quiz report",
+                            Description = $"Online Report ID:{onlineReportId} for Quiz ID:{insertOnlineReportDTO.QuizId} created by Account ID:{accountId}",
+                            Timestamp = DateTime.Now,
+                            IpAddress = ipAddress
+                        };
+                        await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
+
+                        _logger.LogInformation("InsertOnlineReport: Success - OnlineReportId={OnlineReportId}", onlineReportId);
                         return true;
 
                     }
                     catch (Exception ex)
                     {
+
                         _logger.LogError(ex, "Transaction failed in InsertOnlineReport");
                         await transaction.RollbackAsync();
                         return false;
@@ -126,6 +157,40 @@ namespace Capstone.Services
                 _logger.LogError(ex, "Error in InsertOnlineReport");
                 return false;
             }
+        }
+
+        public async Task<bool> updateLeaderBoard(string roomCode)
+        {
+            Console.WriteLine($"Updating leaderboard for room {roomCode}");
+            string leaderboardKey = $"quiz:room:{roomCode}:leaderboard";
+            string roomJson = await _redis.GetStringAsync($"quiz:room:{roomCode}");
+            if (string.IsNullOrEmpty(roomJson)) return false;
+
+            var roomData = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(roomJson);
+            if (roomData == null || string.IsNullOrEmpty(roomData.TeacherConnectionId)) return false;
+
+            var teacherConnectionId = roomData.TeacherConnectionId;
+            // Lấy toàn bộ studentId theo điểm giảm dần
+            var studentsWithScores = await _redis.ZRevRangeWithScoresAsync(leaderboardKey, 0, -1);
+            var leaderboard = new List<LeaderboardDTO>();
+            int rank = 1;
+            foreach (var (studentId, score) in studentsWithScores)
+            {
+                string studentKey = $"quiz:room:{roomCode}:student:{studentId}";
+                var studentJson = await _redis.GetStringAsync(studentKey);
+                var studentData = JsonConvert.DeserializeObject<CreateStudentRedisDTO>(studentJson);
+                leaderboard.Add(new LeaderboardDTO
+                {
+                    StudentId = studentId,
+                    StudentName = studentData?.StudentName ?? "Unknown",
+                    Score = (int)score,
+                    Rank = rank
+                });
+                rank++;
+            }
+            await _quizHub.Clients.Client(roomData.TeacherConnectionId)
+                            .SendAsync("ReceiveLeaderboard", leaderboard);
+            return true;
         }
     }
 }

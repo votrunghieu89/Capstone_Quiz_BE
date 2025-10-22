@@ -6,6 +6,8 @@ using Capstone.Repositories.Quizzes;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Linq;
+using Capstone.RabbitMQ;
+using System.Threading.Tasks;
 
 namespace Capstone.Services
 {
@@ -15,14 +17,16 @@ namespace Capstone.Services
         private readonly Redis _redis;
         private readonly ILogger<OfflineQuizService> _logger;
         private readonly IQuizRepository _quizRepository; // Inject IQuizRepository để sử dụng cache đáp án
+        private readonly RabbitMQProducer _rabbitMQ; // Đã thêm RabbitMQProducer
 
-        // Cập nhật Constructor để inject IQuizRepository
-        public OfflineQuizService(AppDbContext context, Redis redis, ILogger<OfflineQuizService> logger, IQuizRepository quizRepository)
+        // Cập nhật Constructor để inject IQuizRepository và RabbitMQProducer
+        public OfflineQuizService(AppDbContext context, Redis redis, ILogger<OfflineQuizService> logger, IQuizRepository quizRepository, RabbitMQProducer rabbitMQ)
         {
             _context = context;
             _redis = redis;
             _logger = logger;
             _quizRepository = quizRepository;
+            _rabbitMQ = rabbitMQ;
         }
 
         // START QUIZ
@@ -139,7 +143,7 @@ namespace Capstone.Services
                 isCorrect = await _quizRepository.checkAnswer(checkDto);
             }
 
-            //  CẬP NHẬT CACHE
+            //  CẬP NHẬT CACHE
             if (isCorrect)
             {
                 cache.NumberOfCorrectAnswer++;
@@ -167,7 +171,7 @@ namespace Capstone.Services
             // Đánh dấu câu hỏi đã trả lời
             cache.AnsweredQuestions.Add(dto.QuestionId);
 
-            //  Lưu lại Cache (Reset TTL)
+            //  Lưu lại Cache (Reset TTL)
             await _redis.SetStringAsync(redisKey, JsonSerializer.Serialize(cache), TimeSpan.FromHours(2));
 
             return true;
@@ -175,7 +179,8 @@ namespace Capstone.Services
 
 
         // SUBMIT QUIZ (Lưu kết quả & Rank)
-        public async Task<OfflineResultViewDTO?> SubmitOfflineQuiz(FinishOfflineQuizDTO dto)
+        // Đã cập nhật signature để khớp với interface và thêm Audit Log
+        public async Task<OfflineResultViewDTO?> SubmitOfflineQuiz(FinishOfflineQuizDTO dto, int accountId, string ipAddress)
         {
             try
             {
@@ -256,11 +261,11 @@ namespace Capstone.Services
                         currentResult = existing;
                     }
 
-                    //  LƯU KẾT QUẢ VÀO DB
+                    //  LƯU KẾT QUẢ VÀO DB
                     await _context.SaveChangesAsync();
                     int offResultId = currentResult.OffResultId;
 
-                    //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
+                    //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
                     var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModule
                     {
                         OffResultId = offResultId,
@@ -276,7 +281,7 @@ namespace Capstone.Services
                     }
                     await _context.SaveChangesAsync(); // Lưu chi tiết câu trả lời sai
 
-                    //  CẬP NHẬT RANK TRONG REDIS (Sử dụng Sorted Set ZSET)
+                    //  CẬP NHẬT RANK TRONG REDIS (Sử dụng Sorted Set ZSET)
                     var rankKey = $"quiz_group_rank:{dto.QGId}";
                     // Sử dụng điểm số làm score trong ZSET. Điểm càng cao, Rank càng nhỏ (đứng đầu)
                     await _redis.ZAddAsync(rankKey, dto.StudentId.ToString(), score);
@@ -293,10 +298,22 @@ namespace Capstone.Services
 
                     await transaction.CommitAsync();
 
-                    //  Xóa Cache phiên làm bài
+                    // THÊM AUDIT LOG (RabbitMQ)
+                    var log = new AuditLogModel()
+                    {
+                        AccountId = accountId, // accountId là StudentId
+                        Action = "Submit offline quiz",
+                        Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId}) with score: {score}%",
+                        Timestamp = DateTime.Now,
+                        IpAddress = ipAddress
+                    };
+                    await _rabbitMQ.SendMessageAsync(JsonSerializer.Serialize(log));
+
+
+                    //  Xóa Cache phiên làm bài
                     await _redis.DeleteKeyAsync(key);
 
-                    //  Trả về DTO kết quả
+                    //  Trả về DTO kết quả
                     return new OfflineResultViewDTO
                     {
                         QuizId = dto.QuizId,
@@ -350,7 +367,7 @@ namespace Capstone.Services
                     StartDate = r.StartDate,
                     EndDate = r.EndDate,
                     Duration = r.Duration,
-                    RANK = r.RANK 
+                    RANK = r.RANK
                 }).FirstOrDefaultAsync();
 
                 return result;

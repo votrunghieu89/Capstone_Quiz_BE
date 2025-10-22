@@ -22,7 +22,7 @@ namespace Capstone.Security
             var claims = new[]
             {
                 new Claim("AccountId", accountId.ToString()),
-                new Claim("Role", role),
+                new Claim(ClaimTypes.Role, role),
                 new Claim("Email", email),
             };
             var token = new JwtSecurityToken(

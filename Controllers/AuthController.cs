@@ -159,8 +159,9 @@ namespace Capstone.Controllers
                     _logger.LogWarning("login: Missing email or password");
                     return BadRequest(new { message = "Email and Password are required." });
                 }
-
-                var loginResponse = await _authRepository.Login(authLoginDTO);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+             ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var loginResponse = await _authRepository.Login(authLoginDTO, ipAddess);
                 switch (loginResponse.Status) {
                     case AuthEnum.Login.Success:
                         return Ok(loginResponse.AuthLoginResponse);
@@ -255,7 +256,9 @@ namespace Capstone.Controllers
                     _logger.LogInformation("registerTeacher: Email already exists: {Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Email already exists. Please use a different email." });
                 }
-                var isRegistered = await _authRepository.RegisterTeacher(authRegisterDTO);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+             ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var isRegistered = await _authRepository.RegisterTeacher(authRegisterDTO, ipAddess);
                 if (!isRegistered)
                 {
                     _logger.LogError("registerTeacher: Registration failed for Email={Email}", authRegisterDTO.Email);
@@ -428,6 +431,7 @@ namespace Capstone.Controllers
                     _logger.LogWarning("googleLogin: Invalid IdToken provided");
                     return BadRequest(new { message = "Invalid IdToken." });
                 }
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
                 var checkIsEmail = await _authRepository.isEmailExist(googleResponse.Email);
                 if (checkIsEmail == 0)
                 {
@@ -439,7 +443,7 @@ namespace Capstone.Controllers
                         OrganizationAddress = null,
                         OrganizationName = null
                     };
-                    var isRegistered = await _authRepository.RegisterTeacher(newAccout);
+                    var isRegistered = await _authRepository.RegisterTeacher(newAccout,ipAddess);
                     _logger.LogInformation("googleLogin: New student account created for Email={Email}", googleResponse.Email);
                 }
                 var loginResponse = await _authRepository.LoginGoogleforTeacher(googleResponse.Email); // có trả về accessTOken và refreshToken

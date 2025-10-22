@@ -111,7 +111,7 @@ builder.Services.AddScoped<Token>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<GoogleService>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
-builder.Services.AddScoped<IStudentProfileRepository, StudenProfileService>();
+builder.Services.AddScoped<IStudentProfileRepository, StudentProfileService>();
 builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
 builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddScoped<IGroupRepository, GroupService>();
@@ -165,5 +165,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<QuizHub>("/QuizHub");
 app.MapHub<NotificationHub>("/NotificationHub");
+app.MapHub<AuditlogHub>("/AuditHub");
 
 app.Run();

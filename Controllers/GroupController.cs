@@ -139,7 +139,9 @@ namespace Capstone.Controllers
                     IdUnique = inviteCode,
                     CreateAt = DateTime.Now
                 };
-                var groupId = await _groupRepository.CreateGroup(newGroup);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var groupId = await _groupRepository.CreateGroup(newGroup,ipAddess);
                 if (groupId == null)
                 {
                     _logger.LogWarning("createGroup: Repository returned null for TeacherId={TeacherId}", request.TeacherId);
@@ -161,7 +163,9 @@ namespace Capstone.Controllers
            
             try
             {
-                var result = await _groupRepository.InsertStudentToGroup(groupId, IdUnique);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.InsertStudentToGroup(groupId, IdUnique,accountId,ipAddess);
 
                 switch (result)
                 {
@@ -204,8 +208,9 @@ namespace Capstone.Controllers
                     _logger.LogWarning("insertQuizToGroup: Request body null");
                     return BadRequest(new { message = "Request body is required." });
                 }
-
-                var result = await _groupRepository.InsertQuizToGroup(request);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.InsertQuizToGroup(request,accountId,ipAddess);
                 if (result == null)
                 {
                     _logger.LogWarning("insertQuizToGroup: Repository returned null - QuizId={QuizId}, GroupId={GroupId}", request.QuizId, request.GroupId);
@@ -227,7 +232,9 @@ namespace Capstone.Controllers
             _logger.LogInformation("joinGroupByInvite: Start - InviteCode={InviteCode}, StudentId={StudentId}", IdUnique, studentId);
             try
             {
-                var result = await _groupRepository.JoinGroupByInvite(IdUnique, studentId);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.JoinGroupByInvite(IdUnique, studentId,ipAddess);
                 switch (result)
                 {
                     case ENUMs.GroupEnum.JoinGroupResult.Success:
@@ -266,8 +273,9 @@ namespace Capstone.Controllers
                     _logger.LogWarning("updateGroup: Request body null");
                     return BadRequest(new { message = "Request body is required." });
                 }
-
-                var updatedGroup = await _groupRepository.updateGroup(request);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var updatedGroup = await _groupRepository.updateGroup(request,accountId,ipAddess);
                 if (updatedGroup == null)
                 {
                     _logger.LogWarning("updateGroup: Repository returned null for GroupId={GroupId}", request.GroupId);
@@ -290,7 +298,9 @@ namespace Capstone.Controllers
             _logger.LogInformation("deleteGroup: Start - GroupId={GroupId}", groupId);
             try
             {
-                var result = await _groupRepository.DeleteGroup(groupId);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.DeleteGroup(groupId,accountId,ipAddess);
                 if (result)
                 {
                     _logger.LogInformation("deleteGroup: Success - GroupId={GroupId}", groupId);
@@ -315,7 +325,9 @@ namespace Capstone.Controllers
             _logger.LogInformation("leaveGroup: Start - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
             try
             {
-                var result = await _groupRepository.LeaveGroup(groupId, studentId, teacherId);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.LeaveGroup(groupId, studentId, teacherId,ipAddess);
                 if (result)
                 {
                     _logger.LogInformation("leaveGroup: Success - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
@@ -340,7 +352,9 @@ namespace Capstone.Controllers
             _logger.LogInformation("removeStudentFromGroup: Start - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
             try
             {
-                var result = await _groupRepository.RemoveStudentFromGroup(groupId, studentId, teacherId);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.RemoveStudentFromGroup(groupId, studentId, teacherId,ipAddess);
                 if (result)
                 {
                     _logger.LogInformation("removeStudentFromGroup: Success - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
@@ -365,7 +379,9 @@ namespace Capstone.Controllers
             _logger.LogInformation("removeQuizFromGroup: Start - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
             try
             {
-                var result = await _groupRepository.RemoveQuizFromGroup(groupId, quizId);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _groupRepository.RemoveQuizFromGroup(groupId, quizId,accountId,ipAddess);
                 if (result)
                 {
                     _logger.LogInformation("removeQuizFromGroup: Success - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);

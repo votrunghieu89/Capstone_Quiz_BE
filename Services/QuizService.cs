@@ -1,11 +1,14 @@
 ﻿ using Capstone.Database;
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
+using Capstone.RabbitMQ;
 using Capstone.Repositories.Quizzes;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.Identity.Client;
+using System.Net;
 using System.Text.Json;
 
 namespace Capstone.Services
@@ -16,16 +19,19 @@ namespace Capstone.Services
         private readonly ILogger<QuizService> _logger;
         private readonly Redis _redis;
         private readonly string _connectionString;
-        public QuizService(AppDbContext context, ILogger<QuizService> logger, Redis redis, IConfiguration configuration)
+        private readonly RabbitMQProducer _rabbitMQ;
+        public QuizService(AppDbContext context, ILogger<QuizService> logger, Redis redis, IConfiguration configuration, RabbitMQProducer rabbitMQ)
         {
             _context = context;
             _logger = logger;
             _redis = redis;
             _connectionString = configuration.GetConnectionString("DefaultConnection");
+            _rabbitMQ = rabbitMQ;
+
         }
 
 
-        public async Task<bool> CreateQuiz(QuizCreateDTo quiz)
+        public async Task<bool> CreateQuiz(QuizCreateDTo quiz, string IpAddress)
         {
             try
             {
@@ -85,6 +91,15 @@ namespace Capstone.Services
                     await _context.SaveChangesAsync();
 
                     await transaction.CommitAsync();
+                    var log = new AuditLogModel()
+                    {
+                        AccountId = newQuiz.TeacherId,
+                        Action = "Create a quiz",
+                        Description = $"A quiz with ID:{newQuiz.QuizId} has been created by account with ID:{newQuiz.TeacherId}",
+                        Timestamp = newQuiz.CreateAt,
+                        IpAddress = IpAddress
+                    };
+                    await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
                     return true;
 
                 }
@@ -143,7 +158,7 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<string> DeleteQuiz(int quizId)
+        public async Task<string> DeleteQuiz(int quizId, int accountId, string IpAddress)
         {
             try
             {
@@ -157,7 +172,15 @@ namespace Capstone.Services
                 await _context.quizzes
                     .Where(q => q.QuizId == quizId)
                     .ExecuteDeleteAsync();
-
+                var log = new AuditLogModel()
+                {
+                    AccountId = accountId,
+                    Action = "Delete a quiz",
+                    Description = $"A quiz with ID:{quizId} has been deleted by account with ID:{accountId}",
+                    Timestamp = DateTime.Now,
+                    IpAddress = IpAddress
+                };
+                await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
                 return oldAvatarURL;
 
             }
@@ -170,7 +193,7 @@ namespace Capstone.Services
         }
         
 
-        public async Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO dto)
+        public async Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO dto, string IpAddress, int accountId)
         {
             var quiz = await _context.quizzes
                 .Include(q => q.Questions)
@@ -282,7 +305,15 @@ namespace Capstone.Services
             }
 
             await _context.SaveChangesAsync();
-
+            var log = new AuditLogModel()
+            {
+                AccountId = accountId,
+                Action = "Delete a quiz",
+                Description = $"A quiz with ID:{dto.QuizId} has been updated by account with ID:{accountId}",
+                Timestamp = DateTime.Now,
+                IpAddress = IpAddress
+            };
+            await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
             // Trả DTO cập nhật lại (có Id mới)
             return new QuizUpdateDTO
             {

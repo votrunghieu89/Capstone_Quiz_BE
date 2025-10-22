@@ -1,5 +1,6 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Reports.Student;
+using Capstone.RabbitMQ;
 using Capstone.Repositories.Histories;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,11 +9,13 @@ namespace Capstone.Services
     public class StudentReportService : IStudentReportRepository
     {
         private readonly ILogger<StudentReportService> _logger;
-        private readonly AppDbContext _context; 
-        public StudentReportService(ILogger<StudentReportService> logger, AppDbContext context)
+        private readonly AppDbContext _context;
+        private readonly RabbitMQProducer _rabbitMQ;
+        public StudentReportService(ILogger<StudentReportService> logger, AppDbContext context, RabbitMQProducer rabbitMQ)
         {
             _logger = logger;
             _context = context;
+            _rabbitMQ = rabbitMQ;
         }
 
         public async Task<ViewDetailOfCompletedQuizDTO> DetailOfCompletedQuiz(int studentId, int quizId, DateTime createAt)

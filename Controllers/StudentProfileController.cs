@@ -70,7 +70,8 @@ namespace Capstone.Controllers
                     _logger.LogWarning("updateStudentProfile: Request body null");
                     return BadRequest(new { message = "Request body is required." });
                 }
-
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
                 var folderName = _configuration["UploadSettings:AvatarFolder"];
                 var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
                 if (!Directory.Exists(uploadsFolder))
@@ -97,7 +98,7 @@ namespace Capstone.Controllers
                 };
 
                 _logger.LogDebug("updateStudentProfile: Updating DB for StudentId={StudentId}", studentProfileModel.StudentId);
-                var updatedProfile = await _studentProfileRepository.updateStudentProfile(studentProfileModel);
+                var updatedProfile = await _studentProfileRepository.updateStudentProfile(studentProfileModel,accountId,ipAddess);
 
                 if (updatedProfile == null)
                 {

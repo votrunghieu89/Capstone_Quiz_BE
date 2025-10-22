@@ -176,41 +176,6 @@ namespace Capstone.SignalR
             }
         }
 
-        public async Task UpdateLeaderBoardHandle(string roomCode)
-        {
-            Console.WriteLine($"Updating leaderboard for room {roomCode}");
-            string leaderboardKey = $"quiz:room:{roomCode}:leaderboard";
-            string roomJson = await _redis.GetStringAsync($"quiz:room:{roomCode}");
-            if (string.IsNullOrEmpty(roomJson)) return;
-
-            var roomData = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(roomJson);
-            if (roomData == null || string.IsNullOrEmpty(roomData.TeacherConnectionId)) return;
-
-            var teacherConnectionId = roomData.TeacherConnectionId;
-            // Lấy toàn bộ studentId theo điểm giảm dần
-            var studentsWithScores = await _redis.ZRevRangeWithScoresAsync(leaderboardKey, 0, -1);
-            var leaderboard = new List<LeaderboardDTO>();
-            int rank = 1;
-            foreach (var(studentId, score) in studentsWithScores)
-            {
-                string studentKey = $"quiz:room:{roomCode}:student:{studentId}";
-                var studentJson = await _redis.GetStringAsync(studentKey);
-                var studentData = JsonConvert.DeserializeObject<CreateStudentRedisDTO>(studentJson);
-                leaderboard.Add(new LeaderboardDTO
-                {
-                    StudentId = studentId,
-                    StudentName = studentData?.StudentName ?? "Unknown",
-                    Score = (int)score,
-                    Rank = rank
-                });
-                rank++;
-            }
-            foreach(var entry in leaderboard)
-            {
-                Console.WriteLine($"StudentId: {entry.StudentId}, Name: {entry.StudentName}, Score: {entry.Score}, Rank: {entry.Rank}");
-            }
-            await Clients.Client(teacherConnectionId).SendAsync("ReceiveLeaderboard", leaderboard);
-        }
         // Đặt hàm này trong QuizHub
         public async Task EndAfterComplete(string roomCode)
         {

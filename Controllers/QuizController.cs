@@ -3,8 +3,11 @@ using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.Repositories.Quizzes;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using StackExchange.Redis;
+using System.Net;
 using System.Text.Json;
 
 namespace Capstone.Controllers
@@ -147,13 +150,14 @@ namespace Capstone.Controllers
 
             return Ok(new { imageUrl = avatarPath.Replace("\\", "/") });
         }
-
+        [Authorize(Roles = "Teacher")]
         [HttpPost("createQuiz")]
         public async Task<IActionResult> CreateQuiz([FromBody] QuizCreateDTo quiz)
         {
             Console.WriteLine("Received quiz data: " + quiz.AvatarURL);
             try
             {
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()?? HttpContext.Connection.RemoteIpAddress?.ToString();
                 var quizModel = new QuizCreateDTo
                 {
                     TeacherId = quiz.TeacherId,
@@ -179,7 +183,7 @@ namespace Capstone.Controllers
                 };
                 Console.WriteLine(quizModel.AvatarURL);
                 // 5️⃣ Gọi repository lưu quiz
-                var createdQuiz = await _quizRepository.CreateQuiz(quizModel);
+                var createdQuiz = await _quizRepository.CreateQuiz(quizModel, ipAddess);
                 if (createdQuiz == null)
                     return StatusCode(500, "An error occurred while creating the quiz.");
 
@@ -280,6 +284,8 @@ namespace Capstone.Controllers
         {
             try
             {
+                var accountId = User.FindFirst("AccountId")?.Value;
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
                 var quizModel = new QuizUpdateDTO
                 {
                     QuizId = quiz.QuizId,
@@ -303,7 +309,7 @@ namespace Capstone.Controllers
                         }).ToList() ?? new List<OptionUpdateDTO>()
                     }).ToList() ?? new List<QuestionUpdateDTO>()
                 };
-                var updatedQuiz = await _quizRepository.UpdateQuiz(quizModel);
+                var updatedQuiz = await _quizRepository.UpdateQuiz(quizModel,ipAddess,Convert.ToInt32(accountId));
                 if (updatedQuiz == null)
                 {
                     return StatusCode(500, "An error occurred while updating the quiz.");
@@ -320,10 +326,13 @@ namespace Capstone.Controllers
         }
 
         // ===== DELETE METHODS =====
+        [Authorize(Roles = "Teacher")]
         [HttpDelete("deleteQuiz/{quizId}")]
         public async Task<IActionResult> DeleteQuiz(int quizId)
         {
-            string isDeleted = await _quizRepository.DeleteQuiz(quizId);
+            var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+            var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+            string isDeleted = await _quizRepository.DeleteQuiz(quizId,accountId,ipAddess);
             if (isDeleted == null)
             {
                 return NotFound(new { message = "Quiz not found or could not be deleted." });

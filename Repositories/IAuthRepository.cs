@@ -7,8 +7,8 @@ namespace Capstone.Repositories
     {
         Task<int> isEmailExist(string email);
         Task<bool> RegisterStudent(AuthRegisterStudentDTO authRegisterDTO, string IpAddress);
-        Task<bool> RegisterTeacher(AuthRegisterTeacherDTO authRegisterDTO);
-        Task<AuthLoginResultDTO> Login(AuthLoginDTO authLoginDTO);
+        Task<bool> RegisterTeacher(AuthRegisterTeacherDTO authRegisterDTO, string IpAddress);
+        Task<AuthLoginResultDTO> Login(AuthLoginDTO authLoginDTO, string IpAddress);
         Task<bool> ChangePassword(AuthChangePasswordDTO changePasswordDTO);
         Task<bool> Logout(int accountId);
         Task<bool> verifyOTP(string Email, string otp);

@@ -64,7 +64,8 @@ namespace Capstone.Controllers
                     _logger.LogWarning("updateTeacherProfile: Request body null");
                     return BadRequest(new { message = "Request body is required." });
                 }
-
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
                 var folderName = _configuration["UploadSettings:AvatarFolder"];
                 var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
                 if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
@@ -87,7 +88,7 @@ namespace Capstone.Controllers
                     AvatarURL = Path.Combine(folderName, fileName)
                 };
 
-                var updated = await _teacherProfileRepository.updateTeacherProfile(model);
+                var updated = await _teacherProfileRepository.updateTeacherProfile(model, accountId, ipAddess);
                 if (updated == null)
                 {
                     _logger.LogWarning("updateTeacherProfile: Update failed for TeacherId={TeacherId}", dto.TeacherId);

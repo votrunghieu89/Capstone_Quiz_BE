@@ -4,6 +4,10 @@ namespace Capstone.Repositories.Quizzes
 {
     public interface IOnlineQuizRepository
     {
-        public Task<bool> InsertOnlineReport(InsertOnlineReportDTO insertOnlineReportDTO);
+        public Task<bool> InsertOnlineReport(InsertOnlineReportDTO insertOnlineReportDTO, int accountId, string ipAddress);
+        public Task<bool> updateLeaderBoard(string roomCode);
+
+
+
     }
 }

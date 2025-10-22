@@ -179,7 +179,8 @@ public class Redis
         await SetExpiryIfNeeded(key, expiry);
         return result;
     }
-
+    public async Task<long> ZRemRangeByRankAsync(string key, long startRank, long stopRank)
+    => await _db.SortedSetRemoveRangeByRankAsync(key, startRank, stopRank);
     // ✅ Lấy danh sách phần tử theo thứ tự tăng dần
     public async Task<List<string>> ZRangeAsync(string key, long start = 0, long stop = -1)
     {

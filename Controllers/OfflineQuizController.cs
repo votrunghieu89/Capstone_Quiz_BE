@@ -64,8 +64,9 @@ namespace Capstone.Controllers
         {
             try
             {
-                // Service sẽ lấy tổng kết quả từ cache, lưu DB (bao gồm WrongAnswers) và tính Rank.
-                var result = await _offlineRepo.SubmitOfflineQuiz(dto);
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var result = await _offlineRepo.SubmitOfflineQuiz(dto,accountId,ipAddess);
 
                 if (result == null)
                 {

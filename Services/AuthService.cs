@@ -110,7 +110,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<bool> RegisterTeacher(AuthRegisterTeacherDTO authRegisterDTO)
+        public async Task<bool> RegisterTeacher(AuthRegisterTeacherDTO authRegisterDTO, string IpAddress)
         {
             try
             {
@@ -154,6 +154,15 @@ namespace Capstone.Services
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
                         _logger.LogInformation("Teacher registered successfully. AccountId={AccountId}, Email={Email}", authModel.AccountId, authModel.Email);
+                        var log = new AuditLogModel()
+                        {
+                            AccountId = authModel.AccountId,
+                            Action = "Register a new teacher account",
+                            Description = $"Create a new teacher account with ID:{authModel.AccountId}",
+                            Timestamp = authModel.CreateAt,
+                            IpAddress = IpAddress
+                        };
+                        await _rabbitMQ.SendMessageAsync(JsonConvert.SerializeObject(log));
                         return true;
                     }
                     catch (Exception ex)
@@ -170,7 +179,7 @@ namespace Capstone.Services
                 return false;
             }
         }
-        public async Task<AuthLoginResultDTO> Login(AuthLoginDTO authLoginDTO)
+        public async Task<AuthLoginResultDTO> Login(AuthLoginDTO authLoginDTO, string IpAddress)
         {
             try
             {
@@ -204,6 +213,15 @@ namespace Capstone.Services
                 };
                 bool  setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
                 _logger.LogInformation("User logged in successfully. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
+                var log = new AuditLogModel()
+                {
+                    AccountId = user.AccountId,
+                    Action = "Login",
+                    Description = $"A account with ID:{user.AccountId} has been login",
+                    Timestamp = user.CreateAt,
+                    IpAddress = IpAddress
+                };
+                await _rabbitMQ.SendMessageAsync(JsonConvert.SerializeObject(log));
                 return new AuthLoginResultDTO { Status = AuthEnum.Login.Success, AuthLoginResponse = response };
             }
             catch (Exception ex)

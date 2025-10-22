@@ -6,6 +6,6 @@ namespace Capstone.Repositories.Profiles
     public interface ITeacherProfileRepository
     {
         Task<TeacherProfileModel> getTeacherProfile(int accountId);
-        Task<TeacherProfileResponseDTO> updateTeacherProfile(TeacherProfileModel teacherProfile);
+        Task<TeacherProfileResponseDTO> updateTeacherProfile(TeacherProfileModel teacherProfile, int accountId, string IpAddress);
     }
 }

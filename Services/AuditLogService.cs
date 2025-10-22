@@ -1,9 +1,13 @@
 ﻿using Capstone.Database;
 using Capstone.Model;
 using Capstone.Repositories;
+using Capstone.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Newtonsoft.Json;
+using StackExchange.Redis;
 
 namespace Capstone.Services
 {
@@ -11,11 +15,14 @@ namespace Capstone.Services
     {
         private readonly ILogger<AuditLogService> _logger;
         private readonly MongoDbContext _mongoDbContext;
-
-        public AuditLogService(ILogger<AuditLogService> logger, MongoDbContext mongoDbContext)
+        private readonly Redis _redis;
+        private readonly IHubContext<AuditlogHub> _audiHub;
+        public AuditLogService(ILogger<AuditLogService> logger, MongoDbContext mongoDbContext, Redis redis, IHubContext<AuditlogHub> audiHub)
         {
             _logger = logger;
             _mongoDbContext = mongoDbContext;
+            _redis = redis;
+            _audiHub = audiHub;
         }
         public async Task<bool> CheckConnection()
         {
@@ -66,18 +73,26 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<List<AuditLogModel>> GetAllLog(int page, int pageSize)
+        public async Task<List<AuditLogModel>> GetAllLog(int page, int pageSize, int adminID)
         {
             try
             {
-
-                var logs = await _mongoDbContext.AuditLog
+                //string cacheKey = "auditlog:recent";
+                //int maxCacheSize = 50;
+                //if (page == 1 && pageSize <= maxCacheSize)
+                //{
+                //    var cachedLogs = await _redis.ZRevRangeAsync(cacheKey, 0, pageSize - 1);
+                //    if (cachedLogs != null && cachedLogs.Count > 0)
+                //    {
+                //        return cachedLogs.Select(json => JsonConvert.DeserializeObject<AuditLogModel>(json)).ToList();
+                //    }
+                //}
+                    var logs = await _mongoDbContext.AuditLog
                     .Find(_ => true)                   
                     .SortByDescending(l => l.Timestamp) 
                     .Skip((page - 1) * pageSize) 
                     .Limit(pageSize)
-                    .ToListAsync();                     
-
+                    .ToListAsync();
                 return logs;
             }
             catch (Exception ex) { 
@@ -90,12 +105,18 @@ namespace Capstone.Services
             try
             {
                 await _mongoDbContext.AuditLog.InsertOneAsync(auditLog);
-                Console.WriteLine("Service true");
+                //string cacheKey = "auditlog:recent";
+                //int maxSize = 50;
+                //long timestampScore = new DateTimeOffset(auditLog.Timestamp).ToUnixTimeMilliseconds();
+                //string logJson = JsonConvert.SerializeObject(auditLog);
+                //await _redis.ZAddAsync(cacheKey,logJson,timestampScore, TimeSpan.FromHours(3));
+                //await _redis.ZRemRangeByRankAsync(cacheKey, 0, -maxSize - 1);
+                await _audiHub.Clients.All.SendAsync("PushNewLog", auditLog);
                 return true;
             }
             catch(Exception ex)
             {
-                Console.WriteLine("Service false");
+          
                 return false;
             }
         }
