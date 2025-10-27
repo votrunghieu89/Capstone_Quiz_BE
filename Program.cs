@@ -130,6 +130,7 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
 builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
 builder.Services.AddSingleton<RabbitMQProducer>();
 builder.Services.AddScoped<MongoDbContext>();
+
 builder.Services.AddHostedService<AuditLogConsumer>();
 
 

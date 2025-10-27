@@ -73,29 +73,26 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<List<AuditLogModel>> GetAllLog(int page, int pageSize, int adminID)
+        public async Task<List<AuditLogModel>> GetAllLog(int page, int pageSize)
         {
             try
             {
-                //string cacheKey = "auditlog:recent";
-                //int maxCacheSize = 50;
-                //if (page == 1 && pageSize <= maxCacheSize)
-                //{
-                //    var cachedLogs = await _redis.ZRevRangeAsync(cacheKey, 0, pageSize - 1);
-                //    if (cachedLogs != null && cachedLogs.Count > 0)
-                //    {
-                //        return cachedLogs.Select(json => JsonConvert.DeserializeObject<AuditLogModel>(json)).ToList();
-                //    }
-                //}
+                Console.WriteLine("sStep 1");
                     var logs = await _mongoDbContext.AuditLog
                     .Find(_ => true)                   
                     .SortByDescending(l => l.Timestamp) 
                     .Skip((page - 1) * pageSize) 
                     .Limit(pageSize)
                     .ToListAsync();
-                return logs;
+                if (logs != null) {
+                    return logs; }
+                else
+                {
+                    return new List<AuditLogModel>();
+                }
+                
             }
-            catch (Exception ex) { 
+            catch (Exception ex) {
                 return new List<AuditLogModel> ();
             }
         }
@@ -105,12 +102,6 @@ namespace Capstone.Services
             try
             {
                 await _mongoDbContext.AuditLog.InsertOneAsync(auditLog);
-                //string cacheKey = "auditlog:recent";
-                //int maxSize = 50;
-                //long timestampScore = new DateTimeOffset(auditLog.Timestamp).ToUnixTimeMilliseconds();
-                //string logJson = JsonConvert.SerializeObject(auditLog);
-                //await _redis.ZAddAsync(cacheKey,logJson,timestampScore, TimeSpan.FromHours(3));
-                //await _redis.ZRemRangeByRankAsync(cacheKey, 0, -maxSize - 1);
                 await _audiHub.Clients.All.SendAsync("PushNewLog", auditLog);
                 return true;
             }

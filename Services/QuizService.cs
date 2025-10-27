@@ -609,7 +609,7 @@ namespace Capstone.Services
                 {
                     await connection.OpenAsync();
 
-                    // Tính số dòng bỏ qua
+                    
                     int skip = (page - 1) * pageSize;
 
                     string query = @"

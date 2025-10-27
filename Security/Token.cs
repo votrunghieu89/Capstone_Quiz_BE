@@ -29,7 +29,7 @@ namespace Capstone.Security
                  issuer: _configuration["Jwt:Issuer"],
                  audience: _configuration["Jwt:Audience"],
                  claims: claims,
-                 expires: DateTime.Now.AddHours(6),
+                 expires: DateTime.Now.AddHours(2),
                  signingCredentials: credentials
              );
 

@@ -68,27 +68,16 @@ namespace Capstone.Controllers
                     return BadRequest(new { message = "PageSize cannot exceed 100" });
                 }
 
-                var logs = await _auditLogRepository.GetAllLog(page, pageSize);
-
-                var response = logs.Select(log => new ViewingAuditLogDTO
+                List<AuditLogModel> logs = await _auditLogRepository.GetAllLog(page, pageSize);
+                if (logs != null)
                 {
-                    AccountId = log.AccountId,
-                    Action = log.Action,
-                    Description = log.Description,
-                    Timestamp = log.Timestamp,
-                    IpAddress = log.IpAddress
-                }).ToList();
 
-                _logger.LogInformation("Retrieved audit logs: Page={Page}, PageSize={PageSize}, Count={Count}",
-                    page, pageSize, response.Count);
-
-                return Ok(new
+                    return Ok(logs);
+                }
+                else
                 {
-                    page,
-                    pageSize,
-                    totalRecords = response.Count,
-                    data = response
-                });
+                    return BadRequest(new { message = "Not Found Logs" });
+                }
             }
             catch (Exception ex)
             {
