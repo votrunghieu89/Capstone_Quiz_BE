@@ -32,3 +32,4 @@ Step 1; Cài Mongo Compass
 Step 2: mở powershell docker pull mongo
 Step 3: docker run -d --name capstone -p 27088:27017 -v mongo_data:/data/db -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=123123 mongo
 Step 4: mở Mogon compass -> new connection -> mongodb://admin:123123@localhost:27088/?authSource=admin
+Step 5: tạo database Capsone_Docker -> tạo collection (AuditLog)
