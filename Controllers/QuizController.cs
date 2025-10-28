@@ -52,7 +52,7 @@ namespace Capstone.Controllers
             }
         }
 
-        [HttpGet("getDetailOfAQuiz/{quizId}")]
+        [HttpGet("getDetailOfATeacherQuiz/{quizId}")]
         public async Task<IActionResult> getDetailOfAQuiz(int quizId)
         {
             ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuiz(quizId);
@@ -79,7 +79,23 @@ namespace Capstone.Controllers
             };
             return Ok(quiz);
         }
-
+        [HttpGet("getDetailOfAHomePageQuiz/{quizId}")]
+        public async Task<IActionResult> getDetailofAHPQuiz(int quizId)
+        {
+            try
+            {
+                QuizDetailHPDTO quiz = await _quizRepository.getDetailOfQuizHP(quizId);
+                if (quiz == null)
+                {
+                    return NotFound(new {message = "Could not find any information"});
+                }
+                return Ok(quiz);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
         [HttpGet("GetAllQuizzes")]
         public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
         {

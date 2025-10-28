@@ -1,4 +1,5 @@
 ﻿ using Capstone.Database;
+using Capstone.DTOs.Group;
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
 using Capstone.RabbitMQ;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using System.Net;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Capstone.Services
 {
@@ -577,7 +579,40 @@ namespace Capstone.Services
                 return null;
             }
         }
-
+        public async Task<QuizDetailHPDTO> getDetailOfQuizHP(int quizId)
+        {
+            try
+            {
+                var totalQuestions = await _context.questions
+                    .Where(q => q.QuizId == quizId && q.IsDeleted == false)
+                    .CountAsync();
+                var quizDetail = await (from q in _context.quizzes
+                                        join tp in _context.authModels on q.TeacherId equals tp.AccountId
+                                        where q.QuizId == quizId 
+                                        select new QuizDetailHPDTO
+                                        {
+                                            QuizId = quizId,
+                                            AvatarURL = q.AvatarURL,
+                                            Title = q.Title,
+                                            Description = q.Description,
+                                            TotalParticipants = q.TotalParticipants,
+                                            TotalQuestions = totalQuestions,
+                                            CreateBy = tp.Email,
+                                            CreatedDate = q.CreateAt
+                                        }).FirstOrDefaultAsync();
+                if(quizDetail == null)
+                {
+                    return null;
+                }
+                _logger.LogInformation("Get Detail of quiz in folder teacher successfully");
+                return quizDetail;
+             
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
         public async Task<string> getOrlAvatarURL(int quizId)
         {
             try
