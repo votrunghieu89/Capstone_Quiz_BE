@@ -17,12 +17,12 @@ namespace Capstone.Controllers
     public class AuthController : ControllerBase
     {
         public readonly IAuthRepository _authRepository;
-        public readonly Redis _redis;
+        public readonly IRedis _redis;
         public readonly ILogger<AuthController> _logger;
-        public readonly EmailService _emailService;
-        private readonly GoogleService _googleService;
+        public readonly IEmailService _emailService;
+        private readonly IGoogleService _googleService;
 
-        public AuthController(IAuthRepository authRepository, Redis redis, ILogger<AuthController> logger, EmailService service, GoogleService googleService)
+        public AuthController(IAuthRepository authRepository, IRedis redis, ILogger<AuthController> logger, IEmailService service, IGoogleService googleService)
         {
             _authRepository = authRepository;
             _redis = redis;

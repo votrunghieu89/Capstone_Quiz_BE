@@ -1,13 +1,9 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
-using Capstone.Model;
 using Capstone.Repositories.Quizzes;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using StackExchange.Redis;
-using System.Net;
 using System.Text.Json;
 
 namespace Capstone.Controllers
@@ -18,10 +14,10 @@ namespace Capstone.Controllers
     {
         private readonly ILogger<QuizController> _logger;
         private readonly IQuizRepository _quizRepository;
-        private readonly Redis _redis;
+        private readonly IRedis _redis;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _webHostEnvironment;
-        public QuizController(ILogger<QuizController> logger, IQuizRepository quizRepository, Redis redis, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
+        public QuizController(ILogger<QuizController> logger, IQuizRepository quizRepository, IRedis redis, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
         {
             _logger = logger;
             _quizRepository = quizRepository;

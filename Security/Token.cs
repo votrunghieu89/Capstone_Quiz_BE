@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Capstone.Security
 {
-    public class Token
+    public class Token : IToken
     {
         public readonly IConfiguration _configuration;
         public Token(IConfiguration configuration)

@@ -21,12 +21,12 @@ namespace Capstone.Services
         private readonly ILogger<OnlineQuizService> _logger;
         private readonly AppDbContext _context;
         private readonly Redis _redis;
-        private readonly RabbitMQProducer _rabbitMQ;
+        private readonly IRabbitMQProducer _rabbitMQ;
         private readonly string connectionString;
         private readonly IHubContext<QuizHub> _quizHub;
 
         public OnlineQuizService(AppDbContext context, Redis redis,
-            IConfiguration configuration, ILogger<OnlineQuizService> logger, RabbitMQProducer rabbitMQ,
+            IConfiguration configuration, ILogger<OnlineQuizService> logger, IRabbitMQProducer rabbitMQ,
             IHubContext<QuizHub> quizHub)
         {
             _context = context;

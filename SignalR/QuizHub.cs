@@ -1,4 +1,5 @@
-﻿using Capstone.DTOs.Quizzes;
+﻿using Capstone.Database;
+using Capstone.DTOs.Quizzes;
 using Capstone.DTOs.Quizzes.QuizzOnline;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
@@ -12,10 +13,10 @@ namespace Capstone.SignalR
         // String là mã Pin
         private static ConcurrentDictionary<string, ConcurrentDictionary<string, string>> Rooms = new();
         private static ConcurrentDictionary<string, (string RoomCode, string StudentId)> StudentConnections = new();
-        private readonly Redis _redis;
+        private readonly IRedis _redis;
         private readonly ILogger<QuizHub> _logger;
 
-        public QuizHub(Redis redis, ILogger<QuizHub> logger)
+        public QuizHub(IRedis redis, ILogger<QuizHub> logger)
         {
             _redis = redis;
             _logger = logger;

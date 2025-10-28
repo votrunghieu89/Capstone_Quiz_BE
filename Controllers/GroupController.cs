@@ -1,4 +1,5 @@
-﻿using Capstone.DTOs.Group;
+﻿using Capstone.Database;
+using Capstone.DTOs.Group;
 using Capstone.Model;
 using Capstone.Repositories.Groups;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,10 @@ namespace Capstone.Controllers
     {
         private readonly ILogger<GroupController> _logger;
         private readonly IGroupRepository _groupRepository;
-        private readonly Redis _redis;
+        private readonly IRedis _redis;
         private readonly IConfiguration _configuration;
 
-        public GroupController(ILogger<GroupController> logger, IGroupRepository groupRepository, Redis redis, IConfiguration configuration)
+        public GroupController(ILogger<GroupController> logger, IGroupRepository groupRepository, IRedis redis, IConfiguration configuration)
         {
             _logger = logger;
             _groupRepository = groupRepository;

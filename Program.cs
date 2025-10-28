@@ -107,11 +107,13 @@ builder.Services.AddCors(options =>
 });
 
 // ✅ Đăng ký đầy đủ services (kết hợp các nhánh)
-builder.Services.AddScoped<Token>();
-builder.Services.AddScoped<EmailService>();
-builder.Services.AddScoped<GoogleService>();
+builder.Services.AddScoped<IEmailService,EmailService>();
+builder.Services.AddScoped<IGoogleService,GoogleService>();
+builder.Services.AddScoped<Capstone.Database.IRedis, Redis>();
+builder.Services.AddScoped<IToken, Token>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
 builder.Services.AddScoped<IStudentProfileRepository, StudentProfileService>();
+builder.Services.AddScoped<ITopicRepository, TopicService>();
 builder.Services.AddScoped<ITeacherProfileRepository, TeacherProfileService>();
 builder.Services.AddScoped<IQuizRepository, QuizService>();
 builder.Services.AddScoped<IGroupRepository, GroupService>();
@@ -126,11 +128,13 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
+
 builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
 builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
-builder.Services.AddSingleton<RabbitMQProducer>();
 builder.Services.AddScoped<MongoDbContext>();
 
+builder.Services.AddSingleton<RabbitMQProducer>();
+builder.Services.AddScoped<IRabbitMQProducer, RabbitMQProducer>();
 builder.Services.AddHostedService<AuditLogConsumer>();
 
 

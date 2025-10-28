@@ -19,8 +19,8 @@ namespace Capstone.Services
         private readonly ILogger<QuizService> _logger;
         private readonly Redis _redis;
         private readonly string _connectionString;
-        private readonly RabbitMQProducer _rabbitMQ;
-        public QuizService(AppDbContext context, ILogger<QuizService> logger, Redis redis, IConfiguration configuration, RabbitMQProducer rabbitMQ)
+        private readonly IRabbitMQProducer _rabbitMQ;
+        public QuizService(AppDbContext context, ILogger<QuizService> logger, Redis redis, IConfiguration configuration, IRabbitMQProducer rabbitMQ)
         {
             _context = context;
             _logger = logger;
@@ -609,7 +609,7 @@ namespace Capstone.Services
                 {
                     await connection.OpenAsync();
 
-                    
+                    // Tính số dòng bỏ qua
                     int skip = (page - 1) * pageSize;
 
                     string query = @"

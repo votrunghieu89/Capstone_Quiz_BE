@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Capstone.RabbitMQ
 {
-    public class RabbitMQProducer
+    public class RabbitMQProducer : IRabbitMQProducer
     {
         private readonly IConnection _connection;
         private readonly IChannel _channel;

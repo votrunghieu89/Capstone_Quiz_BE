@@ -21,9 +21,9 @@ namespace Capstone.Services
         private readonly AppDbContext _appDbContext;
         private readonly IHubContext<NotificationHub> _hubContext;
         private readonly INotificationRepository _notificationRepository;
-        private readonly RabbitMQProducer _rabbitMQ;
+        private readonly IRabbitMQProducer _rabbitMQ;
         public GroupService(ILogger<GroupService> logger, Redis redis, AppDbContext appDbContext,
-            IHubContext<NotificationHub> hubContext, INotificationRepository notificationRepository, RabbitMQProducer rabbitMQ)
+            IHubContext<NotificationHub> hubContext, INotificationRepository notificationRepository, IRabbitMQProducer rabbitMQ)
         {
             _logger = logger;
             _redis = redis;

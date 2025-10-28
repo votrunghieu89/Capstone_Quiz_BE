@@ -17,10 +17,10 @@ namespace Capstone.Services
         private readonly Redis _redis;
         private readonly ILogger<OfflineQuizService> _logger;
         private readonly IQuizRepository _quizRepository; // Inject IQuizRepository để sử dụng cache đáp án
-        private readonly RabbitMQProducer _rabbitMQ; // Đã thêm RabbitMQProducer
+        private readonly IRabbitMQProducer _rabbitMQ; // Đã thêm RabbitMQProducer
 
         // Cập nhật Constructor để inject IQuizRepository và RabbitMQProducer
-        public OfflineQuizService(AppDbContext context, Redis redis, ILogger<OfflineQuizService> logger, IQuizRepository quizRepository, RabbitMQProducer rabbitMQ)
+        public OfflineQuizService(AppDbContext context, Redis redis, ILogger<OfflineQuizService> logger, IQuizRepository quizRepository, IRabbitMQProducer rabbitMQ)
         {
             _context = context;
             _redis = redis;

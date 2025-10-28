@@ -10,8 +10,8 @@ namespace Capstone.Services
     {
         private readonly ILogger<StudentReportService> _logger;
         private readonly AppDbContext _context;
-        private readonly RabbitMQProducer _rabbitMQ;
-        public StudentReportService(ILogger<StudentReportService> logger, AppDbContext context, RabbitMQProducer rabbitMQ)
+        private readonly IRabbitMQProducer _rabbitMQ;
+        public StudentReportService(ILogger<StudentReportService> logger, AppDbContext context, IRabbitMQProducer rabbitMQ)
         {
             _logger = logger;
             _context = context;

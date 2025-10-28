@@ -1,4 +1,5 @@
-﻿using Capstone.DTOs;
+﻿using Capstone.Database;
+using Capstone.DTOs;
 using Capstone.DTOs.Admin;
 using Capstone.Repositories.Admin;
 using Microsoft.AspNetCore.Http;
@@ -14,9 +15,9 @@ namespace Capstone.Controllers
     {
         private readonly IAdminRepository _adminRepository;
         private readonly ILogger<AdminController> _logger;
-        private readonly Redis _redis;
+        private readonly IRedis _redis;
         
-        public AdminController(IAdminRepository adminRepository, ILogger<AdminController> logger, Redis redis)
+        public AdminController(IAdminRepository adminRepository, ILogger<AdminController> logger, IRedis redis)
         {
             _adminRepository = adminRepository;
             _logger = logger;

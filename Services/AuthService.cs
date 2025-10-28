@@ -8,7 +8,6 @@ using Capstone.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
 using Newtonsoft.Json;
-using StackExchange.Redis;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Capstone.Services
@@ -18,10 +17,10 @@ namespace Capstone.Services
         public readonly AppDbContext _context;
         public readonly string _connection;
         public readonly ILogger<AuthService> _logger;
-        public readonly Token _token;
-        private readonly Redis _redis;
-        private readonly RabbitMQProducer _rabbitMQ;
-        public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger, Token token, Redis redis, RabbitMQProducer rabbitMQ)
+        public readonly IToken _token;
+        private readonly IRedis _redis;
+        private readonly IRabbitMQProducer _rabbitMQ;
+        public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger, IToken token, IRedis redis, IRabbitMQProducer rabbitMQ)
         {
             _context = context;
             _connection = configuration.GetConnectionString("DefaultConnection") ?? "";

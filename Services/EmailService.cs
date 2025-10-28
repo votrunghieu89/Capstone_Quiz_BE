@@ -1,9 +1,10 @@
-﻿using System.Net;
+﻿using Capstone.Repositories;
+using System.Net;
 using System.Net.Mail;
 
 namespace Capstone.Services
 {
-    public class EmailService
+    public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
 

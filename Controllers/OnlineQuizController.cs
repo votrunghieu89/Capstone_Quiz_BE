@@ -1,4 +1,5 @@
-﻿using Capstone.DTOs.Quizzes;
+﻿using Capstone.Database;
+using Capstone.DTOs.Quizzes;
 using Capstone.DTOs.Quizzes.QuizzOnline;
 using Capstone.Repositories.Quizzes;
 using Capstone.SignalR;
@@ -14,10 +15,10 @@ namespace Capstone.Controllers
     {
         private readonly IOnlineQuizRepository _onlineQuizRepository;
         private readonly ILogger<OnlineQuizController> _logger;
-        private readonly Redis _redis;
+        private readonly IRedis _redis;
         private readonly IQuizRepository _quizRepository;
         private readonly IHubContext<QuizHub> _quizHub;
-        public OnlineQuizController(IOnlineQuizRepository onlineQuizRepository, ILogger<OnlineQuizController> logger, Redis redis, IQuizRepository quizRepository, IHubContext<QuizHub> quizHub)
+        public OnlineQuizController(IOnlineQuizRepository onlineQuizRepository, ILogger<OnlineQuizController> logger, IRedis redis, IQuizRepository quizRepository, IHubContext<QuizHub> quizHub)
         {
             _onlineQuizRepository = onlineQuizRepository;
             _logger = logger;
