@@ -149,14 +149,21 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 // Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
+var profilePath = Path.Combine(builder.Environment.ContentRootPath, "ProfileImage");
+Directory.CreateDirectory(profilePath);
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\ProfileImage"),
+    FileProvider = new PhysicalFileProvider(profilePath),
     RequestPath = "/ProfileImage"
 });
+
+var quizPath = Path.Combine(builder.Environment.ContentRootPath, "QuizImage");
+Directory.CreateDirectory(quizPath);
+
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(@"E:\Capstone\Capstone\QuizImage"),
+    FileProvider = new PhysicalFileProvider(quizPath),
     RequestPath = "/QuizImage"
 });
 
