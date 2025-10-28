@@ -619,7 +619,8 @@ namespace Capstone.Services
                             q.AvatarURL,
                             a.Email AS CreatedBy,
                             tpc.TopicName,
-                            ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions
+                            ISNULL(COUNT(ques.QuestionId), 0) AS TotalQuestions,
+                            q.TotalParticipants
                         FROM Quizzes q
                         LEFT JOIN TeacherProfile t
                             ON q.TeacherId = t.TeacherId
@@ -630,7 +631,7 @@ namespace Capstone.Services
                         JOIN Topics tpc
                             ON q.TopicId = tpc.TopicId
                         WHERE q.IsPrivate = 0
-                        GROUP BY q.QuizId, q.Title, q.AvatarURL, a.Email, tpc.TopicName, q.CreateAt
+                        GROUP BY q.QuizId, q.Title, q.AvatarURL, a.Email, tpc.TopicName, q.TotalParticipants, q.CreateAt
                         ORDER BY q.CreateAt DESC, q.QuizId
                         OFFSET @Skip ROWS
                         FETCH NEXT @Take ROWS ONLY;";
@@ -652,7 +653,8 @@ namespace Capstone.Services
                                                 ? null
                                                 : reader.GetString(reader.GetOrdinal("CreatedBy")),
                                     TopicName = reader.GetString(reader.GetOrdinal("TopicName")),
-                                    TotalQuestions = reader.GetInt32(reader.GetOrdinal("TotalQuestions"))
+                                    TotalQuestions = reader.GetInt32(reader.GetOrdinal("TotalQuestions")),
+                                    TotalParticipants = reader.GetInt32(reader.GetOrdinal("TotalParticipants"))
                                 };
 
                                 result.Add(quiz);
