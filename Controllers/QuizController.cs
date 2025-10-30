@@ -162,7 +162,7 @@ namespace Capstone.Controllers
 
             return Ok(new { imageUrl = avatarPath.Replace("\\", "/") });
         }
-        [Authorize(Roles = "Teacher")]
+        //[Authorize(Roles = "Teacher")]
         [HttpPost("createQuiz")]
         public async Task<IActionResult> CreateQuiz([FromBody] QuizCreateDTo quiz)
         {
@@ -186,6 +186,7 @@ namespace Capstone.Controllers
                         QuestionType = q.QuestionType,
                         QuestionContent = q.QuestionContent,
                         Time = q.Time,
+                        Score = q.Score,
                         Options = q.Options?.Select(o => new OptionDTO
                         {
                             OptionContent = o.OptionContent,
@@ -313,6 +314,7 @@ namespace Capstone.Controllers
                         QuestionType = q.QuestionType,
                         QuestionContent = q.QuestionContent,
                         Time = q.Time,
+                        Score = q.Score,
                         Options = q.Options?.Select(o => new OptionUpdateDTO
                         {
                             OptionId = o.OptionId,

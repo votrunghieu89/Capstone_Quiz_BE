@@ -6,7 +6,7 @@
         public string QuestionType { get; set; } = string.Empty;
         public string QuestionContent { get; set; } = string.Empty;
         public int Time { get; set; }
-
+        public int Score { get; set; }
         public List<getQuizOptionWithoutAnswerDTO> Options { get; set; } = new();
     }
     public class getQuizOptionWithoutAnswerDTO

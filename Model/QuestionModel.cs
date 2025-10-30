@@ -34,7 +34,9 @@ namespace Capstone.Model
         public DateTime? UpdateAt { get; set; }
         [Column("Time")]
         public int Time { get; set; }
-
+        [Column("Score")]
+        [Required]
+        public int Score { get; set; }
         [Column("IsDeleted")]
         public bool IsDeleted { get; set; } = false;
 

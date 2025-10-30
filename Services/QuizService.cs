@@ -64,6 +64,7 @@ namespace Capstone.Services
                             QuestionType = question.QuestionType,
                             QuestionContent = question.QuestionContent,
                             Time = question.Time,
+                            Score = question.Score,
                             IsDeleted = false,
                             CreateAt = DateTime.Now
                         };
@@ -242,6 +243,7 @@ namespace Capstone.Services
                         question.QuestionContent = qDto.QuestionContent;
                         question.QuestionType = qDto.QuestionType;
                         question.Time = qDto.Time;
+                        question.Score = qDto.Score;
                         question.IsDeleted = false; // bật lại nếu trước đó bị xóa
                         question.UpdateAt = DateTime.Now;
                     }
@@ -331,6 +333,7 @@ namespace Capstone.Services
                     QuestionContent = q.QuestionContent,
                     QuestionType = q.QuestionType,
                     Time = q.Time,
+                    Score = q.Score,
                     IsDeleted = q.IsDeleted,
                     Options = q.Options.Select(o => new OptionUpdateDTO
                     {
@@ -365,6 +368,7 @@ namespace Capstone.Services
                     QuestionType = q.QuestionType,
                     QuestionContent = q.QuestionContent,
                     Time = q.Time,
+                    Score = q.Score,
                     Options = q.Options.Select(o => new GetOptionDTO
                     {
                         OptionId = o.OptionId,
@@ -380,6 +384,7 @@ namespace Capstone.Services
                     QuestionType = q.QuestionType,
                     QuestionContent = q.QuestionContent,
                     Time = q.Time,
+                    Score = q.Score,
                     Options = q.Options.Select(o => new getQuizOptionWithoutAnswerDTO
                     {
                         OptionId = o.OptionId,
@@ -389,14 +394,13 @@ namespace Capstone.Services
 
                 
                 await _redis.SetStringAsync(
-                    $"quiz_questions_{quizId}_withoutAnswer",
-                    JsonSerializer.Serialize(cacheWithoutAnswer),
-                    TimeSpan.FromHours(2)
+                    $"quiz_questions_{quizId}_withoutAnswer",JsonSerializer.Serialize(cacheWithoutAnswer),TimeSpan.FromHours(2)
                 );
                 await _redis.SetStringAsync($"quiz_questions_{quizId}_Answer", JsonSerializer.Serialize(result), TimeSpan.FromHours(2));
             
                 foreach (var q in result)
                 {
+                    await _redis.SetStringAsync($"quiz_questions_{quizId}:question_{q.QuestionId}_Score", q.Score.ToString(), TimeSpan.FromHours(2));
                     RightAnswerDTO? optionModel = null;
                     foreach (var o in q.Options)
                     {
@@ -548,6 +552,7 @@ namespace Capstone.Services
                         QuestionType = q.QuestionType,
                         QuestionContent = q.QuestionContent,
                         Time = q.Time,
+                        Score = q.Score,
                         Options = q.Options
                             .Where(o => o.IsDeleted == false) // chỉ lấy option chưa xóa
                             .Select(o => new OptionDetailDTO

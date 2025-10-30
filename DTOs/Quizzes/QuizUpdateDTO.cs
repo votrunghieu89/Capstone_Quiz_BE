@@ -20,6 +20,7 @@
         public string QuestionType { get; set; } = string.Empty;
         public string QuestionContent { get; set; } = string.Empty;
         public int Time { get; set; }
+        public int Score { get; set; }
         public bool IsDeleted { get; set; } = false;
         public DateTime UpdateAt { get; set; } = DateTime.Now;
         public List<OptionUpdateDTO> Options { get; set; } = new();

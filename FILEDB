@@ -115,6 +115,7 @@ CREATE TABLE Questions (
     QuestionType NVARCHAR(10) NOT NULL CHECK (QuestionType IN ('MCQ','TF')),
     QuestionContent NVARCHAR(MAX) NOT NULL,
     Time INT NULL,
+    Score INT,
     IsDeleted BIT NOT NULL DEFAULT 0,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdateAt DATETIME2 NULL,

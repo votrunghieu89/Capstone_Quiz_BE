@@ -108,14 +108,14 @@ namespace Capstone.Controllers
 
                 string studentHashKey = $"quiz:room:{onlineAnswerDTO.roomCode}:student:{onlineAnswerDTO.studentId}:detail";
                 string studentJsonKey = $"quiz:room:{onlineAnswerDTO.roomCode}:student:{onlineAnswerDTO.studentId}";
-
+                var Score = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}_Score");
                 if (isCorrect)
                 {
                     // Tăng điểm + câu đúng + leaderboard
                     await Task.WhenAll(
-                        _redis.HashIncrementAsync(studentHashKey, "Score", 10),
+                        _redis.HashIncrementAsync(studentHashKey, "Score", Convert.ToInt32(Score)),
                         _redis.HashIncrementAsync(studentHashKey, "CorrectCount", 1),
-                        _redis.ZIncrByAsync($"quiz:room:{onlineAnswerDTO.roomCode}:leaderboard", onlineAnswerDTO.studentId, 10)
+                        _redis.ZIncrByAsync($"quiz:room:{onlineAnswerDTO.roomCode}:leaderboard", onlineAnswerDTO.studentId, Convert.ToInt32(Score))
                     );
                 }
                 else
@@ -141,7 +141,6 @@ namespace Capstone.Controllers
                         await _redis.SetStringAsync(studentJsonKey, JsonConvert.SerializeObject(studentData), TimeSpan.FromHours(3));
                     }
                 }
-                // Gọi hàm update trả về leaderboard ở đây
                 string roomJson = await _redis.GetStringAsync($"quiz:room:{onlineAnswerDTO.roomCode}");
                 if (!string.IsNullOrEmpty(roomJson))
                 {

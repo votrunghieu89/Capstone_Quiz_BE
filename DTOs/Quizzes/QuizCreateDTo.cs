@@ -19,7 +19,7 @@
         public string QuestionType { get; set; } = string.Empty;
         public string QuestionContent { get; set; } = string.Empty;
         public int Time { get; set; }
-       
+        public int Score { get; set; }
         public List<OptionDTO> Options { get; set; } = new();
     }
     public class OptionDTO

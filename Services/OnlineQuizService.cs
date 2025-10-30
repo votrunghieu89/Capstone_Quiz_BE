@@ -188,6 +188,10 @@ namespace Capstone.Services
                 });
                 rank++;
             }
+            foreach (var ld in leaderboard)
+            {
+               Console.WriteLine(ld.StudentName + "Rank: "+ld.Rank+ld.Score);
+            }
             await _quizHub.Clients.Client(roomData.TeacherConnectionId)
                             .SendAsync("ReceiveLeaderboard", leaderboard);
             return true;

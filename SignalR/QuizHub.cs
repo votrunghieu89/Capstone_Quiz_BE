@@ -230,7 +230,7 @@ namespace Capstone.SignalR
             }
         }
 
-        public async Task StudentComplete(string roomCode, string studentId)
+        public async Task StudentComplete(string roomCode, string studentId) // result
         {
             // 1. Lấy thông tin phòng
             var jsonRoomRedis = await _redis.GetStringAsync($"quiz:room:{roomCode}");

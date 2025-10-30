@@ -14,6 +14,8 @@ using Capstone.Services;
 using Capstone.Settings;
 using Capstone.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -21,11 +23,17 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+//builder.Services.AddRateLimiter(options =>
+//{
+//    // bạn có thể cấu hình sẵn policy nếu muốn
+//    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+//});
+builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -148,7 +156,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Static files (phục vụ ảnh, css, js, …) nên đặt TRƯỚC routing
+// 🖼 Static files nên đặt sớm — trước routing
 var profilePath = Path.Combine(builder.Environment.ContentRootPath, "ProfileImage");
 Directory.CreateDirectory(profilePath);
 
@@ -167,12 +175,34 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/QuizImage"
 });
 
+// 🧭 Routing phải đến trước các middleware phụ thuộc vào endpoint (như RateLimiter)
 app.UseRouting();
 
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+//// 🚦 Rate Limiter nên đặt SAU UseRouting và TRƯỚC MapControllers / MapHub
+//app.UseRateLimiter(new RateLimiterOptions
+//{
+//    OnRejected = async (context, token) =>
+//    {
+//        Console.WriteLine($"Rate limit triggered for {context.HttpContext.Connection.RemoteIpAddress}");
+//        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+//        await context.HttpContext.Response.WriteAsync("Rate limit: quá nhiều yêu cầu!", token);
+//    },
+//    GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+//        RateLimitPartition.GetFixedWindowLimiter(
+//            partitionKey: context.User?.Identity?.Name
+//                ?? context.Connection.RemoteIpAddress?.ToString()
+//                ?? "anonymous",
+//            factory: _ => new FixedWindowRateLimiterOptions
+//            {
+//                PermitLimit = 10,
+//                Window = TimeSpan.FromMinutes(1)
+//            }))
+//});
 
 app.MapControllers();
 app.MapHub<QuizHub>("/QuizHub");

@@ -28,6 +28,7 @@ namespace Capstone.Services
                     from qf in _context.quizzFavourites
                     join q in _context.quizzes on qf.QuizId equals q.QuizId
                     join pc in _context.authModels on qf.AccountId equals pc.AccountId
+                    join tp in _context.topics on q.TopicId equals tp.TopicId
                     where pc.AccountId == accountId
                     select new ViewFavouriteDTO
                     {
@@ -36,7 +37,9 @@ namespace Capstone.Services
                         AvatarURL = q.AvatarURL,
                         CreatedBy = pc.Email,
                         TotalQuestions = _context.questions
-                                                  .Count(ques => ques.QuizId == q.QuizId && ques.IsDeleted == false)
+                                                  .Count(ques => ques.QuizId == q.QuizId && ques.IsDeleted == false),
+                        TopicName = tp.TopicName,
+                        TotalParticipants = q.TotalParticipants
                     }
                 ).ToListAsync();
 
