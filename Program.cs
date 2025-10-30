@@ -4,6 +4,7 @@ using Capstone.RabbitMQ;
 using Capstone.Repositories;
 using Capstone.Repositories.Admin;
 using Capstone.Repositories.Favourite;
+using Capstone.Repositories.Filter_Search;
 using Capstone.Repositories.Folder;
 using Capstone.Repositories.Groups;
 using Capstone.Repositories.Histories;
@@ -128,6 +129,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
+builder.Services.AddScoped<ISearchRepository ,  SearchService>();
 
 builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
 builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
