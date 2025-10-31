@@ -132,6 +132,7 @@ builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
 builder.Services.AddScoped<INotificationRepository, NotificationService>();
 builder.Services.AddScoped<IOfflineQuizRepository, OfflineQuizService>();
 builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();
+builder.Services.AddScoped<IGemeniService,GeminiService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();

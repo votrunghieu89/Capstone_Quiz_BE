@@ -4,6 +4,7 @@ using Capstone.Model;
 using Capstone.Repositories.Folder;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using static Capstone.ENUMs.TeacherFolderEnum;
 
 namespace Capstone.Services
 {
@@ -105,14 +106,14 @@ namespace Capstone.Services
                             .FirstOrDefaultAsync();
                 string teacherEmail = teacher?.Email ?? "Unknown";
 
-                var subFolders = await _context.quizzFolders
-                    .Where(f => f.ParentFolderId == folder.FolderId)
-                    .Select(sf => new SubFolderDTO
-                    {
-                        Id = sf.FolderId,
-                        Name = sf.FolderName
-                    })
-                    .ToListAsync();
+                //var subFolders = await _context.quizzFolders
+                //    .Where(f => f.ParentFolderId == folder.FolderId)
+                //    .Select(sf => new SubFolderDTO
+                //    {
+                //        Id = sf.FolderId,
+                //        Name = sf.FolderName
+                //    })
+                //    .ToListAsync();
 
                 var quizzes = await _context.quizzes
                     .Where(q => q.FolderId == folder.FolderId && q.TeacherId == teacherId)
@@ -133,7 +134,6 @@ namespace Capstone.Services
                     FolderID = folder.FolderId,
                     FolderName = folder.FolderName,
                     ParentFolderID = folder.ParentFolderId,
-                    SubFolder = subFolders,
                     QuizzFolder = quizzes
                 };
             }
@@ -144,6 +144,58 @@ namespace Capstone.Services
             }
         }
 
+        public async Task<bool> RemoveQuizToOtherFolder(int quizId, int folderId)
+        {
+            try
+            {
+                int isChange = await _context.quizzes.Where(qf => qf.QuizId == quizId).ExecuteUpdateAsync
+                    (e => e.SetProperty(qf => qf.FolderId, folderId));
+                if (isChange > 0) { 
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex) {
+                return false;
+            }
+        }
 
+        public async Task<bool> UpdateFolder(int folderId, string folderName)
+        {
+            try
+            {
+                int UpdateCoute = await _context.quizzFolders.Where(qf => qf.FolderId == folderId).ExecuteUpdateAsync
+                    (e => e.SetProperty(qf => qf.FolderName, folderName)
+                           .SetProperty(qf => qf.UpdateAt, DateTime.Now));
+                if (UpdateCoute > 0) { 
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+        public async Task<CheckQuizInFolder> DeleteFolder(int folderId)
+        {
+            try
+            {
+                bool hasQuiz = await _context.quizzes.AnyAsync(q => q.FolderId == folderId);
+                if (hasQuiz)
+                {
+                    return CheckQuizInFolder.HasQuiz;
+                }
+                int deletedCount = await _context.quizzFolders.Where(qf => qf.FolderId == folderId).ExecuteDeleteAsync();
+                if(deletedCount > 0)
+                {
+                    return CheckQuizInFolder.Success;
+                }
+                return CheckQuizInFolder.Error;
+            }
+            catch (Exception ex) { 
+                return CheckQuizInFolder.Error;
+            }
+        }
     }
 }

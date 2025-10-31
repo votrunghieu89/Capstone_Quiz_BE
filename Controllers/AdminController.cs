@@ -9,8 +9,9 @@ using System.Text.Json;
 
 namespace Capstone.Controllers
 {
-    [Route("api/[controller]")]
+   
     [ApiController]
+    [Route("api/[controller]")]
     public class AdminController : ControllerBase
     {
         private readonly IAdminRepository _adminRepository;

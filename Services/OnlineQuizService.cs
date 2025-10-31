@@ -190,11 +190,26 @@ namespace Capstone.Services
             }
             foreach (var ld in leaderboard)
             {
-               Console.WriteLine(ld.StudentName + "Rank: "+ld.Rank+ld.Score);
+               Console.WriteLine($"ID:{ld.StudentId} || Name: {ld.StudentName} || Score: {ld.Score} || Rank: {ld.Rank}");
             }
             await _quizHub.Clients.Client(roomData.TeacherConnectionId)
                             .SendAsync("ReceiveLeaderboard", leaderboard);
             return true;
+        }
+        public async Task<bool> UpdateNumberOfParticipants(int quizId, int totalParticipant)
+        {
+            try
+            {
+                int isUpdate = await _context.quizzes.Where(q => q.QuizId == quizId).ExecuteUpdateAsync(e => e.SetProperty(q => q.TotalParticipants, q => q.TotalParticipants + totalParticipant));
+                if (isUpdate > 0) { 
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
 }

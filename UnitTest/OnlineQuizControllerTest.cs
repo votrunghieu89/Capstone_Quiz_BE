@@ -44,7 +44,7 @@ namespace Capstone.UnitTest
             var room = new CreateRoomRedisDTO { QuizId = 1, TeacherId = 2, TeacherConnectionId = "t" };
             _mockRedis.Setup(r => r.GetStringAsync($"quiz:room:{roomCode}")).ReturnsAsync(JsonConvert.SerializeObject(room));
             _mockRedis.Setup(r => r.SMembersAsync($"quiz:room:{roomCode}:student")).ReturnsAsync(new List<string> { "room:123:student:10" });
-            var student = new CreateStudentRedisDTO { StudentName = "A", TotalQuestions = 10, Rank = 1 };
+            var student = new CreateStudentRedisDTO { StudentName = "A", TotalQuestions = 10};
             _mockRedis.Setup(r => r.GetStringAsync($"quiz:room:{roomCode}:student:10")).ReturnsAsync(JsonConvert.SerializeObject(student));
             _mockRedis.Setup(r => r.HGetAllAsync($"quiz:room:{roomCode}:student:10:detail")).ReturnsAsync(new Dictionary<string, string> { { "Score", "100" }, { "CorrectCount", "10" }, { "WrongCount", "0" }, { "Rank", "1" } });
             _mockOnlineRepo.Setup(r => r.InsertOnlineReport(It.IsAny<InsertOnlineReportDTO>(), It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync(true);

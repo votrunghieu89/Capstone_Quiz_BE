@@ -7,12 +7,12 @@ namespace Capstone.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class MongoController : ControllerBase
+    public class AuditController : ControllerBase
     {
         private readonly IAuditLogRepository _auditLogRepository;
-        private readonly ILogger<MongoController> _logger;
+        private readonly ILogger<AuditController> _logger;
 
-        public MongoController(IAuditLogRepository auditLogRepository, ILogger<MongoController> logger)
+        public AuditController(IAuditLogRepository auditLogRepository, ILogger<AuditController> logger)
         {
             _auditLogRepository = auditLogRepository;
             _logger = logger;

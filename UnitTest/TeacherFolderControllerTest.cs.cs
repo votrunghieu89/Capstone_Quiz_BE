@@ -29,7 +29,7 @@ namespace Capstone.UnitTest
         {
             _mockRepo.Setup(r => r.createFolder(1, "Folder A", null)).ReturnsAsync(true);
 
-            var result = await _controller.createFolder(1, "Folder A", null);
+            var result = await _controller.CreateFolder(1, "Folder A", null);
 
             Assert.IsType<OkObjectResult>(result);
         }
@@ -39,7 +39,7 @@ namespace Capstone.UnitTest
         {
             _mockRepo.Setup(r => r.createFolder(1, "Folder A", null)).ReturnsAsync(false);
 
-            var result = await _controller.createFolder(1, "Folder A", null);
+            var result = await _controller.CreateFolder(1, "Folder A", null);
 
             Assert.IsType<BadRequestObjectResult>(result);
         }
@@ -49,7 +49,7 @@ namespace Capstone.UnitTest
         {
             _mockRepo.Setup(r => r.createFolder(1, "Folder A", null)).ThrowsAsync(new Exception("e"));
 
-            var result = await _controller.createFolder(1, "Folder A", null);
+            var result = await _controller.CreateFolder(1, "Folder A", null);
 
             var obj = Assert.IsType<ObjectResult>(result);
             Assert.Equal(500, obj.StatusCode);
@@ -61,7 +61,7 @@ namespace Capstone.UnitTest
             var list = new List<getAllFolderDTO?> { new getAllFolderDTO { FolderId = 1, FolderName = "F" } };
             _mockRepo.Setup(r => r.getAllFolder(1)).ReturnsAsync(list);
 
-            var result = await _controller.getAllFolder(1);
+            var result = await _controller.GetAllFolder(1);
 
             var ok = Assert.IsType<OkObjectResult>(result);
             var val = Assert.IsType<List<getAllFolderDTO?>>(ok.Value);
@@ -72,11 +72,11 @@ namespace Capstone.UnitTest
         public async Task GetAllFolder_WhenNullOrEmpty_ReturnsNotFound()
         {
             _mockRepo.Setup(r => r.getAllFolder(1)).ReturnsAsync((List<getAllFolderDTO?>)null);
-            var result1 = await _controller.getAllFolder(1);
+            var result1 = await _controller.GetAllFolder(1);
             Assert.IsType<NotFoundObjectResult>(result1);
 
             _mockRepo.Setup(r => r.getAllFolder(2)).ReturnsAsync(new List<getAllFolderDTO?>());
-            var result2 = await _controller.getAllFolder(2);
+            var result2 = await _controller.GetAllFolder(2);
             Assert.IsType<NotFoundObjectResult>(result2);
         }
 
@@ -86,7 +86,7 @@ namespace Capstone.UnitTest
             var detail = new FolderDetailDTO { FolderID = 1, FolderName = "F" };
             _mockRepo.Setup(r => r.GetFolderDetail(1, 1)).ReturnsAsync(detail);
 
-            var result = await _controller.getFolderDetail(1, 1);
+            var result = await _controller.GetFolderDetail(1, 1);
 
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(ok.Value);
@@ -97,7 +97,7 @@ namespace Capstone.UnitTest
         {
             _mockRepo.Setup(r => r.GetFolderDetail(1, 1)).ReturnsAsync((FolderDetailDTO)null);
 
-            var result = await _controller.getFolderDetail(1, 1);
+            var result = await _controller.GetFolderDetail(1, 1);
 
             Assert.IsType<NotFoundObjectResult>(result);
         }
