@@ -1,15 +1,19 @@
 ﻿using Capstone.DTOs.Quizzes;
+using System.Text.Json.Serialization;
 
 namespace Capstone.DTOs.Gemini
 {
     public class GeminiResponse
     {
+        [JsonPropertyName("questions")]
         public List<QuestionResponse> questionResponses { get; set; } = new List<QuestionResponse>();
     }
     public class QuestionResponse
     {
-        public string QuestionContent { get; set; } = string.Empty;
-        public List<OptionDTO> Options { get; set; } = new();
+        [JsonPropertyName("questionContent")]
+        public string questionContent { get; set; } = string.Empty;
+        [JsonPropertyName("options")]
+        public List<OptionDTO> options { get; set; } = new();
     }
 }
 

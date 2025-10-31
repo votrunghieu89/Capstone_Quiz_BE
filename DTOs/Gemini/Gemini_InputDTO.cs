@@ -8,7 +8,7 @@
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public bool IsPrivate { get; set; }
-        public string? AvatarURL { get; set; }
+        public IFormFile? AvatarURL { get; set; }
         public int NumberOfQuestion { get; set; }
         public int Score { get; set; }
         public int Time { get; set; }
