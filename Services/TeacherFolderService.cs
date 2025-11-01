@@ -115,17 +115,20 @@ namespace Capstone.Services
                 //    })
                 //    .ToListAsync();
 
-                var quizzes = await _context.quizzes
-                    .Where(q => q.FolderId == folder.FolderId && q.TeacherId == teacherId)
-                    .Select(q => new QuizzFolderDTO
-                    {
-                        QuizzId = q.QuizId,
-                        Title = q.Title,
-                        AvatarURL = q.AvatarURL,
-                        TotalQuestion = q.Questions.Count,
-                        TeacherName = teacherEmail
-                    })
-                    .ToListAsync();
+                var quizzes = await (from q in _context.quizzes
+                                     join t in _context.topics on q.TopicId equals t.TopicId
+                                     where q.FolderId == folderId && q.TeacherId == teacherId
+                                     select new QuizzFolderDTO
+                                     {
+                                         QuizzId = q.QuizId,
+                                         Title = q.Title,
+                                         AvatarURL = q.AvatarURL,
+                                         TotalQuestion = q.Questions.Count,
+                                         TopicName = t.TopicName,
+                                         TotalParticipants = q.TotalParticipants,
+                                         TeacherName = teacherEmail
+                                     })
+                      .ToListAsync();
 
                 _logger.LogInformation("Get folder detail successful");
 

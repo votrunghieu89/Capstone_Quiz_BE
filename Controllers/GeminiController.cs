@@ -78,7 +78,6 @@ namespace Capstone.Controllers
             var jsonResponse = await _geminiService.GenerateQuestions(prompt);
             if (jsonResponse == null)
                 return BadRequest(new { message = "Failed to generate questions using Gemini API." });
-            Console.WriteLine("Day la:0 0" + jsonResponse);
             List<QuestionDTO> questionDTOs = await _geminiService.ConvertJsonToQuestion(jsonResponse, input.Time, input.Score);
             if (questionDTOs == null || !questionDTOs.Any())
                 return BadRequest(new { message = "No questions were generated from the Gemini response." });

@@ -41,14 +41,12 @@ namespace Capstone.Services
             List<QuestionDTO> questionDTOs = new List<QuestionDTO>();
             try
             {
-                Console.WriteLine("Step1");
-                Console.WriteLine(json);
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true,
                     Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
                 };
-                Console.WriteLine("Step2");
+       
                 var ListQuestion = JsonSerializer.Deserialize<GeminiResponse>(json, options);
                 if (ListQuestion == null)
                 {
@@ -56,9 +54,7 @@ namespace Capstone.Services
                     return new List<QuestionDTO>();
                 }
                 Console.WriteLine(ListQuestion.ToString());
-                Console.WriteLine("Step3");
                 foreach (var item in ListQuestion.questionResponses) {
-                    Console.WriteLine("Step3");
                 }
                 foreach (var questionJson in ListQuestion.questionResponses)
                 {
@@ -68,7 +64,6 @@ namespace Capstone.Services
                     questionDTO.Time = time;
                     questionDTO.QuestionType = "MCQ";
                     questionDTO.Options = new List<OptionDTO>();
-                    Console.WriteLine("Ste4");
                     foreach (var option in questionJson.options)
                     {
                         OptionDTO optionDTO = new OptionDTO();
@@ -77,9 +72,7 @@ namespace Capstone.Services
                         questionDTO.Options.Add(optionDTO);
                     }
                     questionDTOs.Add(questionDTO);
-                    Console.WriteLine("Step5");
                 }
-                Console.WriteLine("Step6");
                 if (questionDTOs.Count > 0)
                 {
                     _logger.LogInformation("ConvertJsonToQuestion: Success - Generated {Count} questions", questionDTOs.Count);
@@ -93,7 +86,6 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Err");
                 _logger.LogError(ex, "ConvertJsonToQuestion: Error deserializing or processing JSON");
                 return new List<QuestionDTO>();
             }
