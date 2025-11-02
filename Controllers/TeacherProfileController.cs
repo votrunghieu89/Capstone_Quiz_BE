@@ -1,4 +1,4 @@
-using Capstone.DTOs.TeacherProfile;
+﻿using Capstone.DTOs.TeacherProfile;
 using Capstone.Model;
 using Capstone.Repositories.Profiles;
 using Microsoft.AspNetCore.Hosting;
@@ -35,7 +35,7 @@ namespace Capstone.Controllers
                 if (profile == null)
                 {
                     _logger.LogWarning("getTeacherProfile: Not found - TeacherId={TeacherId}", teacherId);
-                    return NotFound(new { message = "Teacher profile not found" });
+                    return NotFound(new { message = "Không tìm thấy hồ sơ giáo viên" });
                 }
 
                if(!string.IsNullOrEmpty(profile.AvatarURL))
@@ -43,12 +43,12 @@ namespace Capstone.Controllers
                     profile.AvatarURL = $"{Request.Scheme}://{Request.Host}/{profile.AvatarURL.Replace("\\", "/")}";
                 }
                 _logger.LogInformation("getTeacherProfile: Success - TeacherId={TeacherId}", teacherId);
-                return Ok(new { message = "Get teacher profile successfully", profile });
+                return Ok(new { message = "Lấy hồ sơ giáo viên thành công", profile });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "getTeacherProfile: Error - TeacherId={TeacherId}", teacherId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -62,7 +62,7 @@ namespace Capstone.Controllers
                 if (dto == null)
                 {
                     _logger.LogWarning("updateTeacherProfile: Request body null");
-                    return BadRequest(new { message = "Request body is required." });
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
                 }
                 var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -92,7 +92,7 @@ namespace Capstone.Controllers
                 if (updated == null)
                 {
                     _logger.LogWarning("updateTeacherProfile: Update failed for TeacherId={TeacherId}", dto.TeacherId);
-                    return StatusCode(500, new { message = "Failed to update profile" });
+                    return StatusCode(500, new { message = "Cập nhật hồ sơ thất bại" });
                 }
 
                 if (!string.IsNullOrEmpty(updated.oldAvatar))
@@ -102,12 +102,12 @@ namespace Capstone.Controllers
                 }
 
                 _logger.LogInformation("updateTeacherProfile: Success - TeacherId={TeacherId}", dto.TeacherId);
-                return Ok(new { message = "Update teacher profile successfully" });
+                return Ok(new { message = "Cập nhật hồ sơ giáo viên thành công" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "updateTeacherProfile: Error - TeacherId={TeacherId}", dto?.TeacherId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

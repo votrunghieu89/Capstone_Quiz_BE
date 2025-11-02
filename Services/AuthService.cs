@@ -20,6 +20,7 @@ namespace Capstone.Services
         public readonly IToken _token;
         private readonly IRedis _redis;
         private readonly IRabbitMQProducer _rabbitMQ;
+  
         public AuthService(AppDbContext context, IConfiguration configuration, ILogger<AuthService> logger, IToken token, IRedis redis, IRabbitMQProducer rabbitMQ)
         {
             _context = context;
@@ -188,19 +189,26 @@ namespace Capstone.Services
                     _logger.LogWarning("Login attempt failed: email not found '{Email}'.", authLoginDTO.Email);
                     return new AuthLoginResultDTO { Status = AuthEnum.Login.WrongEmailOrPassword, AuthLoginResponse = null };
                 }
+                if (user.IsActive == false)
+                {
+                    _logger.LogWarning("Account has banned");
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.AccountHasBanned, AuthLoginResponse = null };
+                }
                 bool checkPassword = Hash.VerifyPassword(authLoginDTO.Password, user.PasswordHash);
                 if (!checkPassword)
                 {
                     _logger.LogWarning("Login attempt failed: invalid password for Email='{Email}'.", authLoginDTO.Email);
                     return new AuthLoginResultDTO { Status = AuthEnum.Login.WrongEmailOrPassword, AuthLoginResponse = null };
                 }
-                if (user.IsActive == false) {
-                    _logger.LogWarning("Account has abnned");
-                    return new AuthLoginResultDTO { Status = AuthEnum.Login.AccountHasBanned, AuthLoginResponse = null };
-                }
                 var accessToken = _token.generateAccessToken(user.AccountId, user.Role, user.Email);
                 var refreshToken = _token.generateRefreshToken();
                 bool setRefresh = await _redis.SetStringAsync($"RefressToken_{user.AccountId}", refreshToken, TimeSpan.FromDays(7));
+                //var accessToken = RetryHelper.Execute(() => _token.generateAccessToken(user.AccountId, user.Role, user.Email));
+                //var refreshToken = RetryHelper.Execute(() => _token.generateRefreshToken());
+                //bool setRefresh = await RetryHelper.ExecuteAsync(() =>_redis.SetStringAsync($"RefressToken_{user.AccountId}", refreshToken, TimeSpan.FromDays(7)));
+                if (accessToken == null || refreshToken == null || setRefresh == false) {
+                    return new AuthLoginResultDTO { Status = AuthEnum.Login.Error, AuthLoginResponse = null };
+                }
                 AuthLoginResponse response = new AuthLoginResponse
                 {
                     AccountId = user.AccountId,
@@ -210,7 +218,7 @@ namespace Capstone.Services
                     RefreshToken = refreshToken,
 
                 };
-                bool  setActive = await _redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7));
+                bool setActive = await RetryHelper.ExecuteAsync(() =>_redis.SetStringAsync($"Online_{user.AccountId}", "true", TimeSpan.FromDays(7)));
                 _logger.LogInformation("User logged in successfully. AccountId={AccountId}, Email={Email}", user.AccountId, user.Email);
                 var log = new AuditLogModel()
                 {

@@ -35,12 +35,12 @@ namespace Capstone.Services
                 int check = await _context.SaveChangesAsync();
                 if (check > 0)
                 {                    
-                    _logger.LogInformation("Create folder succesfull");
+                    _logger.LogInformation("Tạo thư mục thành công");
                     return true;
                 }              
             }
             catch (Exception ex) {
-                _logger.LogError(ex, "Cannot create folder for teacherId={TeacherId}", teacherID);
+                _logger.LogError(ex, "Không thể tạo thư mục cho teacherId={TeacherId}", teacherID);
                 return false;
             }
 
@@ -78,12 +78,12 @@ namespace Capstone.Services
                     }
                 }
 
-                _logger.LogInformation("Get all folders successful");
+                _logger.LogInformation("Lấy tất cả thư mục thành công");
                 return rootFolders;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex ,"Can not get list folder");
+                _logger.LogError(ex ,"Không thể lấy danh sách thư mục");
                 return null;
             }
 
@@ -97,7 +97,7 @@ namespace Capstone.Services
 
                 if (folder == null)
                 {
-                    _logger.LogWarning($"Folder {folderId} not exists or not belong to teacher {teacherId}");
+                    _logger.LogWarning($"Thư mục {folderId} không tồn tại hoặc không thuộc về giáo viên {teacherId}");
                     return null;
                 }
 
@@ -126,11 +126,11 @@ namespace Capstone.Services
                                          TotalQuestion = q.Questions.Count,
                                          TopicName = t.TopicName,
                                          TotalParticipants = q.TotalParticipants,
-                                         TeacherName = teacherEmail
+                                         TeacherName = teacherEmail 
                                      })
                       .ToListAsync();
 
-                _logger.LogInformation("Get folder detail successful");
+                _logger.LogInformation("Lấy chi tiết thư mục thành công");
 
                 return new FolderDetailDTO
                 {
@@ -142,7 +142,7 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Can not get Quizz folder");
+                _logger.LogError(ex, "Không thể lấy thư mục câu đố");
                 return null;
             }
         }

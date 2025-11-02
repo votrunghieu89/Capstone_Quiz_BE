@@ -34,7 +34,7 @@ namespace Capstone.Controllers
                 if (studentProfile == null)
                 {
                     _logger.LogWarning("getStudentProfile: Profile not found - StudentId={StudentId}", studentId);
-                    return NotFound(new { message = "Student profile not found" });
+                    return NotFound(new { message = "Không tìm thấy hồ sơ học viên" });
                 }
                 if (!string.IsNullOrEmpty(studentProfile.AvatarURL))
                 {
@@ -49,12 +49,12 @@ namespace Capstone.Controllers
                 };
 
                 _logger.LogInformation("getStudentProfile: Success - StudentId={StudentId}, AvatarURL={AvatarURL}", studentId, student.AvatarURL);
-                return Ok(new { message = "Get student profile successfully", profile = student });
+                return Ok(new { message = "Lấy hồ sơ học viên thành công", profile = student });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "getStudentProfile: Error while retrieving profile for StudentId={StudentId}", studentId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -68,7 +68,7 @@ namespace Capstone.Controllers
                 if (studentProfile == null)
                 {
                     _logger.LogWarning("updateStudentProfile: Request body null");
-                    return BadRequest(new { message = "Request body is required." });
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
                 }
                 var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -103,7 +103,7 @@ namespace Capstone.Controllers
                 if (updatedProfile == null)
                 {
                     _logger.LogWarning("updateStudentProfile: Repository update returned null for StudentId={StudentId}", studentProfileModel.StudentId);
-                    return StatusCode(500, new { message = "Failed to update profile" });
+                    return StatusCode(500, new { message = "Cập nhật hồ sơ thất bại" });
                 }
 
                 if (!string.IsNullOrEmpty(updatedProfile.oldAvatar))
@@ -122,12 +122,12 @@ namespace Capstone.Controllers
                 }
 
                 _logger.LogInformation("updateStudentProfile: Success - StudentId={StudentId}", studentProfileModel.StudentId);
-                return Ok(new { message = "Update student profile successfully" });
+                return Ok(new { message = "Cập nhật hồ sơ học viên thành công" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "updateStudentProfile: Error updating profile for StudentId={StudentId}", studentProfile?.StudentId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

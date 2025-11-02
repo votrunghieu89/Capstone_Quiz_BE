@@ -117,7 +117,7 @@ namespace Capstone.Controllers
             var createdQuiz = await _quizRepository.CreateQuiz(quizModel, ipAddess);
             if (createdQuiz == null)
             {
-                return StatusCode(500, "An error occurred while creating the quiz.");
+                return StatusCode(500, "Đã xảy ra lỗi khi tạo bài kiểm tra.");
             }
             return Ok(new
             {

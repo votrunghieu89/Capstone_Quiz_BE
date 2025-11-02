@@ -248,6 +248,7 @@ namespace Capstone.Services
                     .Where(s => s.IdUnique == IdUnique)
                     .Select(s => s.StudentId)
                     .FirstOrDefaultAsync();
+                string? groupName = await _appDbContext.groups.Where(g => g.GroupId == groupId).Select(g => g.GroupName).FirstOrDefaultAsync();
                 if (StudentId == 0)
                 {
                     _logger.LogWarning("InsertStudentToGroup: Student with IdUnique={IdUnique} not found", IdUnique);
@@ -281,7 +282,16 @@ namespace Capstone.Services
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
                 }
+                string message = $"You have been joined into the group '{groupName}'.";
 
+                InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
+                {
+                    SenderId = accountId,
+                    ReceiverId = StudentId,
+                    Message = message
+                };
+                bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
+                await _hubContext.Clients.User(StudentId.ToString()).SendAsync("GroupNotification", message);
                 return JoinGroupResult.Success;
             }
             catch (Exception ex)
@@ -353,9 +363,7 @@ namespace Capstone.Services
                             };
                             await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
 
-
-
-                            await _hubContext.Clients.User(studentId.ToString()).SendAsync("RemoveStudentFromGroup", message);
+                            await _hubContext.Clients.User(studentId.ToString()).SendAsync("GroupNotification", message);
 
                             _logger.LogInformation("RemoveStudentFromGroup: Success - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
                             return true;
@@ -478,7 +486,6 @@ namespace Capstone.Services
 
                         foreach (var student in studentId)
                         {
-                            Console.WriteLine("step4");
                             InsertNewNotificationDTO newNotifcation = new InsertNewNotificationDTO()
                             {
                                 SenderId = accountId, // accountId là người tạo (TeacherId)
@@ -486,7 +493,6 @@ namespace Capstone.Services
                                 Message = message
                             };
                             bool isInsert = await _notificationRepository.InsertNewNotification(newNotifcation);
-                            Console.WriteLine("step5");
                         }
 
                         await transaction.CommitAsync();
@@ -508,8 +514,7 @@ namespace Capstone.Services
                         {
 
                             await _hubContext.Clients.User(student.ToString())
-                                .SendAsync("InsertQuizToGroupNotification", message);
-                            Console.WriteLine("step6");
+                                .SendAsync("GroupNotification", message);
                         }
 
                         _logger.LogInformation(
@@ -761,7 +766,7 @@ namespace Capstone.Services
                             await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
 
 
-                            await _hubContext.Clients.User(teacherId.ToString()).SendAsync("StudentLeftGroup", message);
+                            await _hubContext.Clients.User(teacherId.ToString()).SendAsync("GroupNotification", message);
 
                             _logger.LogInformation("LeaveGroup: Success - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
                             return true;

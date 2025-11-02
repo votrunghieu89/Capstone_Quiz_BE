@@ -36,7 +36,7 @@ namespace Capstone.Controllers
                 var quiz = await _quizRepository.GetAllQuestionEachQuiz(quizId); // lấy câu hỏi từ database
                 if (quiz == null)
                 {
-                    return NotFound(new { message = "Quiz not found." });
+                    return NotFound(new { message = "Không tìm thấy bài kiểm tra." });
                 }
                 return Ok(quiz);
             }
@@ -58,7 +58,7 @@ namespace Capstone.Controllers
             ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuiz(quizId);
             if (quizDetails == null)
             {
-                return NotFound(new { message = "Quiz not found." });
+                return NotFound(new { message = "Không tìm thấy bài kiểm tra." });
             }
             if (!string.IsNullOrEmpty(quizDetails.AvatarURL))
             {
@@ -100,7 +100,7 @@ namespace Capstone.Controllers
         public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
         {
             if (pages.page <= 0 || pages.pageSize <= 0)
-                return BadRequest(new { message = "Page and PageSize must be greater than 0." });
+                return BadRequest(new { message = "Trang và kích thước trang phải lớn hơn 0." });
 
             string cacheKey = $"all_quizzes_page_{pages.page}_size_{pages.pageSize}";
             // all_quizzes_page_{page}_size_{pageSize}
@@ -123,7 +123,7 @@ namespace Capstone.Controllers
                 quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
 
                 if (quizzes == null || !quizzes.Any())
-                    return NotFound(new { message = "No quizzes found." });
+                    return NotFound(new { message = "Không tìm thấy bài kiểm tra nào." });
             }
             foreach (var quiz in quizzes)
             {
@@ -198,14 +198,14 @@ namespace Capstone.Controllers
                 // 5️⃣ Gọi repository lưu quiz
                 var createdQuiz = await _quizRepository.CreateQuiz(quizModel, ipAddess);
                 if (createdQuiz == null)
-                    return StatusCode(500, "An error occurred while creating the quiz.");
+                    return StatusCode(500, "Đã xảy ra lỗi khi tạo bài kiểm tra.");
 
                 return Ok(createdQuiz);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating quiz");
-                return StatusCode(500, "An unexpected error occurred.");
+                return StatusCode(500, "Đã xảy ra lỗi không mong muốn.");
             }
         }
 
@@ -226,7 +226,7 @@ namespace Capstone.Controllers
             var correctAnswers = await _quizRepository.getCorrectAnswer(getCorrectAnswer);
             if (correctAnswers == null)
             {
-                return NotFound(new { message = "No correct answers found for the provided question IDs." });
+                return NotFound(new { message = "Không tìm thấy câu trả lời đúng cho các ID câu hỏi được cung cấp." });
             }
             return Ok(correctAnswers);
         }
@@ -326,7 +326,7 @@ namespace Capstone.Controllers
                 var updatedQuiz = await _quizRepository.UpdateQuiz(quizModel,ipAddess,Convert.ToInt32(accountId));
                 if (updatedQuiz == null)
                 {
-                    return StatusCode(500, "An error occurred while updating the quiz.");
+                    return StatusCode(500, "Đã xảy ra lỗi khi cập nhật bài kiểm tra.");
                 }
                 // Xoá cache câu hỏi của quiz này trong Redis
                 await _redis.DeleteKeysByPatternAsync($"quiz_questions_{quiz.QuizId}*");
@@ -335,7 +335,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating quiz with ID: {QuizId}", quiz.QuizId);
-                return StatusCode(500, "An unexpected error occurred.");
+                return StatusCode(500, "Đã xảy ra lỗi không mong muốn.");
             }
         }
 
@@ -349,11 +349,11 @@ namespace Capstone.Controllers
             string isDeleted = await _quizRepository.DeleteQuiz(quizId,accountId,ipAddess);
             if (isDeleted == null)
             {
-                return NotFound(new { message = "Quiz not found or could not be deleted." });
+                return NotFound(new { message = "Không tìm thấy bài kiểm tra hoặc không thể xóa." });
             }
             if(isDeleted == "QuizImage/Default.jpg")
             {
-                return Ok(new { message = "Quiz deleted successfully." });
+                return Ok(new { message = "Xóa bài kiểm tra thành công." });
             }
             else
             {
@@ -362,7 +362,7 @@ namespace Capstone.Controllers
                 {
                     System.IO.File.Delete(imagePath);
                 }
-                return Ok(new { message = "Quiz deleted successfully." });
+                return Ok(new { message = "Xóa bài kiểm tra thành công." });
             }
         }
 
@@ -372,9 +372,9 @@ namespace Capstone.Controllers
             bool isDeleted = await _quizRepository.DeleteQuestion(questionId);
             if (!isDeleted)
             {
-                return NotFound(new { message = "Question not found or could not be deleted." });
+                return NotFound(new { message = "Không tìm thấy câu hỏi hoặc không thể xóa." });
             }
-            return Ok(new { message = "Question deleted successfully." });
+            return Ok(new { message = "Xóa câu hỏi thành công." });
         }
 
         [HttpDelete("ClearQuizCache/{quizId}")]

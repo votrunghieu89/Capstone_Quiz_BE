@@ -31,7 +31,7 @@ namespace Capstone.Controllers
                 if (studentId <= 0)
                 {
                     _logger.LogWarning("GetAllCompletedPublicQuizzes: Invalid StudentId={StudentId}", studentId);
-                    return BadRequest(new { message = "Invalid student ID" });
+                    return BadRequest(new { message = "ID học viên không hợp lệ" });
                 }
 
                 var publicQuizzes = await _studentReportService.GetAllCompletedPublicQuizzes(studentId);
@@ -46,7 +46,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllCompletedPublicQuizzes: Error retrieving public quizzes for StudentId={StudentId}", studentId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -62,7 +62,7 @@ namespace Capstone.Controllers
                 if (studentId <= 0)
                 {
                     _logger.LogWarning("GetAllCompletedPrivateQuizzes: Invalid StudentId={StudentId}", studentId);
-                    return BadRequest(new { message = "Invalid student ID" });
+                    return BadRequest(new { message = "ID học viên không hợp lệ" });
                 }
 
                 var privateQuizzes = await _studentReportService.GetAllCompletedPrivateQuizzes(studentId);
@@ -77,7 +77,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllCompletedPrivateQuizzes: Error retrieving private quizzes for StudentId={StudentId}", studentId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -116,7 +116,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetDetailOfCompletedQuiz: Quiz detail not found - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
                         request.StudentId, request.QuizId, request.CreateAt);
-                    return NotFound(new { message = "Quiz detail not found" });
+                    return NotFound(new { message = "Không tìm thấy chi tiết bài kiểm tra" });
                 }
 
                 _logger.LogInformation("GetDetailOfCompletedQuiz: Success - StudentId={StudentId}, QuizId={QuizId}, TotalQuestions={TotalQuestions}",
@@ -129,12 +129,12 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetDetailOfCompletedQuiz: Quiz result not found - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
                         request?.StudentId, request?.QuizId, request?.CreateAt);
-                    return NotFound(new { message = "Quiz result not found for the specified parameters" });
+                    return NotFound(new { message = "Không tìm thấy kết quả bài kiểm tra với các tham số được chỉ định" });
                 }
 
                 _logger.LogError(ex, "GetDetailOfCompletedQuiz: Error retrieving quiz detail - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
                     request?.StudentId, request?.QuizId, request?.CreateAt);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -159,7 +159,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetDetailOfCompletedQuizByPath: Invalid CreateAt date - StudentId={StudentId}, QuizId={QuizId}",
                         studentId, quizId);
-                    return BadRequest(new { message = "CreateAt query parameter is required and must be a valid date" });
+                    return BadRequest(new { message = "Tham số truy vấn CreateAt là bắt buộc và phải là ngày hợp lệ" });
                 }
 
                 var quizDetail = await _studentReportService.DetailOfCompletedQuiz(studentId, quizId, createAt);
@@ -167,7 +167,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetDetailOfCompletedQuizByPath: Quiz detail not found - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
                         studentId, quizId, createAt);
-                    return NotFound(new { message = "Quiz detail not found" });
+                    return NotFound(new { message = "Không tìm thấy chi tiết bài kiểm tra" });
                 }
 
                 _logger.LogInformation("GetDetailOfCompletedQuizByPath: Success - StudentId={StudentId}, QuizId={QuizId}, TotalQuestions={TotalQuestions}",
@@ -180,12 +180,12 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetDetailOfCompletedQuizByPath: Quiz result not found - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
                         studentId, quizId, createAt);
-                    return NotFound(new { message = "Quiz result not found for the specified parameters" });
+                    return NotFound(new { message = "Không tìm thấy kết quả bài kiểm tra với các tham số được chỉ định" });
                 }
 
                 _logger.LogError(ex, "GetDetailOfCompletedQuizByPath: Error retrieving quiz detail - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
                     studentId, quizId, createAt);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

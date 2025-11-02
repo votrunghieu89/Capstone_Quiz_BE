@@ -89,7 +89,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while inserting online report");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     
@@ -155,7 +155,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while checking online answer");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

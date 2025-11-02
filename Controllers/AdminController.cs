@@ -35,7 +35,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("Invalid pagination parameters: Page={Page}, PageSize={PageSize}", 
                         pages.page, pages.pageSize);
-                    return BadRequest(new { message = "Page and PageSize must be greater than 0." });
+                    return BadRequest(new { message = "Trang và kích thước trang phải lớn hơn 0." });
                 }
 
                 var accountList = await _adminRepository.GetAllAccountByRole(pages.page, pages.pageSize);
@@ -49,7 +49,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving accounts list: Page={Page}, PageSize={PageSize}", 
                     pages.page, pages.pageSize);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -65,7 +65,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving total account count");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -77,7 +77,7 @@ namespace Capstone.Controllers
                 if (month < 1 || month > 12)
                 {
                     _logger.LogWarning("Invalid month parameter: Month={Month}", month);
-                    return BadRequest(new { message = "Month must be between 1 and 12" });
+                    return BadRequest(new { message = "Tháng phải từ 1 đến 12" });
                 }
 
                 var total = await _adminRepository.GetNumberOfCreatedAccountByMonth(month, year);
@@ -89,7 +89,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving account count by month: Month={Month}, Year={Year}", 
                     month, year);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -105,7 +105,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving total quizzes count");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -117,7 +117,7 @@ namespace Capstone.Controllers
                 if (month < 1 || month > 12)
                 {
                     _logger.LogWarning("Invalid month parameter: Month={Month}", month);
-                    return BadRequest(new { message = "Month must be between 1 and 12" });
+                    return BadRequest(new { message = "Tháng phải từ 1 đến 12" });
                 }
 
                 var total = await _adminRepository.GetNumberOfCreatedQuizzesByMonth(month, year);
@@ -129,7 +129,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving quizzes count by month: Month={Month}, Year={Year}", 
                     month, year);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -145,7 +145,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving total student account count");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -157,7 +157,7 @@ namespace Capstone.Controllers
                 if (month < 1 || month > 12)
                 {
                     _logger.LogWarning("Invalid month parameter: Month={Month}", month);
-                    return BadRequest(new { message = "Month must be between 1 and 12" });
+                    return BadRequest(new { message = "Tháng phải từ 1 đến 12" });
                 }
 
                 var total = await _adminRepository.GetNumberOfCreatedStudentAcountByMonth(month, year);
@@ -169,7 +169,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving student account count by month: Month={Month}, Year={Year}", 
                     month, year);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -185,7 +185,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving total teacher account count");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -197,7 +197,7 @@ namespace Capstone.Controllers
                 if (month < 1 || month > 12)
                 {
                     _logger.LogWarning("Invalid month parameter: Month={Month}", month);
-                    return BadRequest(new { message = "Month must be between 1 and 12" });
+                    return BadRequest(new { message = "Tháng phải từ 1 đến 12" });
                 }
 
                 var total = await _adminRepository.GetNumberOfCreatedTeacherAccountByMonth(month, year);
@@ -209,7 +209,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving teacher account count by month: Month={Month}, Year={Year}", 
                     month, year);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -226,7 +226,7 @@ namespace Capstone.Controllers
                 if (accountId <= 0)
                 {
                     _logger.LogWarning("Invalid accountId provided for ban: AccountId={AccountId}", accountId);
-                    return BadRequest(new { message = "Invalid account ID" });
+                    return BadRequest(new { message = "ID tài khoản không hợp lệ" });
                 }
 
                 var success = await _adminRepository.BanAccount(accountId);
@@ -234,18 +234,18 @@ namespace Capstone.Controllers
                 if (success)
                 {
                     _logger.LogInformation("Successfully banned account: AccountId={AccountId}", accountId);
-                    return Ok(new { message = "Account banned successfully", accountId });
+                    return Ok(new { message = "Cấm tài khoản thành công", accountId });
                 }
                 else
                 {
                     _logger.LogWarning("Failed to ban account - account not found: AccountId={AccountId}", accountId);
-                    return NotFound(new { message = "Account not found or already banned" });
+                    return NotFound(new { message = "Không tìm thấy tài khoản hoặc đã bị cấm" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error banning account: AccountId={AccountId}", accountId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -260,7 +260,7 @@ namespace Capstone.Controllers
                 if (accountId <= 0)
                 {
                     _logger.LogWarning("Invalid accountId provided for unban: AccountId={AccountId}", accountId);
-                    return BadRequest(new { message = "Invalid account ID" });
+                    return BadRequest(new { message = "ID tài khoản không hợp lệ" });
                 }
 
                 var success = await _adminRepository.UnBanAccount(accountId);
@@ -268,18 +268,18 @@ namespace Capstone.Controllers
                 if (success)
                 {
                     _logger.LogInformation("Successfully unbanned account: AccountId={AccountId}", accountId);
-                    return Ok(new { message = "Account unbanned successfully", accountId });
+                    return Ok(new { message = "Bỏ cấm tài khoản thành công", accountId });
                 }
                 else
                 {
                     _logger.LogWarning("Failed to unban account - account not found: AccountId={AccountId}", accountId);
-                    return NotFound(new { message = "Account not found or already active" });
+                    return NotFound(new { message = "Không tìm thấy tài khoản hoặc đã hoạt động" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error unbanning account: AccountId={AccountId}", accountId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

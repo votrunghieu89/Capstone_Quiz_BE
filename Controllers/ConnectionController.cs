@@ -23,9 +23,9 @@ namespace Capstone.Controllers
             bool isConnected = await _connection.checkConnection();
 
             if (isConnected)
-                return Ok(new { status = "Healthy", dbConnection = true });
+                return Ok(new { status = "Kết nối tốt", dbConnection = true });
             else
-                return StatusCode(503, new { status = "Unhealthy", dbConnection = false });
+                return StatusCode(503, new { status = "Kết nối thất bại", dbConnection = false });
         }
     }
 }

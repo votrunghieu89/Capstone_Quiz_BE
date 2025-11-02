@@ -44,7 +44,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking MongoDB connection");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -82,7 +82,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving audit logs: Page={Page}, PageSize={PageSize}", page, pageSize);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -160,7 +160,7 @@ namespace Capstone.Controllers
                 _logger.LogError(ex,
                     "Error filtering audit logs: AccountId={AccountId}, From={From}, To={To}, Page={Page}, PageSize={PageSize}",
                     accountId, from, to, page, pageSize);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -221,7 +221,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving audit logs by AccountId: AccountId={AccountId}, Page={Page}, PageSize={PageSize}",
                     accountId, page, pageSize);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -293,7 +293,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error retrieving audit logs by date range: From={From}, To={To}, Page={Page}, PageSize={PageSize}",
                     from, to, page, pageSize);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -398,7 +398,7 @@ namespace Capstone.Controllers
                 _logger.LogError(ex, 
                     "Error inserting audit log: AccountId={AccountId}, Action={Action}",
                     auditLogDto?.AccountId, auditLogDto?.Action);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

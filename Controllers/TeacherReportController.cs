@@ -35,7 +35,7 @@ namespace Capstone.Controllers
                 if (teacherId <= 0)
                 {
                     _logger.LogWarning("GetOfflineQuizReports: Invalid TeacherId={TeacherId}", teacherId);
-                    return BadRequest(new { message = "Invalid teacher ID" });
+                    return BadRequest(new { message = "ID giáo viên không hợp lệ" });
                 }
 
                 var offlineReports = await _historyTeacherService.GetOfflineQuizz(teacherId);
@@ -45,7 +45,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetOfflineQuizReports: Error retrieving offline reports for TeacherId={TeacherId}", teacherId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -63,7 +63,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOfflineDetailReport: Invalid parameters - OfflineReportId={OfflineReportId}, QuizId={QuizId}",
                         request?.OfflineReportId, request?.QuizId);
-                    return BadRequest(new { message = "Invalid offline report ID or quiz ID" });
+                    return BadRequest(new { message = "ID báo cáo offline hoặc ID bài kiểm tra không hợp lệ" });
                 }
 
                 var detailReport = await _historyTeacherService.OfflineDetailReportEachQuiz(request.OfflineReportId, request.QuizId);
@@ -71,7 +71,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOfflineDetailReport: Report not found - OfflineReportId={OfflineReportId}, QuizId={QuizId}",
                         request.OfflineReportId, request.QuizId);
-                    return NotFound(new { message = "Offline report not found" });
+                    return NotFound(new { message = "Không tìm thấy báo cáo offline" });
                 }
 
                 _logger.LogInformation("GetOfflineDetailReport: Success - OfflineReportId={OfflineReportId}, QuizId={QuizId}",
@@ -82,7 +82,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "GetOfflineDetailReport: Error retrieving detail report - OfflineReportId={OfflineReportId}, QuizId={QuizId}",
                     request?.OfflineReportId, request?.QuizId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -100,7 +100,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOfflineStudentReport: Invalid parameters - QuizId={QuizId}, QGId={GroupId}",
                         request?.QuizId, request?.QGId, request?.GroupId);
-                    return BadRequest(new { message = "Invalid quiz ID, QG ID, or group ID" });
+                    return BadRequest(new { message = "ID bài kiểm tra, QG ID hoặc ID nhóm không hợp lệ" });
                 }
 
                 var studentReport = await _historyTeacherService.OfflineStudentReportEachQuiz(request.QuizId, request.QGId, request.GroupId);
@@ -112,7 +112,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "GetOfflineStudentReport: Error retrieving student report - QuizId={QuizId}, QGId={GroupId}",
                     request?.QuizId, request?.QGId, request?.GroupId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -130,7 +130,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOfflineQuestionReport: Invalid parameters - QuizId={QuizId}, QGId={GroupId}",
                         request?.QuizId, request?.QGId, request?.GroupId);
-                    return BadRequest(new { message = "Invalid quiz ID, QG ID, or group ID" });
+                    return BadRequest(new { message = "ID bài kiểm tra, QG ID hoặc ID nhóm không hợp lệ" });
                 }
 
                 var questionReport = await _historyTeacherService.OfflineQuestionReportEachQuiz(request.QuizId, request.QGId, request.GroupId);
@@ -142,7 +142,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "GetOfflineQuestionReport: Error retrieving question report - QuizId={QuizId}, QGId={GroupId}",
                     request?.QuizId, request?.QGId, request?.GroupId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -158,7 +158,7 @@ namespace Capstone.Controllers
                 if (teacherId <= 0)
                 {
                     _logger.LogWarning("GetOnlineQuizReports: Invalid TeacherId={TeacherId}", teacherId);
-                    return BadRequest(new { message = "Invalid teacher ID" });
+                    return BadRequest(new { message = "ID giáo viên không hợp lệ" });
                 }
 
                 var onlineReports = await _historyTeacherService.GetOnlineQuiz(teacherId);
@@ -168,7 +168,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetOnlineQuizReports: Error retrieving online reports for TeacherId={TeacherId}", teacherId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -186,7 +186,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOnlineDetailReport: Invalid parameters - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                         request?.QuizId, request?.OnlineReportId);
-                    return BadRequest(new { message = "Invalid quiz ID or online report ID" });
+                    return BadRequest(new { message = "ID bài kiểm tra hoặc ID báo cáo online không hợp lệ" });
                 }
 
                 var detailReport = await _historyTeacherService.OnlineDetailReportEachQuiz(request.QuizId, request.OnlineReportId);
@@ -194,7 +194,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOnlineDetailReport: Report not found - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                         request.QuizId, request.OnlineReportId);
-                    return NotFound(new { message = "Online report not found" });
+                    return NotFound(new { message = "Không tìm thấy báo cáo online" });
                 }
 
                 _logger.LogInformation("GetOnlineDetailReport: Success - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
@@ -205,7 +205,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "GetOnlineDetailReport: Error retrieving detail report - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                     request?.QuizId, request?.OnlineReportId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -223,7 +223,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOnlineStudentReport: Invalid parameters - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                         request?.QuizId, request?.OnlineReportId);
-                    return BadRequest(new { message = "Invalid quiz ID or online report ID" });
+                    return BadRequest(new { message = "ID bài kiểm tra hoặc ID báo cáo online không hợp lệ" });
                 }
 
                 var studentReport = await _historyTeacherService.OnlineStudentReportEachQuiz(request.QuizId, request.OnlineReportId);
@@ -235,7 +235,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "GetOnlineStudentReport: Error retrieving student report - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                     request?.QuizId, request?.OnlineReportId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -253,7 +253,7 @@ namespace Capstone.Controllers
                 {
                     _logger.LogWarning("GetOnlineQuestionReport: Invalid parameters - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                         request?.QuizId, request?.OnlineReportId);
-                    return BadRequest(new { message = "Invalid quiz ID or online report ID" });
+                    return BadRequest(new { message = "ID bài kiểm tra hoặc ID báo cáo online không hợp lệ" });
                 }
 
                 var questionReport = await _historyTeacherService.OnlineQuestionReportEachQuiz(request.QuizId, request.OnlineReportId);
@@ -265,7 +265,7 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "GetOnlineQuestionReport: Error retrieving question report - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
                     request?.QuizId, request?.OnlineReportId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -281,14 +281,14 @@ namespace Capstone.Controllers
                 if (questionId <= 0)
                 {
                     _logger.LogWarning("ViewDetailOfQuestion: Invalid QuestionId={QuestionId}", questionId);
-                    return BadRequest(new { message = "Invalid question ID" });
+                    return BadRequest(new { message = "ID câu hỏi không hợp lệ" });
                 }
 
                 var questionDetail = await _historyTeacherService.ViewDetailOfQuestion(questionId);
                 if (questionDetail == null)
                 {
                     _logger.LogWarning("ViewDetailOfQuestion: Question not found - QuestionId={QuestionId}", questionId);
-                    return NotFound(new { message = "Question not found" });
+                    return NotFound(new { message = "Không tìm thấy câu hỏi" });
                 }
 
                 _logger.LogInformation("ViewDetailOfQuestion: Success - QuestionId={QuestionId}", questionId);
@@ -297,7 +297,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ViewDetailOfQuestion: Error retrieving question detail for QuestionId={QuestionId}", questionId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -321,13 +321,13 @@ namespace Capstone.Controllers
                 var isExpired = await _historyTeacherService.checkExpiredTime(request.QuizId, request.QGId);
                 _logger.LogInformation("CheckExpiredTime: Quiz expired status={IsExpired} for QuizId={QuizId}, QGId={QGId}",
                     isExpired, request.QuizId, request.QGId);
-                return Ok(new { isExpired, message = isExpired ? "Quiz has expired and status updated" : "Quiz is still active" });
+                return Ok(new { isExpired, message = isExpired ? "Bài kiểm tra đã hết hạn và trạng thái đã được cập nhật" : "Bài kiểm tra vẫn còn hoạt động" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "CheckExpiredTime: Error checking expired time for QuizId={QuizId}, QGId={QGId}",
                     request?.QuizId, request?.QGId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -350,18 +350,18 @@ namespace Capstone.Controllers
                 if (success)
                 {
                     _logger.LogInformation("EndNow: Success - QuizId={QuizId}, GroupId={GroupId}", request.QuizId, request.GroupId);
-                    return Ok(new { message = "Quiz ended successfully" });
+                    return Ok(new { message = "Kết thúc bài kiểm tra thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("EndNow: Failed to end quiz - QuizId={QuizId}, GroupId={GroupId}", request.QuizId, request.GroupId);
-                    return BadRequest(new { message = "Failed to end quiz" });
+                    return BadRequest(new { message = "Kết thúc bài kiểm tra thất bại" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "EndNow: Error ending quiz - QuizId={QuizId}, GroupId={GroupId}", request?.QuizId, request?.GroupId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -389,30 +389,30 @@ namespace Capstone.Controllers
                 {
                     case ExpiredEnum.Success:
                         _logger.LogInformation("ChangeExpiredTime: Success - QuizId={QuizId}, QGId={QGId}", request.QuizId, request.QGId);
-                        return Ok(new { message = "Expired time updated successfully" });
+                        return Ok(new { message = "Cập nhật thời gian hết hạn thành công" });
 
                     case ExpiredEnum.QuizGroupNotFound:
                         _logger.LogWarning("ChangeExpiredTime: Quiz group not found - QuizId={QuizId}, QGId={QGId}", request.QuizId, request.QGId);
-                        return NotFound(new { message = "Quiz group not found" });
+                        return NotFound(new { message = "Không tìm thấy nhóm bài kiểm tra" });
 
                     case ExpiredEnum.InvalidExpiredTime:
                         _logger.LogWarning("ChangeExpiredTime: Invalid expired time - NewExpiredTime={NewExpiredTime}", request.NewExpiredTime);
-                        return BadRequest(new { message = "Expired time must be in the future" });
+                        return BadRequest(new { message = "Thời gian hết hạn phải là thời gian tương lai" });
 
                     case ExpiredEnum.UpdateFailed:
                         _logger.LogWarning("ChangeExpiredTime: Update failed - QuizId={QuizId}, QGId={QGId}", request.QuizId, request.QGId);
-                        return BadRequest(new { message = "Failed to update expired time" });
+                        return BadRequest(new { message = "Cập nhật thời gian hết hạn thất bại" });
 
                     case ExpiredEnum.Error:
                     default:
                         _logger.LogError("ChangeExpiredTime: Unknown error - QuizId={QuizId}, QGId={QGId}", request.QuizId, request.QGId);
-                        return StatusCode(500, new { message = "Internal server error" });
+                        return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ChangeExpiredTime: Unexpected error - QuizId={QuizId}, QGId={QGId}", request?.QuizId, request?.QGId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -429,13 +429,13 @@ namespace Capstone.Controllers
                 if (request == null || request.OfflineReportId <= 0)
                 {
                     _logger.LogWarning("ChangeOfflineReportName: Invalid OfflineReportId={OfflineReportId}", request?.OfflineReportId);
-                    return BadRequest(new { message = "Invalid offline report ID" });
+                    return BadRequest(new { message = "ID báo cáo offline không hợp lệ" });
                 }
 
                 if (string.IsNullOrWhiteSpace(request.NewReportName))
                 {
                     _logger.LogWarning("ChangeOfflineReportName: Empty report name for OfflineReportId={OfflineReportId}", request.OfflineReportId);
-                    return BadRequest(new { message = "Report name cannot be empty" });
+                    return BadRequest(new { message = "Tên báo cáo không được để trống" });
                 }
 
                 var success = await _historyTeacherService.ChangeOfflineReport(request.OfflineReportId, request.NewReportName);
@@ -443,19 +443,19 @@ namespace Capstone.Controllers
                 {
                     _logger.LogInformation("ChangeOfflineReportName: Success - OfflineReportId={OfflineReportId}, NewName={NewName}",
                         request.OfflineReportId, request.NewReportName);
-                    return Ok(new { message = "Offline report name updated successfully" });
+                    return Ok(new { message = "Cập nhật tên báo cáo offline thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("ChangeOfflineReportName: Failed to update - OfflineReportId={OfflineReportId}", request.OfflineReportId);
-                    return NotFound(new { message = "Offline report not found or update failed" });
+                    return NotFound(new { message = "Không tìm thấy báo cáo offline hoặc cập nhật thất bại" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ChangeOfflineReportName: Error updating report name - OfflineReportId={OfflineReportId}",
                     request?.OfflineReportId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -472,13 +472,13 @@ namespace Capstone.Controllers
                 if (request == null || request.OnlineReportId <= 0)
                 {
                     _logger.LogWarning("ChangeOnlineReportName: Invalid OnlineReportId={OnlineReportId}", request?.OnlineReportId);
-                    return BadRequest(new { message = "Invalid online report ID" });
+                    return BadRequest(new { message = "ID báo cáo online không hợp lệ" });
                 }
 
                 if (string.IsNullOrWhiteSpace(request.NewReportName))
                 {
                     _logger.LogWarning("ChangeOnlineReportName: Empty report name for OnlineReportId={OnlineReportId}", request.OnlineReportId);
-                    return BadRequest(new { message = "Report name cannot be empty" });
+                    return BadRequest(new { message = "Tên báo cáo không được để trống" });
                 }
 
                 var success = await _historyTeacherService.ChangeOnlineReportName(request.OnlineReportId, request.NewReportName);
@@ -486,19 +486,19 @@ namespace Capstone.Controllers
                 {
                     _logger.LogInformation("ChangeOnlineReportName: Success - OnlineReportId={OnlineReportId}, NewName={NewName}",
                         request.OnlineReportId, request.NewReportName);
-                    return Ok(new { message = "Online report name updated successfully" });
+                    return Ok(new { message = "Cập nhật tên báo cáo online thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("ChangeOnlineReportName: Failed to update - OnlineReportId={OnlineReportId}", request.OnlineReportId);
-                    return NotFound(new { message = "Online report not found or update failed" });
+                    return NotFound(new { message = "Không tìm thấy báo cáo online hoặc cập nhật thất bại" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ChangeOnlineReportName: Error updating report name - OnlineReportId={OnlineReportId}",
                     request?.OnlineReportId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

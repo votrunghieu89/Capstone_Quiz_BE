@@ -1,4 +1,4 @@
-using Capstone.DTOs.Notification;
+﻿using Capstone.DTOs.Notification;
 using Capstone.Repositories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,7 +24,7 @@ namespace Capstone.Controllers
                 if (accountId <= 0)
                 {
                     _logger.LogWarning("Invalid accountId provided: {AccountId}", accountId);
-                    return BadRequest(new { message = "Invalid account ID" });
+                    return BadRequest(new { message = "ID tài khoản không hợp lệ" });
                 }
 
                 var notification = await _notificationService.GetAllNotifications(accountId);
@@ -40,7 +40,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving notification: AccountId={AccountId}", accountId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
         [HttpPut("mark-read/{notificationId:int}")]
@@ -70,7 +70,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error marking notification as read: NotificationId={NotificationId}", notificationId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -104,7 +104,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error marking notification as unread: NotificationId={NotificationId}", notificationId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -119,7 +119,7 @@ namespace Capstone.Controllers
                 if (accountId <= 0)
                 {
                     _logger.LogWarning("Invalid accountId provided: {AccountId}", accountId);
-                    return BadRequest(new { message = "Invalid account ID" });
+                    return BadRequest(new { message = "ID tài khoản không hợp lệ" });
                 }
 
                 var success = await _notificationService.MarkAll(accountId);
@@ -138,7 +138,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error marking all notifications as read: AccountId={AccountId}", accountId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -153,7 +153,7 @@ namespace Capstone.Controllers
                 if (accountId <= 0)
                 {
                     _logger.LogWarning("Invalid accountId provided: {AccountId}", accountId);
-                    return BadRequest(new { message = "Invalid account ID" });
+                    return BadRequest(new { message = "ID tài khoản không hợp lệ" });
                 }
 
                 var success = await _notificationService.UnMarkAll(accountId);
@@ -172,7 +172,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error marking all notifications as unread: AccountId={AccountId}", accountId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -202,7 +202,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting all read notifications");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
     }

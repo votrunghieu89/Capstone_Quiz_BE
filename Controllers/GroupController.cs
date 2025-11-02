@@ -37,7 +37,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetGroupByTeacherId: Error retrieving groups for TeacherId={TeacherId}", teacherId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -54,7 +54,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllStudentsByGroupId: Error retrieving students for GroupId={GroupId}", groupId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -71,7 +71,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "GetAllGroupsByStudentId: Error retrieving groups for StudentId={StudentId}", studentId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -85,7 +85,7 @@ namespace Capstone.Controllers
                 if (group == null)
                 {
                     _logger.LogWarning("getGroupDetail: Group not found - GroupId={GroupId}", groupId);
-                    return NotFound(new { message = "Group not found" });
+                    return NotFound(new { message = "Không tìm thấy nhóm" });
                 }
 
                 List<ViewQuizDTO> quizzes = await _groupRepository.GetAllDeliveredQuizzesByGroupId(groupId);
@@ -108,7 +108,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "getGroupDetail: Error retrieving group details - GroupId={GroupId}", groupId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -122,7 +122,7 @@ namespace Capstone.Controllers
                 if (request == null)
                 {
                     _logger.LogWarning("createGroup: Request body null");
-                    return BadRequest(new { message = "Request body is required." });
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
                 }
                 int length = 10;
                 const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -146,7 +146,7 @@ namespace Capstone.Controllers
                 if (groupId == null)
                 {
                     _logger.LogWarning("createGroup: Repository returned null for TeacherId={TeacherId}", request.TeacherId);
-                    return StatusCode(500, "Failed to create group");
+                    return StatusCode(500, "Tạo nhóm thất bại");
                 }
                 _logger.LogInformation("createGroup: Success - GroupId={GroupId}", groupId.GroupId);
                 return Ok(groupId );
@@ -154,7 +154,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "createGroup: Error creating group for TeacherId={TeacherId}", request?.TeacherId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -172,29 +172,29 @@ namespace Capstone.Controllers
                 {
                     case ENUMs.GroupEnum.JoinGroupResult.Success:
                         _logger.LogInformation("insertStudentToGroup: Success - GroupId={GroupId}, IdUnique={IdUnique}", groupId, IdUnique);
-                        return Ok(new { message = "Student added to group successfully" });
+                        return Ok(new { message = "Thêm học viên vào nhóm thành công" });
 
                     case ENUMs.GroupEnum.JoinGroupResult.AlreadyInGroup:
                         _logger.LogInformation("insertStudentToGroup: Student already in group - GroupId={GroupId}, IdUnique={IdUnique}", groupId, IdUnique);
-                        return BadRequest(new { message = "Student is already in the group" });
+                        return BadRequest(new { message = "Học viên đã có trong nhóm" });
 
                     case ENUMs.GroupEnum.JoinGroupResult.Fail:
                         _logger.LogWarning("insertStudentToGroup: Group not found - GroupId={GroupId}", groupId);
-                        return NotFound(new { message = "Group not found" });
+                        return NotFound(new { message = "Không tìm thấy nhóm" });
 
                     case ENUMs.GroupEnum.JoinGroupResult.Error:
                         _logger.LogError("insertStudentToGroup: Repository error - GroupId={GroupId}, IdUnique={IdUnique}", groupId, IdUnique);
-                        return StatusCode(500, new { message = "Error adding student to group" });
+                        return StatusCode(500, new { message = "Lỗi khi thêm học viên vào nhóm" });
 
                     default:
                         _logger.LogError("insertStudentToGroup: Unknown result - GroupId={GroupId}, IdUnique={IdUnique}, Result={Result}", groupId, IdUnique, result);
-                        return StatusCode(500, new { message = "Unknown error" });
+                        return StatusCode(500, new { message = "Lỗi không xác định" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "insertStudentToGroup: Unexpected error - GroupId={GroupId}, IdUnique={IdUnique}", groupId, IdUnique);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -207,7 +207,7 @@ namespace Capstone.Controllers
                 if (request == null)
                 {
                     _logger.LogWarning("insertQuizToGroup: Request body null");
-                    return BadRequest(new { message = "Request body is required." });
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
                 }
                 var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -215,7 +215,7 @@ namespace Capstone.Controllers
                 if (result == null)
                 {
                     _logger.LogWarning("insertQuizToGroup: Repository returned null - QuizId={QuizId}, GroupId={GroupId}", request.QuizId, request.GroupId);
-                    return StatusCode(500, "Failed to insert quiz to group");
+                    return StatusCode(500, "Thêm bài kiểm tra vào nhóm thất bại");
                 }
                 _logger.LogInformation("insertQuizToGroup: Success - QuizId={QuizId}, GroupId={GroupId}", request.QuizId, request.GroupId);
                 return StatusCode(200, result);
@@ -223,7 +223,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "insertQuizToGroup: Error inserting quiz to group - QuizId={QuizId}, GroupId={GroupId}", request?.QuizId, request?.GroupId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -240,25 +240,25 @@ namespace Capstone.Controllers
                 {
                     case ENUMs.GroupEnum.JoinGroupResult.Success:
                         _logger.LogInformation("joinGroupByInvite: Success - InviteCode={InviteCode}, StudentId={StudentId}", IdUnique, studentId);
-                        return Ok(new { message = "Joined group successfully" });
+                        return Ok(new { message = "Tham gia nhóm thành công" });
                     case ENUMs.GroupEnum.JoinGroupResult.AlreadyInGroup:
                         _logger.LogInformation("joinGroupByInvite: Student already in group - InviteCode={InviteCode}, StudentId={StudentId}", IdUnique, studentId);
-                        return BadRequest(new { message = "Student is already in the group" });
+                        return BadRequest(new { message = "Học viên đã có trong nhóm" });
                     case ENUMs.GroupEnum.JoinGroupResult.Fail:
                         _logger.LogWarning("joinGroupByInvite: Invalid invite code - InviteCode={InviteCode}", IdUnique);
-                        return NotFound(new { message = "Invalid invite code" });
+                        return NotFound(new { message = "Mã mời không hợp lệ" });
                     case ENUMs.GroupEnum.JoinGroupResult.Error:
                         _logger.LogError("joinGroupByInvite: Repository error - InviteCode={InviteCode}, StudentId={StudentId}", IdUnique, studentId);
-                        return StatusCode(500, new { message = "Error joining group" });
+                        return StatusCode(500, new { message = "Lỗi khi tham gia nhóm" });
                     default:
                         _logger.LogError("joinGroupByInvite: Unknown result - InviteCode={InviteCode}, StudentId={StudentId}, Result={Result}", IdUnique, studentId, result);
-                        return StatusCode(500, new { message = "Unknown error" });
+                        return StatusCode(500, new { message = "Lỗi không xác định" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "joinGroupByInvite: Unexpected error - InviteCode={InviteCode}, StudentId={StudentId}", IdUnique, studentId);
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
 
@@ -272,7 +272,7 @@ namespace Capstone.Controllers
                 if (request == null)
                 {
                     _logger.LogWarning("updateGroup: Request body null");
-                    return BadRequest(new { message = "Request body is required." });
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
                 }
                 var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -280,7 +280,7 @@ namespace Capstone.Controllers
                 if (updatedGroup == null)
                 {
                     _logger.LogWarning("updateGroup: Repository returned null for GroupId={GroupId}", request.GroupId);
-                    return NotFound(new { message = "Group not found" });
+                    return NotFound(new { message = "Không tìm thấy nhóm" });
                 }
                 _logger.LogInformation("updateGroup: Success - GroupId={GroupId}", request.GroupId);
                 return Ok(updatedGroup);
@@ -288,7 +288,7 @@ namespace Capstone.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "updateGroup: Error updating group - GroupId={GroupId}", request?.GroupId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -305,18 +305,18 @@ namespace Capstone.Controllers
                 if (result)
                 {
                     _logger.LogInformation("deleteGroup: Success - GroupId={GroupId}", groupId);
-                    return Ok(new { Message = "Group deleted successfully" });
+                    return Ok(new { Message = "Xóa nhóm thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("deleteGroup: Group not found - GroupId={GroupId}", groupId);
-                    return NotFound(new { Message = "Group not found" });
+                    return NotFound(new { Message = "Không tìm thấy nhóm" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "deleteGroup: Error deleting group - GroupId={GroupId}", groupId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -332,18 +332,18 @@ namespace Capstone.Controllers
                 if (result)
                 {
                     _logger.LogInformation("leaveGroup: Success - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
-                    return Ok(new { Message = "Left group successfully" });
+                    return Ok(new { Message = "Rời nhóm thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("leaveGroup: Student not found in group - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
-                    return NotFound(new { Message = "Group or Student not found" });
+                    return NotFound(new { Message = "Không tìm thấy nhóm hoặc học viên" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "leaveGroup: Error leaving group - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -359,18 +359,18 @@ namespace Capstone.Controllers
                 if (result)
                 {
                     _logger.LogInformation("removeStudentFromGroup: Success - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
-                    return Ok(new { Message = "Student removed from group successfully" });
+                    return Ok(new { Message = "Xóa học viên khỏi nhóm thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("removeStudentFromGroup: Student not found in group - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
-                    return NotFound(new { Message = "Group or Student not found" });
+                    return NotFound(new { Message = "Không tìm thấy nhóm hoặc học viên" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "removeStudentFromGroup: Error removing student from group - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
 
@@ -386,18 +386,18 @@ namespace Capstone.Controllers
                 if (result)
                 {
                     _logger.LogInformation("removeQuizFromGroup: Success - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-                    return Ok(new { Message = "Quiz removed from group successfully" });
+                    return Ok(new { Message = "Xóa bài kiểm tra khỏi nhóm thành công" });
                 }
                 else
                 {
                     _logger.LogWarning("removeQuizFromGroup: Quiz not found in group - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-                    return NotFound(new { Message = "Group or Quiz not found" });
+                    return NotFound(new { Message = "Không tìm thấy nhóm hoặc bài kiểm tra" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "removeQuizFromGroup: Error removing quiz from group - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-                return StatusCode(500, "Internal server error");
+                return StatusCode(500, "Lỗi máy chủ nội bộ");
             }
         }
     }
