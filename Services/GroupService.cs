@@ -307,6 +307,8 @@ namespace Capstone.Services
                 };
                 bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
                 await _hubContext.Clients.User(StudentId.ToString()).SendAsync("GroupNotification", message);
+
+
                 return JoinGroupResult.Success;
             }
             catch (Exception ex)
@@ -527,9 +529,15 @@ namespace Capstone.Services
                         // gửi tin realtime 
                         foreach (var student in studentId)
                         {
-
-                            await _hubContext.Clients.User(student.ToString())
-                                .SendAsync("GroupNotification", message);
+                            try
+                            {
+                                Console.WriteLine("OKKKKKKKk");
+                                await _hubContext.Clients.User(student.ToString()).SendAsync("GroupNotification", message);
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine("LOIIIIIIIIIIIIIIII");
+                            }
                         }
 
                         _logger.LogInformation(

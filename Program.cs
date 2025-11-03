@@ -137,11 +137,10 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
-
+builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
 builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
 builder.Services.AddScoped<MongoDbContext>();
-
 builder.Services.AddSingleton<RabbitMQProducer>();
 builder.Services.AddScoped<IRabbitMQProducer, RabbitMQProducer>();
 builder.Services.AddHostedService<AuditLogConsumer>();

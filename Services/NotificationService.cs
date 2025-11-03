@@ -145,6 +145,7 @@ namespace Capstone.Services
                 var notification = await _dbContext.notifications
                     .Where(n => n.ReceiverId == accountId && n.IsRead == false)
                     .OrderByDescending(n => n.CreateAt)
+                    .Take(5)
                     .Select(n => new GetNotificationDTO
                     {
                         NotificationId = n.NotificationId,
