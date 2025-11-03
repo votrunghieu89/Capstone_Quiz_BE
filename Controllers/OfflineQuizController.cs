@@ -1,6 +1,7 @@
 ﻿using Capstone.DTOs;
 using Capstone.Repositories.Quizzes;
 using Capstone.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("start")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> StartQuiz([FromBody] StartOfflineQuizDTO dto)
         {
             try
@@ -37,6 +39,7 @@ namespace Capstone.Controllers
 
         // Đây là endpoint để học sinh gửi đáp án của mỗi câu hỏi.
         [HttpPost("answer")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> SubmitAnswer([FromBody] StudentAnswerSubmissionDTO dto)
         {
             try
@@ -60,6 +63,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("submit")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> SubmitQuiz([FromBody] FinishOfflineQuizDTO dto)
         {
             try
@@ -83,6 +87,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("result/{studentId}/{quizId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetResult(int studentId, int quizId)
         {
             try

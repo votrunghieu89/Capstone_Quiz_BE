@@ -1,6 +1,7 @@
 ﻿using Capstone.DTOs.StudentProfile;
 using Capstone.Model;
 using Capstone.Repositories.Profiles;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,6 +26,7 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("getStudentProfile/{studentId}")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> getStudentProfile(int studentId)
         {
             _logger.LogInformation("getStudentProfile: Start - StudentId={StudentId}", studentId);
@@ -60,6 +62,7 @@ namespace Capstone.Controllers
 
         // ===== POST METHODS =====
         [HttpPost("updateStudentProfile")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> updateStudentProfile([FromForm] StudenProfileUpdateDTO studentProfile)
         {
             _logger.LogInformation("updateStudentProfile: Start - StudentId={StudentId}", studentProfile?.StudentId);

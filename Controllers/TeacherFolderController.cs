@@ -1,5 +1,6 @@
 ﻿using Capstone.Repositories.Folder;
 using Capstone.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using static Capstone.ENUMs.TeacherFolderEnum;
@@ -21,6 +22,7 @@ namespace Capstone.Controllers
 
         // ------------------------- CREATE FOLDER -------------------------
         [HttpPost("createFolder")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> CreateFolder(int teacherID, string folderName, int? parentFolderID)
         {
             try
@@ -44,6 +46,7 @@ namespace Capstone.Controllers
 
         // ------------------------- GET ALL FOLDERS -------------------------
         [HttpGet("getAllFolder")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetAllFolder(int teacherID)
         {
             try
@@ -67,6 +70,7 @@ namespace Capstone.Controllers
 
         // ------------------------- GET FOLDER DETAIL -------------------------
         [HttpGet("getFolderDetail")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetFolderDetail(int teacherId, int folderId)
         {
             try
@@ -90,6 +94,7 @@ namespace Capstone.Controllers
 
         // ------------------------- UPDATE FOLDER -------------------------
         [HttpPut("updateFolder")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> UpdateFolder(int folderId, string folderName)
         {
             try
@@ -113,6 +118,7 @@ namespace Capstone.Controllers
 
         // ------------------------- REMOVE QUIZ TO OTHER FOLDER -------------------------
         [HttpPut("moveQuizToOtherFolder")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> MoveQuizToOtherFolder(int quizId, int folderId)
         {
             try
@@ -136,6 +142,7 @@ namespace Capstone.Controllers
 
         // ------------------------- DELETE FOLDER -------------------------
         [HttpDelete("deleteFolder")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> DeleteFolder(int folderId)
         {
             try

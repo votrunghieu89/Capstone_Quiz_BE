@@ -44,7 +44,7 @@ CREATE TABLE Groups (
     GroupDescription NVARCHAR(255) NULL,
     IdUnique NVARCHAR(100) NOT NULL UNIQUE,
     CreateAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
-    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId) ON DELETE CASCADE
+    FOREIGN KEY (TeacherId) REFERENCES TeacherProfile(TeacherId) 
 );
 
 -- Bảng Student_Group (N-M giữa StudentProfile và Groups)

@@ -1,5 +1,6 @@
 ﻿using Capstone.DTOs.Reports.Student;
 using Capstone.Repositories.Histories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Capstone.Controllers
@@ -23,6 +24,7 @@ namespace Capstone.Controllers
         /// Get all completed public quizzes for a student
         /// </summary>
         [HttpGet("public-quizzes/{studentId:int}")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> GetAllCompletedPublicQuizzes(int studentId)
         {
             _logger.LogInformation("GetAllCompletedPublicQuizzes: Start - StudentId={StudentId}", studentId);
@@ -54,6 +56,7 @@ namespace Capstone.Controllers
         /// Get all completed private quizzes for a student
         /// </summary>
         [HttpGet("private-quizzes/{studentId:int}")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> GetAllCompletedPrivateQuizzes(int studentId)
         {
             _logger.LogInformation("GetAllCompletedPrivateQuizzes: Start - StudentId={StudentId}", studentId);
@@ -85,6 +88,7 @@ namespace Capstone.Controllers
         /// Get detailed information about a completed quiz
         /// </summary>
         [HttpGet("quiz-detail")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> GetDetailOfCompletedQuiz([FromQuery] DetailOfCompletedQuizRequest request)
         {
             _logger.LogInformation("GetDetailOfCompletedQuiz: Start - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",
@@ -142,6 +146,7 @@ namespace Capstone.Controllers
         /// Get detailed information about a completed quiz using path parameters
         /// </summary>
         [HttpGet("quiz-detail/{studentId:int}/{quizId:int}")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> GetDetailOfCompletedQuizByPath(int studentId, int quizId, [FromQuery] DateTime createAt)
         {
             _logger.LogInformation("GetDetailOfCompletedQuizByPath: Start - StudentId={StudentId}, QuizId={QuizId}, CreateAt={CreateAt}",

@@ -1,6 +1,7 @@
 ﻿using Capstone.DTOs.TeacherProfile;
 using Capstone.Model;
 using Capstone.Repositories.Profiles;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,6 +27,7 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("getTeacherProfile/{teacherId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> getTeacherProfile(int teacherId)
         {
             _logger.LogInformation("getTeacherProfile: Start - TeacherId={TeacherId}", teacherId);

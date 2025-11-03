@@ -1,4 +1,5 @@
 ﻿using Capstone.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.WebSockets;
 
@@ -18,6 +19,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAllTopic")]
+        [Authorize(Roles = "Teacher,Student,Admin")]
         public async Task<IActionResult> getAllTopic()
         {
             try

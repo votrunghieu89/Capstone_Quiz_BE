@@ -3,6 +3,7 @@ using Capstone.DTOs.Quizzes;
 using Capstone.ENUMs;
 using Capstone.Repositories;
 using Capstone.Repositories.Quizzes;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("CreateQuizByGemini")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> CreateQuizByGemini([FromForm] Gemini_InputDTO input)
         {
             var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();

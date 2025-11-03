@@ -1,12 +1,14 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Quizzes;
 using Capstone.DTOs.Quizzes.QuizzOnline;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
 namespace Capstone.SignalR
 {
+    [Authorize]
     public class QuizHub : Hub
     {
         // list ở dây là tên giáo viên và học sinh
@@ -56,6 +58,7 @@ namespace Capstone.SignalR
             await base.OnDisconnectedAsync(exception);
         }
 
+        [Authorize(Roles = "Teacher")]
         public async Task<string> CreateRoom(int quizId, int teacherId, int totalQuestion)
         {
             string roomCode;
@@ -79,7 +82,7 @@ namespace Capstone.SignalR
             await _redis.SetStringAsync($"quiz:room:{roomCode}",jsonData, TimeSpan.FromHours(3));
             return roomCode;
         }
-
+        [Authorize(Roles = "Student")]
         public async Task<string> JoinRoom(string roomCode, string studentName, int totalQuestion)
         {
             // Kiểm tra phòng tồn tại trong bộ nhớ cục bộ (Rooms)
@@ -124,7 +127,7 @@ namespace Capstone.SignalR
                 roomCode
             });
         }
-
+        [Authorize(Roles = "Teacher")]
         public async Task StartGame(string roomCode)
         {
             if (Rooms.ContainsKey(roomCode))
@@ -152,7 +155,7 @@ namespace Capstone.SignalR
                     await Clients.Client(teacherConnectionId).SendAsync("GameStarted");
             }
         }
-
+        [Authorize(Roles = "Teacher")]
         public async Task EndBeforeStartGameHandler(string roomCode)
         {
             _logger.LogInformation("Ending game for room {RoomCode}", roomCode);
@@ -176,7 +179,7 @@ namespace Capstone.SignalR
                 _logger.LogError(ex, "Error while ending game for room {RoomCode}", roomCode);
             }
         }
-
+        [Authorize(Roles = "Teacher")]
         // Đặt hàm này trong QuizHub
         public async Task EndAfterComplete(string roomCode)
         {
@@ -216,7 +219,7 @@ namespace Capstone.SignalR
                 _logger.LogError(ex, "Error while ending game after completion for room {RoomCode}", roomCode);
             }
         }
-
+        [Authorize(Roles = "Teacher")]
         public async Task EndClick(string roomCode)
         {
             try
@@ -229,9 +232,19 @@ namespace Capstone.SignalR
                 _logger.LogError(ex, "Error while ending game after completion for room {RoomCode}", roomCode);
             }
         }
-
+        [Authorize(Roles = "Student")]
         public async Task StudentComplete(string roomCode, string studentId) // result
         {
+            string leaderboardKey = $"quiz:room:{roomCode}:leaderboard";
+
+            // 1. Lấy thứ hạng của học sinh đang nộp bài
+            // Redis ZRevRank trả về thứ hạng index bắt đầu từ 0
+            long? rankIndex = await _redis.ZRankAsync(leaderboardKey, studentId);
+            int rank = rankIndex.HasValue ? (int)rankIndex.Value + 1 : 0;
+
+            // 2. Cập nhật Rank của học sinh trong Hash
+            string detailKey = $"quiz:room:{roomCode}:student:{studentId}:detail";
+            await _redis.HSetAsync(detailKey, "Rank", rank.ToString(), TimeSpan.FromHours(3));
             // 1. Lấy thông tin phòng
             var jsonRoomRedis = await _redis.GetStringAsync($"quiz:room:{roomCode}");
             if (string.IsNullOrEmpty(jsonRoomRedis)) return ;

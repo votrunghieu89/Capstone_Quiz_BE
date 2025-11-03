@@ -81,14 +81,17 @@ namespace Capstone.Services
                     .Where(gq => gq.GroupId == groupId)
                     .Select(gq => gq.QGId)
                     .ToListAsync();
-
+                List<int> StudentIdList = await _appDbContext.studentGroups.Where(sg => sg.GroupId == groupId).Select(sg => sg.StudentId).ToListAsync();
+                string? groupName = await _appDbContext.groups.Where(gq => gq.GroupId == groupId).Select(gq => gq.GroupName).FirstOrDefaultAsync();
 
                 if (QgIdList.Any())
                 {
                     int deletedReports = await _appDbContext.offlinereports
                         .Where(r => QgIdList.Contains(r.QGId))
                         .ExecuteDeleteAsync();
-
+                    //int deletedResult = await _appDbContext.offlineResults
+                    // .Where(r => r.GroupId == groupId)
+                    // .ExecuteDeleteAsync();
                     _logger.LogInformation("DeleteGroup: Deleted {Count} reports related to GroupId={GroupId}", deletedReports, groupId);
                 }
                 int deletedQuizzGroups = await _appDbContext.quizzGroups
@@ -106,7 +109,7 @@ namespace Capstone.Services
                 int isDelete = await _appDbContext.groups
                     .Where(g => g.GroupId == groupId)
                     .ExecuteDeleteAsync();
-
+               
                 if (isDelete > 0)
                 {
                     await transaction.CommitAsync();
@@ -120,6 +123,18 @@ namespace Capstone.Services
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
+                    string message = $"Group {groupName} has been deleted";
+
+                   foreach(var studentId in StudentIdList)
+                    {
+                        InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
+                        {
+                            SenderId = accountId,
+                            ReceiverId = studentId,
+                            Message = message
+                        };
+                        bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
+                    }
                     return true;
                 }
                 else
@@ -563,7 +578,6 @@ namespace Capstone.Services
                 int isDeleteReport = await _appDbContext.offlinereports
                     .Where(r => r.QGId == QgId)
                     .ExecuteDeleteAsync();
-
                 // Xóa quan hệ quiz-group
                 int isDeleteQuizzGroup = await _appDbContext.quizzGroups
                     .Where(gq => gq.GroupId == groupId && gq.QuizId == quizId)

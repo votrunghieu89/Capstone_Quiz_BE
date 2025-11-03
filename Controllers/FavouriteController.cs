@@ -1,4 +1,5 @@
 ﻿using Capstone.Repositories.Favourite;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +19,7 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("getAllFavouriteQuizzes/{accountId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetAllFavouriteQuizzes(int accountId)
         {
             var getAllFavouriteQuizzes = await _repository.GetAllFavouriteQuizzes(accountId);
@@ -32,7 +34,9 @@ namespace Capstone.Controllers
             return Ok(getAllFavouriteQuizzes);
         }
 
+     
         [HttpGet("isFavouriteExists")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> IsFavouriteExists(int accountId, int quizzId)
         {
             var isFavouriteExists = await _repository.IsFavouriteExists(accountId, quizzId);
@@ -42,6 +46,7 @@ namespace Capstone.Controllers
 
         // ===== POST METHODS =====
         [HttpPost("insertFavouriteQuiz")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> InsertFavouriteQuizzes(int accountId, int quizzId)
         {
             var insertFavouriteQuizzes = await _repository.InsertFavouriteQuizzes(accountId, quizzId);
@@ -63,6 +68,7 @@ namespace Capstone.Controllers
 
         // ===== DELETE METHODS =====
         [HttpDelete("removeFavouriteQuiz")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> RemoveFavouriteQuizzes(int quizzFID)
         {
             var removeFavouriteQuizzes = await _repository.RemoveFavouriteQuizzes(quizzFID);

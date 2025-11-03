@@ -1,5 +1,6 @@
 ﻿using Capstone.DTOs.Notification;
 using Capstone.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Capstone.Controllers
@@ -17,6 +18,7 @@ namespace Capstone.Controllers
             _notificationService = notificationService;
         }
         [HttpGet("latest/{accountId:int}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetAllNotifications(int accountId)
         {
             try
@@ -44,6 +46,7 @@ namespace Capstone.Controllers
             }
         }
         [HttpPut("mark-read/{notificationId:int}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> MarkAsRead(int notificationId)
         {
             try
@@ -78,6 +81,7 @@ namespace Capstone.Controllers
         /// Mark a notification as unread
         /// </summary>
         [HttpPut("mark-unread/{notificationId:int}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> MarkAsUnread(int notificationId)
         {
             try
@@ -112,6 +116,7 @@ namespace Capstone.Controllers
         /// Mark all notifications as read for a specific account
         /// </summary>
         [HttpPut("mark-all-read/{accountId:int}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> MarkAllAsRead(int accountId)
         {
             try
@@ -146,6 +151,7 @@ namespace Capstone.Controllers
         /// Mark all notifications as unread for a specific account
         /// </summary>
         [HttpPut("mark-all-unread/{accountId:int}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> MarkAllAsUnread(int accountId)
         {
             try

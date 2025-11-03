@@ -3,6 +3,7 @@ using Capstone.DTOs.Reports.Teacher.OfflineReport;
 using Capstone.DTOs.Reports.Teacher.OnlineReport;
 using Capstone.ENUMs;
 using Capstone.Repositories.Histories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static Capstone.ENUMs.ExpiredEnumDTO;
 
@@ -27,6 +28,7 @@ namespace Capstone.Controllers
         /// Get all offline quiz reports for a teacher
         /// </summary>
         [HttpGet("offline/quiz-reports/{teacherId:int}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOfflineQuizReports(int teacherId)
         {
             _logger.LogInformation("GetOfflineQuizReports: Start - TeacherId={TeacherId}", teacherId);
@@ -53,6 +55,7 @@ namespace Capstone.Controllers
         /// Get detailed offline report for a specific quiz
         /// </summary>
         [HttpGet("offline/detail-report")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOfflineDetailReport([FromQuery] OfflineDetailReportRequest request)
         {
             _logger.LogInformation("GetOfflineDetailReport: Start - OfflineReportId={OfflineReportId}, QuizId={QuizId}",
@@ -90,6 +93,7 @@ namespace Capstone.Controllers
         /// Get offline student report for a specific quiz
         /// </summary>
         [HttpGet("offline/student-report")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOfflineStudentReport([FromQuery] OfflineStudentReportRequest request)
         {
             _logger.LogInformation("GetOfflineStudentReport: Start - QuizId={QuizId}, QGId={GroupId}",
@@ -120,6 +124,7 @@ namespace Capstone.Controllers
         /// Get offline question report for a specific quiz
         /// </summary>
         [HttpGet("offline/question-report")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOfflineQuestionReport([FromQuery] OfflineQuestionReportRequest request)
         {
             _logger.LogInformation("GetOfflineQuestionReport: Start - QuizId={QuizId}, QGId={GroupId}",
@@ -150,6 +155,7 @@ namespace Capstone.Controllers
         /// Get all online quiz reports for a teacher
         /// </summary>
         [HttpGet("online/quiz-reports/{teacherId:int}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOnlineQuizReports(int teacherId)
         {
             _logger.LogInformation("GetOnlineQuizReports: Start - TeacherId={TeacherId}", teacherId);
@@ -176,6 +182,7 @@ namespace Capstone.Controllers
         /// Get detailed online report for a specific quiz
         /// </summary>
         [HttpGet("online/detail-report")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOnlineDetailReport([FromQuery] OnlineDetailReportRequest request)
         {
             _logger.LogInformation("GetOnlineDetailReport: Start - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
@@ -213,6 +220,7 @@ namespace Capstone.Controllers
         /// Get online student report for a specific quiz
         /// </summary>
         [HttpGet("online/student-report")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOnlineStudentReport([FromQuery] OnlineStudentReportRequest request)
         {
             _logger.LogInformation("GetOnlineStudentReport: Start - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
@@ -243,6 +251,7 @@ namespace Capstone.Controllers
         /// Get online question report for a specific quiz
         /// </summary>
         [HttpGet("online/question-report")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetOnlineQuestionReport([FromQuery] OnlineQuestionReportRequest request)
         {
             _logger.LogInformation("GetOnlineQuestionReport: Start - QuizId={QuizId}, OnlineReportId={OnlineReportId}",
@@ -273,6 +282,7 @@ namespace Capstone.Controllers
         /// Get detailed information about a specific question
         /// </summary>
         [HttpGet("question-detail/{questionId:int}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> ViewDetailOfQuestion(int questionId)
         {
             _logger.LogInformation("ViewDetailOfQuestion: Start - QuestionId={QuestionId}", questionId);
@@ -307,6 +317,7 @@ namespace Capstone.Controllers
         /// Check if a quiz has expired and update status if needed
         /// </summary>
         [HttpPost("check-expired")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> CheckExpiredTime([FromBody] CheckExpiredTimeRequest request)
         {
             _logger.LogInformation("CheckExpiredTime: Start - QuizId={QuizId}, QGId={QGId}", request?.QuizId, request?.QGId);
@@ -335,6 +346,7 @@ namespace Capstone.Controllers
         /// End a quiz immediately by setting status to Completed
         /// </summary>
         [HttpPost("end-now")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> EndNow([FromBody] EndNowRequest request)
         {
             _logger.LogInformation("EndNow: Start - QuizId={QuizId}, GroupId={GroupId}", request?.QuizId, request?.GroupId);
@@ -371,6 +383,7 @@ namespace Capstone.Controllers
         /// Change the expired time for a quiz
         /// </summary>
         [HttpPut("change-expired-time")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> ChangeExpiredTime([FromBody] ChangeExpiredTimeRequest request)
         {
             _logger.LogInformation("ChangeExpiredTime: Start - QuizId={QuizId}, QGId={QGId}, NewExpiredTime={NewExpiredTime}",
@@ -420,6 +433,7 @@ namespace Capstone.Controllers
         /// Change the name of an offline report
         /// </summary>
         [HttpPut("offline/change-report-name")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> ChangeOfflineReportName([FromBody] ChangeOfflineReportNameRequest request)
         {
             _logger.LogInformation("ChangeOfflineReportName: Start - OfflineReportId={OfflineReportId}, NewName={NewName}",
@@ -463,6 +477,7 @@ namespace Capstone.Controllers
         /// Change the name of an online report
         /// </summary>
         [HttpPut("online/change-report-name")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> ChangeOnlineReportName([FromBody] ChangeOnlineReportNameRequest request)
         {
             _logger.LogInformation("ChangeOnlineReportName: Start - OnlineReportId={OnlineReportId}, NewName={NewName}",

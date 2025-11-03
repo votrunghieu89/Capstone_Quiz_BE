@@ -2,6 +2,7 @@
 using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
 using Capstone.Repositories.Quizzes;
+using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -28,6 +29,7 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("GetQuestionOfQuizCache/{quizId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetQuizById(int quizId)
         {
             var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
@@ -53,6 +55,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getDetailOfATeacherQuiz/{quizId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> getDetailOfAQuiz(int quizId)
         {
             ViewDetailDTO quizDetails = await _quizRepository.getDetailOfAQuiz(quizId);
@@ -80,6 +83,7 @@ namespace Capstone.Controllers
             return Ok(quiz);
         }
         [HttpGet("getDetailOfAHomePageQuiz/{quizId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> getDetailofAHPQuiz(int quizId)
         {
             try
@@ -97,6 +101,7 @@ namespace Capstone.Controllers
             }
         }
         [HttpGet("GetAllQuizzes")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
         {
             if (pages.page <= 0 || pages.pageSize <= 0)
@@ -138,6 +143,7 @@ namespace Capstone.Controllers
 
         // ===== POST METHODS =====
         [HttpPost("uploadImage")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> UploadImage([FromForm] QuizCreateFormDTO dto)
         {
             var folderName = _configuration["UploadSettings:QuizFolder"];
@@ -164,6 +170,7 @@ namespace Capstone.Controllers
         }
         //[Authorize(Roles = "Teacher")]
         [HttpPost("createQuiz")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> CreateQuiz([FromBody] QuizCreateDTo quiz)
         {
             Console.WriteLine("Received quiz data: " + quiz.AvatarURL);
@@ -210,6 +217,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("CheckQuizAnswers")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> CheckQuizAnswers([FromBody] CheckAnswerDTO quizAnswers)
         {
             var result = await _quizRepository.checkAnswer(quizAnswers);
@@ -221,6 +229,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("GetCorrectAnswers")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetCorrectAnswers([FromBody] GetCorrectAnswer getCorrectAnswer)
         {
             var correctAnswers = await _quizRepository.getCorrectAnswer(getCorrectAnswer);
@@ -233,6 +242,7 @@ namespace Capstone.Controllers
 
         // ===== PUT METHODS =====
         [HttpPut("updateImage")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> UpdateImage([FromForm] QuizUpdateImageDTO dto)
         {
             try
@@ -293,6 +303,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPut("updateQuiz")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> UpdateQuiz([FromBody] QuizzUpdateControllerDTO quiz)
         {
             try
@@ -340,8 +351,9 @@ namespace Capstone.Controllers
         }
 
         // ===== DELETE METHODS =====
-        [Authorize(Roles = "Teacher")]
+      
         [HttpDelete("deleteQuiz/{quizId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> DeleteQuiz(int quizId)
         {
             var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
@@ -367,6 +379,7 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("deleteQuestion/{questionId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> DeleteQuestion(int questionId)
         {
             bool isDeleted = await _quizRepository.DeleteQuestion(questionId);
@@ -378,6 +391,7 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("ClearQuizCache/{quizId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> ClearQuizCache(int quizId)
         {
             try

@@ -2,6 +2,7 @@
 using Capstone.DTOs.Group;
 using Capstone.Model;
 using Capstone.Repositories.Groups;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Capstone.Controllers
@@ -25,6 +26,7 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("GetGroupByTeacherId/{teacherId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetGroupByTeacherId(int teacherId)
         {
             _logger.LogInformation("GetGroupByTeacherId: Start - TeacherId={TeacherId}", teacherId);
@@ -42,6 +44,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("GetAllStudentsByGroupId/{groupId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetAllStudentsByGroupId(int groupId)
         {
             _logger.LogInformation("GetAllStudentsByGroupId: Start - GroupId={GroupId}", groupId);
@@ -59,6 +62,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("GetAllGroupsByStudentId/{studentId}")]
+        [Authorize(Roles = "Student")]
         public async Task<IActionResult> GetAllGroupsByStudentId(int studentId)
         {
             _logger.LogInformation("GetAllGroupsByStudentId: Start - StudentId={StudentId}", studentId);
@@ -76,6 +80,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("GetGroupDetail/{groupId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetGroupDetail(int groupId)
         {
             _logger.LogInformation("getGroupDetail: Start - GroupId={GroupId}", groupId);
@@ -114,6 +119,7 @@ namespace Capstone.Controllers
 
         // ===== POST METHODS =====
         [HttpPost("createGroup")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> CreateGroup([FromBody] CreateGroupDTO request)
         {
             _logger.LogInformation("createGroup: Start - TeacherId={TeacherId}, GroupName={GroupName}", request?.TeacherId, request?.GroupName);
@@ -159,6 +165,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("insert-student")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> InsertStudentToGroup(int groupId, string IdUnique)
         {
            
@@ -199,6 +206,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("InsertQuizToGroup")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> InsertQuizToGroup([FromBody] InsertQuiz request)
         {
             _logger.LogInformation("insertQuizToGroup: Start - QuizId={QuizId}, GroupId={GroupId}", request?.QuizId, request?.GroupId);
@@ -228,6 +236,7 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("JoinGroupByInvite/{IdUnique}/{studentId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> JoinGroupByInvite(string IdUnique, int studentId)
         {
             _logger.LogInformation("joinGroupByInvite: Start - InviteCode={InviteCode}, StudentId={StudentId}", IdUnique, studentId);
@@ -264,6 +273,7 @@ namespace Capstone.Controllers
 
         // ===== PUT METHODS =====
         [HttpPut("updateGroup")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupDTO request)
         {
             _logger.LogInformation("updateGroup: Start - GroupId={GroupId}, GroupName={GroupName}", request?.GroupId, request?.GroupName);
@@ -294,6 +304,7 @@ namespace Capstone.Controllers
 
         // ===== DELETE METHODS =====
         [HttpDelete("deleteGroup/{groupId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> DeleteGroup(int groupId)
         {
             _logger.LogInformation("deleteGroup: Start - GroupId={GroupId}", groupId);
@@ -321,6 +332,7 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("leaveGroup/{groupId}/{studentId}")]
+        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> LeaveGroup(int groupId, int studentId, int teacherId)
         {
             _logger.LogInformation("leaveGroup: Start - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
@@ -348,6 +360,7 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("removeStudentFromGroup/{groupId}/{studentId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> RemoveStudentFromGroup(int groupId, int studentId, int teacherId)
         {
             _logger.LogInformation("removeStudentFromGroup: Start - GroupId={GroupId}, StudentId={StudentId}", groupId, studentId);
@@ -375,6 +388,7 @@ namespace Capstone.Controllers
         }
 
         [HttpDelete("RemoveQuizFromGroup/{groupId}/{quizId}")]
+        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> RemoveQuizFromGroup(int groupId, int quizId)
         {
             _logger.LogInformation("removeQuizFromGroup: Start - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);

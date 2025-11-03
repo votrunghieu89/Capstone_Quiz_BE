@@ -158,5 +158,19 @@ namespace Capstone.Controllers
                 return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
+        [HttpPut("Update TotalParticipant")]
+        public async Task<IActionResult> UpdateTotal(int quizId, int Total)
+        {
+            try
+            {
+                var result = await _onlineQuizRepository.UpdateNumberOfParticipants(quizId, Total);   
+                return Ok(new { message = $"Cache for quiz {quizId} cleared successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
+                return StatusCode(500, "Error clearing quiz cache.");
+            }
+        }
     }
 }

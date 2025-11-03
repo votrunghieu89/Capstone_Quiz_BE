@@ -2,6 +2,7 @@
 using Capstone.DTOs;
 using Capstone.DTOs.Admin;
 using Capstone.Repositories.Admin;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -27,6 +28,7 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("getAllAccounts")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllAccountsByRole([FromQuery] PaginationDTO pages)
         {
             try
@@ -54,6 +56,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAccount")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedAccount()
         {
             try
@@ -70,6 +73,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAccountByMonth/{month}/{year}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedAccountByMonth(int month, int year)
         {
             try
@@ -94,6 +98,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getQuizzes")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedQuizzes()
         {
             try
@@ -110,6 +115,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getQuizzesByMonth/{month}/{year}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedQuizzesByMonth(int month, int year)
         {
             try
@@ -134,6 +140,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAccountStudent")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedStudentAcount()
         {
             try
@@ -150,6 +157,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAccountStudentByMonth/{month}/{year}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedStudentAcountByMonth(int month, int year)
         {
             try
@@ -174,6 +182,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAccountTeacher")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedTeacherAccount()
         {
             try
@@ -190,6 +199,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAccountTeacherByMonth/{month}/{year}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetNumberOfCreatedTeacherAccountByMonth(int month, int year)
         {
             try
@@ -219,6 +229,7 @@ namespace Capstone.Controllers
         /// Ban an account by setting IsActive to false
         /// </summary>
         [HttpPut("ban-account/{accountId:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> BanAccount(int accountId)
         {
             try
@@ -253,6 +264,7 @@ namespace Capstone.Controllers
         /// Unban an account by setting IsActive to true
         /// </summary>
         [HttpPut("unban-account/{accountId:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UnBanAccount(int accountId)
         {
             try
