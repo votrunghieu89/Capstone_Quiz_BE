@@ -467,5 +467,20 @@ namespace Capstone.Controllers
                 return StatusCode(500, new { message = "Đã xảy ra lỗi không mong muốn." });
             }
         }
+        [HttpPost("RegisterAdmin")]
+        public async Task<ActionResult> RegisterAdmin([FromBody] AuthRegisterStudentDTO authRegisterDTO)
+        {
+            try
+            {
+                bool isSuccess = await _authRepository.RegisterAccountAdmin(authRegisterDTO);
+                return Ok(new { message = "Đăng ký admin thành công." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "registerTeacher: Error while registering teacher for Email={Email}", authRegisterDTO?.Email);
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu của bạn." });
+            }
+        }
+
     }
 }

@@ -452,7 +452,7 @@ namespace Capstone.Services
         }
 
 
-        public async Task<bool> RegisterAccountAdmin(AuthModel adminAccount)
+        public async Task<bool> RegisterAccountAdmin(AuthRegisterStudentDTO adminAccount)
         {
             try
             {
@@ -461,6 +461,7 @@ namespace Capstone.Services
                     Email = adminAccount.Email,
                     PasswordHash = Hash.HashPassword(adminAccount.PasswordHash),
                     Role = AuthEnum.Role.Admin.ToString(),
+                    IsActive = true,
                     CreateAt = DateTime.Now
                 };
                 await _context.authModels.AddAsync(newAccount);
