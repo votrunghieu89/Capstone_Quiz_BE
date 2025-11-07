@@ -1,14 +1,15 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
+using Capstone.DTOs.Quizzes.QuizzOnline;
 using Capstone.Model;
+using Capstone.RabbitMQ;
 using Capstone.Repositories.Quizzes;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-using System.Linq;
-using Capstone.RabbitMQ;
-using System.Threading.Tasks;
 using System;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Capstone.Services
 {
@@ -269,14 +270,8 @@ namespace Capstone.Services
                     // Lưu kết quả (OfflineResult) trước để lấy ID
                     await _context.SaveChangesAsync();
                     int offResultId = currentResult.OffResultId;
-
-<<<<<<< HEAD
                     //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
                     var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModel
-=======
-                    // Lưu các câu trả lời sai (OfflineWrongAnswers)
-                    var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModule
->>>>>>> origin/Update_QuizzOffline
                     {
                         OffResultId = offResultId,
                         QuestionId = wa.QuestionId,
@@ -375,15 +370,15 @@ namespace Capstone.Services
                     await transaction.CommitAsync();
 
                     // THÊM AUDIT LOG (RabbitMQ) - Đặt sau khi commit thành công
-                    //var log = new AuditLogModel()
-                    //{
-                    //    AccountId = accountId,
-                    //    Action = "Submit offline quiz",
-                    //    Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId ?? 0}) with score: {score}%",
-                    //    Timestamp = DateTime.Now,
-                    //    IpAddress = ipAddress
-                    //};
-                    //await _rabbitMQ.SendMessageAsync(JsonSerializer.Serialize(log));
+                    var log = new AuditLogModel()
+                    {
+                        AccountId = accountId,
+                        Action = "Insert offline quiz result",
+                        Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId ?? 0}) with score: {score}%",
+                        Timestamp = DateTime.Now,
+                        IpAddress = ipAddress
+                    };
+                    await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
 
 
                     // Xóa Cache phiên làm bài

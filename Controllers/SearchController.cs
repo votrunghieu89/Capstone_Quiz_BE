@@ -76,8 +76,12 @@ namespace Capstone.Controllers
         {
             try
             {
-                var acc =await _repo.SearchAccountByEmail(email);
+                var acc=await _repo.SearchAccountByEmail(email);
                 _logger.LogInformation($"Search account by email: {email}");
+                if(acc == null)
+                {
+                    return NotFound(new { message = "Account not found with the provided email." });
+                }
                 return Ok(acc);
             }catch (Exception ex)
             {
@@ -92,12 +96,18 @@ namespace Capstone.Controllers
             try
             {
                 var parListGr = await _repo.SearchParticipantInGroup(Name, groupId);
-                _logger.LogInformation($"Search Participant In Group by Name and groupId :{Name} {groupId} ");
+                _logger.LogInformation($"Search Participant In Group by Name and groupId: {Name}, {groupId}");
+
+                if (parListGr == null || !parListGr.Any())
+                {
+                    return NotFound(new { message = "No participants found in this group with the given name." });
+                }
+
                 return Ok(parListGr);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error search Participant In Group by Name and groupId");
+                _logger.LogError(ex, "Error searching Participant In Group by Name and groupId");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
@@ -107,13 +117,19 @@ namespace Capstone.Controllers
         {
             try
             {
-                var studentOfReportList =await _repo.SearchStudentInOfflineReport(Name, reportId);
-                _logger.LogInformation($"Search Student In Offline Report by Name and reportId :{Name} {reportId} ");
+                var studentOfReportList = await _repo.SearchStudentInOfflineReport(Name, reportId);
+                _logger.LogInformation($"Search Student In Offline Report by Name and reportId: {Name}, {reportId}");
+
+                if (studentOfReportList == null || !studentOfReportList.Any())
+                {
+                    return NotFound(new { message = "No students found in this offline report with the given name." });
+                }
+
                 return Ok(studentOfReportList);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error search Student In Offline Report by Name and reportId");
+                _logger.LogError(ex, "Error searching Student In Offline Report by Name and reportId");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
@@ -124,12 +140,18 @@ namespace Capstone.Controllers
             try
             {
                 var studentOnlReportList = await _repo.SearchStudentInOnlineReport(Name, reportId);
-                _logger.LogInformation($"Search Student In Online Report by Name and reportId :{Name} {reportId} ");
+                _logger.LogInformation($"Search Student In Online Report by Name and reportId: {Name}, {reportId}");
+
+                if (studentOnlReportList == null || !studentOnlReportList.Any())
+                {
+                    return NotFound(new { message = "No students found in this online report with the given name." });
+                }
+
                 return Ok(studentOnlReportList);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error search Student In Online Report by Name and reportId");
+                _logger.LogError(ex, "Error searching Student In Online Report by Name and reportId");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
