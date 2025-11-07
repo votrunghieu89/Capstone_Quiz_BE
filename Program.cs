@@ -4,6 +4,7 @@ using Capstone.RabbitMQ;
 using Capstone.Repositories;
 using Capstone.Repositories.Admin;
 using Capstone.Repositories.Favourite;
+using Capstone.Repositories.Filter_Search;
 using Capstone.Repositories.Folder;
 using Capstone.Repositories.Groups;
 using Capstone.Repositories.Histories;
@@ -114,9 +115,9 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
-// ✅ Đăng ký đầy đủ services (kết hợp các nhánh)
-builder.Services.AddScoped<IEmailService,EmailService>();
-builder.Services.AddScoped<IGoogleService,GoogleService>();
+// ✅ Đăng ký đầy đủ services (kết hợp cả hai nhánh)
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IGoogleService, GoogleService>();
 builder.Services.AddScoped<Capstone.Database.IRedis, Redis>();
 builder.Services.AddScoped<IToken, Token>();
 builder.Services.AddScoped<IAuthRepository, AuthService>();
@@ -132,12 +133,13 @@ builder.Services.AddScoped<IOnlineQuizRepository, OnlineQuizService>();
 builder.Services.AddScoped<INotificationRepository, NotificationService>();
 builder.Services.AddScoped<IOfflineQuizRepository, OfflineQuizService>();
 builder.Services.AddScoped<ITeacherFolder, TeacherFolderService>();
-builder.Services.AddScoped<IGemeniService,GeminiService>();
+builder.Services.AddScoped<IGemeniService, GeminiService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(redisConnection);
 builder.Services.AddSingleton<Redis>();
 builder.Services.AddScoped<ConnectionService>();
 builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
-builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>();
+builder.Services.AddScoped<ISearchRepository, SearchService>(); // ✅ từ Feature_Filter
+builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>(); // ✅ từ main
 builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
 builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
 builder.Services.AddScoped<MongoDbContext>();
