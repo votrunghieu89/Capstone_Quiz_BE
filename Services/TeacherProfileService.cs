@@ -71,7 +71,7 @@ namespace Capstone.Services
                     AccountId = accountId,
                     Action = "Update teacher profile",
                     Description = $"Teacher profile for ID:{accountId} has been updated.",
-                    Timestamp = DateTime.Now,
+                    CreatAt = DateTime.Now,
                     IpAddress = ipAddress
                 };
                 await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));

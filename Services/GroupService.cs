@@ -124,7 +124,6 @@ namespace Capstone.Services
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
                     string message = $"Group {groupName} has been deleted";
-
                    foreach(var studentId in StudentIdList)
                     {
                         InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
@@ -133,6 +132,7 @@ namespace Capstone.Services
                             ReceiverId = studentId,
                             Message = message
                         };
+                        await _hubContext.Clients.User(studentId.ToString()).SendAsync("GroupNotification", message);
                         bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
                     }
                     return true;
@@ -307,8 +307,6 @@ namespace Capstone.Services
                 };
                 bool isInsertSuccess = await _notificationRepository.InsertNewNotification(newNotificationDTO);
                 await _hubContext.Clients.User(StudentId.ToString()).SendAsync("GroupNotification", message);
-
-
                 return JoinGroupResult.Success;
             }
             catch (Exception ex)
@@ -528,16 +526,8 @@ namespace Capstone.Services
 
                         // gửi tin realtime 
                         foreach (var student in studentId)
-                        {
-                            try
-                            {
-                                Console.WriteLine("OKKKKKKKk");
+                        {    
                                 await _hubContext.Clients.User(student.ToString()).SendAsync("GroupNotification", message);
-                            }
-                            catch (Exception e)
-                            {
-                                Console.WriteLine("LOIIIIIIIIIIIIIIII");
-                            }
                         }
 
                         _logger.LogInformation(

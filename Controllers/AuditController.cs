@@ -133,7 +133,7 @@ namespace Capstone.Controllers
                     AccountId = log.AccountId,
                     Action = log.Action,
                     Description = log.Description,
-                    Timestamp = log.Timestamp,
+                    CreatAt = log.CreatAt,
                     IpAddress = log.IpAddress
                 }).ToList();
 
@@ -201,7 +201,7 @@ namespace Capstone.Controllers
                     AccountId = log.AccountId,
                     Action = log.Action,
                     Description = log.Description,
-                    Timestamp = log.Timestamp,
+                    CreatAt = log.CreatAt,
                     IpAddress = log.IpAddress
                 }).ToList();
 
@@ -269,7 +269,7 @@ namespace Capstone.Controllers
                     AccountId = log.AccountId,
                     Action = log.Action,
                     Description = log.Description,
-                    Timestamp = log.Timestamp,
+                    CreatAt = log.CreatAt,
                     IpAddress = log.IpAddress
                 }).ToList();
 
@@ -357,7 +357,7 @@ namespace Capstone.Controllers
                     AccountId = auditLogDto.AccountId,
                     Action = auditLogDto.Action,
                     Description = auditLogDto.Description,
-                    Timestamp = DateTime.Now,
+                    CreatAt = DateTime.Now,
                     IpAddress = ipAddress
                 };
                 Console.WriteLine("step 1");
@@ -379,7 +379,7 @@ namespace Capstone.Controllers
                             AccountId = auditLog.AccountId,
                             Action = auditLog.Action,
                             Description = auditLog.Description,
-                            Timestamp = auditLog.Timestamp,
+                            CreatAt  = auditLog.CreatAt,
                             IpAddress = auditLog.IpAddress
                         }
                     });
