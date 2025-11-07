@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Linq;
 using Capstone.RabbitMQ;
 using System.Threading.Tasks;
+using System;
 
 namespace Capstone.Services
 {
@@ -16,10 +17,9 @@ namespace Capstone.Services
         private readonly AppDbContext _context;
         private readonly Redis _redis;
         private readonly ILogger<OfflineQuizService> _logger;
-        private readonly IQuizRepository _quizRepository; // Inject IQuizRepository để sử dụng cache đáp án
-        private readonly IRabbitMQProducer _rabbitMQ; // Đã thêm RabbitMQProducer
+        private readonly IQuizRepository _quizRepository;
+        private readonly IRabbitMQProducer _rabbitMQ;
 
-        // Cập nhật Constructor để inject IQuizRepository và RabbitMQProducer
         public OfflineQuizService(AppDbContext context, Redis redis, ILogger<OfflineQuizService> logger, IQuizRepository quizRepository, IRabbitMQProducer rabbitMQ)
         {
             _context = context;
@@ -29,35 +29,45 @@ namespace Capstone.Services
             _rabbitMQ = rabbitMQ;
         }
 
-        // START QUIZ
+        // START QUIZ 
         public async Task<bool> StartOfflineQuiz(StartOfflineQuizDTO dto)
         {
             try
             {
-                var qg = await _context.quizzGroups.FirstOrDefaultAsync(x => x.QGId == dto.QGId);
-                if (qg == null)
+                QuizzGroupModel qg = null;
+                int quizIdToLoad = dto.QuizId; // lấy QuizId từ DTO
+
+                // kiểm tra QGId nếu được cung cấp
+                if (dto.QGId != null && dto.QGId > 0)
                 {
-                    _logger.LogError("Quiz group does not exist (QGId: {QGId})", dto.QGId);
-                    return false;
+                    qg = await _context.quizzGroups.FirstOrDefaultAsync(x => x.QGId == dto.QGId);
+                    if (qg == null)
+                    {
+                        _logger.LogError("Quiz group does not exist (QGId: {QGId})", dto.QGId);
+                        return false;
+                    }
+
+                    quizIdToLoad = qg.QuizId; // Lấy QuizId từ QG nếu tồn tại
+
+                    // Kiểm tra số lần làm bài, áp dụng khi có QGId
+                    var result = await _context.offlineResults
+                        .FirstOrDefaultAsync(r => r.StudentId == dto.StudentId && r.QGId == dto.QGId);
+
+                    if (result != null && result.CountAttempts >= qg.MaxAttempts)
+                    {
+                        _logger.LogError("Exceed the number of times done for QGId: {QGId}", dto.QGId);
+                        return false;
+                    }
                 }
 
-                var result = await _context.offlineResults
-                    .FirstOrDefaultAsync(r => r.StudentId == dto.StudentId && r.QGId == dto.QGId);
-
-                if (result != null && result.CountAttempts >= qg.MaxAttempts)
-                {
-                    _logger.LogError("Exceed the number of times done for QGId: {QGId}", dto.QGId);
-                    return false;
-                }
-
-                var quiz = await _context.quizzes.Include(q => q.Questions).FirstOrDefaultAsync(q => q.QuizId == qg.QuizId);
+                // tải Quiz dựa trên quizIdToLoad
+                var quiz = await _context.quizzes.Include(q => q.Questions).FirstOrDefaultAsync(q => q.QuizId == quizIdToLoad);
                 if (quiz == null)
                 {
-                    _logger.LogError("No quiz found for QuizId: {QuizId}", qg.QuizId);
+                    _logger.LogError("No quiz found for QuizId: {QuizId}", quizIdToLoad);
                     return false;
                 }
 
-                // Lấy cache cũ (nếu có làm dở) hoặc tạo mới
                 var redisKey = $"offline_quiz:{dto.StudentId}:{quiz.QuizId}";
                 var existingCacheJson = await _redis.GetStringAsync(redisKey);
                 OfflineQuizCacheDTO cache;
@@ -68,17 +78,18 @@ namespace Capstone.Services
                 }
                 else
                 {
-                    // Tạo dữ liệu Redis mới
                     cache = new OfflineQuizCacheDTO
                     {
                         QuizId = quiz.QuizId,
                         StudentId = dto.StudentId,
                         NumberOfCorrectAnswer = 0,
                         NumberOfWrongAnswer = 0,
-                        TotalQuestion = quiz.Questions.Count(q => q.IsDeleted == false), // Tính tổng câu hỏi chưa xóa
-                        StartTime = DateTime.UtcNow,
+                        TotalQuestion = quiz.Questions.Count(q => q.IsDeleted == false),
+                        StartTime = dto.StartTime,
                         WrongAnswers = new(),
-                        AnsweredQuestions = new() // Khởi tạo HashSet để theo dõi câu hỏi đã trả lời
+                        AnsweredQuestions = new(),
+                        TotalMaxScore = quiz.Questions.Where(q => !q.IsDeleted).Sum(q => q.Score),
+                        TotalScoreEarned = 0,
                     };
                 }
 
@@ -98,8 +109,7 @@ namespace Capstone.Services
             }
         }
 
-        // PROCESS STUDENT ANSWER (Sử dụng Redis Cache đáp án)
-        // Phương thức này nhận từng câu trả lời và cập nhật trạng thái trong Redis
+        // PROCESS STUDENT ANSWER (Không thay đổi logic)
         public async Task<bool> ProcessStudentAnswer(StudentAnswerSubmissionDTO dto)
         {
             var redisKey = $"offline_quiz:{dto.StudentId}:{dto.QuizId}";
@@ -113,18 +123,14 @@ namespace Capstone.Services
 
             var cache = JsonSerializer.Deserialize<OfflineQuizCacheDTO>(json)!;
 
-            // Nếu câu hỏi đã được trả lời, bỏ qua (hoặc xử lý ghi đè nếu muốn)
             if (cache.AnsweredQuestions.Contains(dto.QuestionId))
             {
                 _logger.LogInformation($"Question {dto.QuestionId} already answered. Skipping re-submission.");
                 return true;
             }
 
-            // KIỂM TRA ĐÁP ÁN: SỬ DỤNG REDIS CACHE
-            // Khóa Redis cho trạng thái đúng/sai của Option
             var answerCheckKey = $"quiz_questions_{dto.QuizId}:question_{dto.QuestionId}:option_{dto.SelectedOptionId}";
             var isCorrectJson = await _redis.GetStringAsync(answerCheckKey);
-
             bool isCorrect = false;
 
             if (isCorrectJson != null)
@@ -133,7 +139,6 @@ namespace Capstone.Services
             }
             else
             {
-                // FALLBACK: Cache không tồn tại, gọi QuizService (đã có logic DB fallback + tái tạo cache)
                 var checkDto = new CheckAnswerDTO
                 {
                     QuizId = dto.QuizId,
@@ -142,24 +147,24 @@ namespace Capstone.Services
                 };
                 isCorrect = await _quizRepository.checkAnswer(checkDto);
             }
+            var questionScore = await _context.questions
+              .Where(q => q.QuestionId == dto.QuestionId)
+              .Select(q => q.Score)
+              .FirstOrDefaultAsync();
 
-            //  CẬP NHẬT CACHE
             if (isCorrect)
             {
                 cache.NumberOfCorrectAnswer++;
+                cache.TotalScoreEarned += questionScore;
             }
             else
             {
                 cache.NumberOfWrongAnswer++;
-
-                // Lấy ID đáp án đúng để lưu vào WrongAnswerDTO
                 var correctOptionDTO = await _quizRepository.getCorrectAnswer(new GetCorrectAnswer
                 {
                     QuizId = dto.QuizId,
                     QuestionId = dto.QuestionId
                 });
-
-                // Thêm vào danh sách câu trả lời sai
                 cache.WrongAnswers.Add(new WrongAnswerDTO
                 {
                     QuestionId = dto.QuestionId,
@@ -168,18 +173,12 @@ namespace Capstone.Services
                 });
             }
 
-            // Đánh dấu câu hỏi đã trả lời
             cache.AnsweredQuestions.Add(dto.QuestionId);
-
-            //  Lưu lại Cache (Reset TTL)
             await _redis.SetStringAsync(redisKey, JsonSerializer.Serialize(cache), TimeSpan.FromHours(2));
-
             return true;
         }
 
-
-        // SUBMIT QUIZ (Lưu kết quả & Rank)
-        // Đã cập nhật signature để khớp với interface và thêm Audit Log
+        // SUBMIT QUIZ
         public async Task<OfflineResultViewDTO?> SubmitOfflineQuiz(FinishOfflineQuizDTO dto, int accountId, string ipAddress)
         {
             try
@@ -193,25 +192,32 @@ namespace Capstone.Services
                 }
 
                 var cache = JsonSerializer.Deserialize<OfflineQuizCacheDTO>(json)!;
-                cache.EndTime = DateTime.UtcNow;
+                cache.EndTime = dto.EndTime;
                 cache.Duration = (int)(cache.EndTime!.Value - cache.StartTime).TotalSeconds;
 
-                var qg = await _context.quizzGroups.FirstOrDefaultAsync(x => x.QGId == dto.QGId);
-                if (qg == null)
+                QuizzGroupModel qg = null;
+                int maxAttempts = 1;
+
+                if (dto.QGId != null && dto.QGId > 0)
                 {
-                    _logger.LogError("Quiz group does not exist for QGId: {QGId}.", dto.QGId);
-                    return null;
+                    qg = await _context.quizzGroups.FirstOrDefaultAsync(x => x.QGId == dto.QGId);
+                    if (qg == null)
+                    {
+                        _logger.LogError("Quiz group does not exist for QGId: {QGId}.", dto.QGId);
+                        return null;
+                    }
+                    maxAttempts = qg.MaxAttempts;
                 }
 
                 var existing = await _context.offlineResults
-                    .FirstOrDefaultAsync(x => x.StudentId == dto.StudentId && x.QGId == dto.QGId);
+                    .FirstOrDefaultAsync(x => x.StudentId == dto.StudentId && x.QGId == dto.QGId && x.QuizId == dto.QuizId);
 
-                // Tính toán Score (làm tròn về số nguyên)
-                int score = (int)Math.Round((double)cache.NumberOfCorrectAnswer / cache.TotalQuestion * 100, 0);
+                int totalMax = cache.TotalMaxScore > 0 ? cache.TotalMaxScore : 1;
+                int score = (int)Math.Round((double)cache.TotalScoreEarned / totalMax * 100, 0);
 
                 OfflineResultModel currentResult;
 
-                if (existing != null && existing.CountAttempts >= qg.MaxAttempts)
+                if (existing != null && qg != null && existing.CountAttempts >= qg.MaxAttempts)
                 {
                     _logger.LogError("Exceed the number of times for QGId: {QGId}", dto.QGId);
                     return null;
@@ -226,7 +232,7 @@ namespace Capstone.Services
                         var newResult = new OfflineResultModel
                         {
                             QGId = dto.QGId,
-                            GroupId = qg.GroupId,
+                            GroupId = qg?.GroupId,
                             StudentId = dto.StudentId,
                             QuizId = dto.QuizId,
                             CorrecCount = cache.NumberOfCorrectAnswer,
@@ -243,7 +249,6 @@ namespace Capstone.Services
                     }
                     else
                     {
-                        // Xóa chi tiết lỗi cũ trước khi cập nhật kết quả và lưu cái mới
                         var oldWrongAnswers = await _context.offlineWrongAnswers
                             .Where(wa => wa.OffResultId == existing.OffResultId)
                             .ToListAsync();
@@ -261,12 +266,17 @@ namespace Capstone.Services
                         currentResult = existing;
                     }
 
-                    //  LƯU KẾT QUẢ VÀO DB
+                    // Lưu kết quả (OfflineResult) trước để lấy ID
                     await _context.SaveChangesAsync();
                     int offResultId = currentResult.OffResultId;
 
+<<<<<<< HEAD
                     //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
                     var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModel
+=======
+                    // Lưu các câu trả lời sai (OfflineWrongAnswers)
+                    var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModule
+>>>>>>> origin/Update_QuizzOffline
                     {
                         OffResultId = offResultId,
                         QuestionId = wa.QuestionId,
@@ -279,41 +289,107 @@ namespace Capstone.Services
                     {
                         await _context.offlineWrongAnswers.AddRangeAsync(wrongAnswerEntities);
                     }
-                    await _context.SaveChangesAsync(); // Lưu chi tiết câu trả lời sai
 
-                    //  CẬP NHẬT RANK TRONG REDIS (Sử dụng Sorted Set ZSET)
-                    var rankKey = $"quiz_group_rank:{dto.QGId}";
-                    // Sử dụng điểm số làm score trong ZSET. Điểm càng cao, Rank càng nhỏ (đứng đầu)
+                    // Lưu các câu trả lời sai
+                    await _context.SaveChangesAsync();
+
+
+                    //Cap nhat bang Report
+                    if (dto.QGId != null)
+                    {
+                        // Lấy kết quả của nhóm này tính toán lại
+                        var allResultsForGroup = await _context.offlineResults
+                            .Where(r => r.QGId == dto.QGId)
+                            .ToListAsync();
+
+                        if (allResultsForGroup.Any())
+                        {
+                            // Tính toán các chỉ số mới
+                            int totalParticipants = allResultsForGroup.Count;
+                            int highestScore = allResultsForGroup.Max(r => r.Score);
+                            int lowestScore = allResultsForGroup.Min(r => r.Score);
+
+                            decimal averageScore = Math.Round((decimal)allResultsForGroup.Average(r => r.Score), 2);
+
+                            // Tìm hoặc Tạo Report
+                            var report = await _context.offlinereports
+                                .FirstOrDefaultAsync(r => r.QGId == dto.QGId);
+
+                            if (report == null)
+                            {
+                                var quizTitle = (await _context.quizzes
+                                                    .AsNoTracking()
+                                                    .FirstOrDefaultAsync(q => q.QuizId == dto.QuizId))?.Title ?? "Report";
+
+                                // Tạo mới Report
+                                report = new OfflineReportsModel
+                                {
+                                    QGId = (int)dto.QGId,
+                                    QuizId = dto.QuizId,
+                                    ReportName = $"Report: {quizTitle}", // Tên mặc định
+                                    HighestScore = highestScore,
+                                    LowestScore = lowestScore,
+                                    AverageScore = averageScore,
+                                    TotalParticipants = totalParticipants,
+                                    CreateAt = DateTime.UtcNow
+                                };
+                                _context.offlinereports.Add(report);
+                            }
+                            else
+                            {
+                                // Cập nhật Report đã có
+                                report.HighestScore = highestScore;
+                                report.LowestScore = lowestScore;
+                                report.AverageScore = averageScore;
+                                report.TotalParticipants = totalParticipants;
+                                _context.offlinereports.Update(report);
+                            }
+
+                            // lưu thay đổi của Report 
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+
+                    // CẬP NHẬT RANK TRONG REDIS (Sử dụng Sorted Set ZSET)
+                    string rankKey;
+                    if (dto.QGId != null)
+                    {
+                        rankKey = $"quiz_group_rank:{dto.QGId}";
+                    }
+                    else
+                    {
+                        rankKey = $"quiz_public_rank:{dto.QuizId}";
+                    }
+
                     await _redis.ZAddAsync(rankKey, dto.StudentId.ToString(), score);
-
-                    // Lấy Rank hiện tại của học sinh sau khi submit
                     var rank = await _redis.ZRankAsync(rankKey, dto.StudentId.ToString(), descending: true);
 
                     if (rank.HasValue)
                     {
-                        currentResult.RANK = (int)rank.Value + 1; // Rank là 0-based, nên +1
+                        currentResult.RANK = (int)rank.Value + 1;
                         _context.offlineResults.Update(currentResult);
-                        await _context.SaveChangesAsync();
+                        await _context.SaveChangesAsync(); // Lưu Rank
                     }
 
+                    // Commit toàn bộ
                     await transaction.CommitAsync();
 
-                    // THÊM AUDIT LOG (RabbitMQ)
-                    var log = new AuditLogModel()
-                    {
-                        AccountId = accountId, // accountId là StudentId
-                        Action = "Submit offline quiz",
-                        Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId}) with score: {score}%",
-                        Timestamp = DateTime.Now,
-                        IpAddress = ipAddress
-                    };
-                    await _rabbitMQ.SendMessageAsync(JsonSerializer.Serialize(log));
+                    // THÊM AUDIT LOG (RabbitMQ) - Đặt sau khi commit thành công
+                    //var log = new AuditLogModel()
+                    //{
+                    //    AccountId = accountId,
+                    //    Action = "Submit offline quiz",
+                    //    Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId ?? 0}) with score: {score}%",
+                    //    Timestamp = DateTime.Now,
+                    //    IpAddress = ipAddress
+                    //};
+                    //await _rabbitMQ.SendMessageAsync(JsonSerializer.Serialize(log));
 
 
-                    //  Xóa Cache phiên làm bài
+                    // Xóa Cache phiên làm bài
                     await _redis.DeleteKeyAsync(key);
 
-                    //  Trả về DTO kết quả
+                    // Trả về DTO kết quả
                     return new OfflineResultViewDTO
                     {
                         QuizId = dto.QuizId,
@@ -322,7 +398,7 @@ namespace Capstone.Services
                         WrongCount = cache.NumberOfWrongAnswer,
                         TotalQuestion = cache.TotalQuestion,
                         CountAttempts = currentResult.CountAttempts,
-                        MaxAttempts = qg.MaxAttempts,
+                        MaxAttempts = maxAttempts,
                         Score = score,
                         StartDate = cache.StartTime,
                         EndDate = cache.EndTime,
@@ -349,26 +425,30 @@ namespace Capstone.Services
         {
             try
             {
+                // Lấy kết quả mới nhất của học sinh cho quiz đó
+                // (Ưu tiên kết quả có QGId nếu có nhiều)
                 var result = await (
-                from r in _context.offlineResults
-                join q in _context.quizzes on r.QuizId equals q.QuizId
-                join g in _context.quizzGroups on r.QGId equals g.QGId
-                where r.StudentId == studentId && r.QuizId == quizId
-                select new OfflineResultViewDTO
-                {
-                    QuizId = r.QuizId,
-                    QuizTitle = q.Title,
-                    CountAttempts = r.CountAttempts,
-                    MaxAttempts = g.MaxAttempts,
-                    CorrectCount = r.CorrecCount,
-                    WrongCount = r.WrongCount,
-                    TotalQuestion = r.TotalQuestion,
-                    Score = r.Score,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                    Duration = r.Duration,
-                    RANK = r.RANK
-                }).FirstOrDefaultAsync();
+                    from r in _context.offlineResults
+                    join q in _context.quizzes on r.QuizId equals q.QuizId
+                    join g in _context.quizzGroups on r.QGId equals g.QGId into qgGroup
+                    from g in qgGroup.DefaultIfEmpty() // Cho phép g (Quizz_Group) là NULL
+                    where r.StudentId == studentId && r.QuizId == quizId
+                    orderby r.QGId descending, r.EndDate descending // Ưu tiên kết quả có QGId, sau đó là mới nhất
+                    select new OfflineResultViewDTO
+                    {
+                        QuizId = r.QuizId,
+                        QuizTitle = q.Title,
+                        CountAttempts = r.CountAttempts,
+                        MaxAttempts = (g != null) ? g.MaxAttempts : 1,
+                        CorrectCount = r.CorrecCount,
+                        WrongCount = r.WrongCount,
+                        TotalQuestion = r.TotalQuestion,
+                        Score = r.Score,
+                        StartDate = r.StartDate,
+                        EndDate = r.EndDate,
+                        Duration = r.Duration,
+                        RANK = r.RANK
+                    }).FirstOrDefaultAsync();
 
                 return result;
             }
