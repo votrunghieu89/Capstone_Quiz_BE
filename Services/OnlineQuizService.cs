@@ -134,7 +134,7 @@ namespace Capstone.Services
                             AccountId = accountId,
                             Action = "Insert online quiz report",
                             Description = $"Online Report ID:{onlineReportId} for Quiz ID:{insertOnlineReportDTO.QuizId} created by Account ID:{accountId}",
-                            Timestamp = DateTime.Now,
+                            CreatAt = DateTime.Now,
                             IpAddress = ipAddress
                         };
                         await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));

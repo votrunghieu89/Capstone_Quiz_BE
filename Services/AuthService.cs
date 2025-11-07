@@ -89,7 +89,7 @@ namespace Capstone.Services
                             AccountId = authModel.AccountId,
                             Action = "Register a new student account",
                             Description = $"Create a new student account with ID:{authModel.AccountId}",
-                            Timestamp = authModel.CreateAt,
+                            CreatAt = authModel.CreateAt,
                             IpAddress = IpAddress
                         };
                         await _rabbitMQ.SendMessageAsync(JsonConvert.SerializeObject(log));
@@ -159,7 +159,7 @@ namespace Capstone.Services
                             AccountId = authModel.AccountId,
                             Action = "Register a new teacher account",
                             Description = $"Create a new teacher account with ID:{authModel.AccountId}",
-                            Timestamp = authModel.CreateAt,
+                            CreatAt = authModel.CreateAt,
                             IpAddress = IpAddress
                         };
                         await _rabbitMQ.SendMessageAsync(JsonConvert.SerializeObject(log));
@@ -225,7 +225,7 @@ namespace Capstone.Services
                     AccountId = user.AccountId,
                     Action = "Login",
                     Description = $"A account with ID:{user.AccountId} has been login",
-                    Timestamp = user.CreateAt,
+                    CreatAt = user.CreateAt,
                     IpAddress = IpAddress
                 };
                 await _rabbitMQ.SendMessageAsync(JsonConvert.SerializeObject(log));

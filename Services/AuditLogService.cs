@@ -53,16 +53,16 @@ namespace Capstone.Services
                 //if (!string.IsNullOrEmpty(action)) { }
                 if (from.HasValue) { 
                 
-                    filter &= builder.Gte(x => x.Timestamp, from.Value.Date);
+                    filter &= builder.Gte(x => x.CreatAt, from.Value.Date);
                 }
                 if (to.HasValue) {
 
-                    filter &= builder.Lte(x => x.Timestamp, to.Value.Date.AddDays(1).AddTicks(-1));
+                    filter &= builder.Lte(x => x.CreatAt, to.Value.Date.AddDays(1).AddTicks(-1));
                 }
 
                 var list = await _mongoDbContext.AuditLog
                     .Find(filter)
-                    .SortByDescending(x => x.Timestamp)
+                    .SortByDescending(x => x.CreatAt)
                     .Skip((page - 1) * pageSize)             
                     .Limit(pageSize)                       
                     .ToListAsync();
@@ -80,7 +80,7 @@ namespace Capstone.Services
                 Console.WriteLine("sStep 1");
                     var logs = await _mongoDbContext.AuditLog
                     .Find(_ => true)                   
-                    .SortByDescending(l => l.Timestamp) 
+                    .SortByDescending(l => l.CreatAt) 
                     .Skip((page - 1) * pageSize) 
                     .Limit(pageSize)
                     .ToListAsync();

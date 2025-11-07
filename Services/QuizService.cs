@@ -99,7 +99,7 @@ namespace Capstone.Services
                         AccountId = newQuiz.TeacherId,
                         Action = "Create a quiz",
                         Description = $"A quiz with ID:{newQuiz.QuizId} has been created by account with ID:{newQuiz.TeacherId}",
-                        Timestamp = newQuiz.CreateAt,
+                        CreatAt = newQuiz.CreateAt,
                         IpAddress = IpAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -180,7 +180,7 @@ namespace Capstone.Services
                     AccountId = accountId,
                     Action = "Delete a quiz",
                     Description = $"A quiz with ID:{quizId} has been deleted by account with ID:{accountId}",
-                    Timestamp = DateTime.Now,
+                    CreatAt = DateTime.Now,
                     IpAddress = IpAddress
                 };
                 await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -314,7 +314,7 @@ namespace Capstone.Services
                 AccountId = accountId,
                 Action = "Delete a quiz",
                 Description = $"A quiz with ID:{dto.QuizId} has been updated by account with ID:{accountId}",
-                Timestamp = DateTime.Now,
+                CreatAt = DateTime.Now,
                 IpAddress = IpAddress
             };
             await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));

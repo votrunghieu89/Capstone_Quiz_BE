@@ -50,7 +50,7 @@ namespace Capstone.Services
                         AccountId = groupModel.TeacherId,
                         Action = "Create a group",
                         Description = $"A group with ID:{groupModel.GroupId} has been created by account with ID:{groupModel.TeacherId}",
-                        Timestamp = groupModel.CreateAt,
+                        CreatAt = groupModel.CreateAt,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -119,7 +119,7 @@ namespace Capstone.Services
                         AccountId = accountId,
                         Action = "Delete a group",
                         Description = $"A group with ID:{groupId} has been deleted by account with ID:{accountId}",
-                        Timestamp = DateTime.Now,
+                        CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -173,7 +173,7 @@ namespace Capstone.Services
                         AccountId = accountId,
                         Action = "Update group details",
                         Description = $"Group with ID:{groupModel.GroupId} has been updated by account with ID:{accountId}",
-                        Timestamp = DateTime.Now,
+                        CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -292,7 +292,7 @@ namespace Capstone.Services
                         AccountId = accountId, // TeacherId đang thêm học sinh
                         Action = "Add student to group",
                         Description = $"Student ID:{StudentId} (Unique ID: {IdUnique}) has been added to Group ID:{groupId} by account ID:{accountId}",
-                        Timestamp = DateTime.Now,
+                        CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -373,7 +373,7 @@ namespace Capstone.Services
                                 AccountId = teacherId,
                                 Action = "Remove student from group",
                                 Description = $"Student ID:{studentId} has been removed from Group ID:{groupId} by Teacher ID:{teacherId}",
-                                Timestamp = DateTime.Now,
+                                CreatAt = DateTime.Now,
                                 IpAddress = ipAddress
                             };
                             await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -518,7 +518,7 @@ namespace Capstone.Services
                             AccountId = accountId,
                             Action = "Insert quiz to group",
                             Description = $"Quiz ID:{insertQuiz.QuizId} has been delivered to Group ID:{insertQuiz.GroupId} by account ID:{accountId}",
-                            Timestamp = DateTime.Now,
+                            CreatAt = DateTime.Now,
                             IpAddress = ipAddress
                         };
                         await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -591,7 +591,7 @@ namespace Capstone.Services
                         AccountId = accountId,
                         Action = "Remove quiz from group",
                         Description = $"Quiz ID:{quizId} has been removed from Group ID:{groupId} by account ID:{accountId}",
-                        Timestamp = DateTime.Now,
+                        CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -772,7 +772,7 @@ namespace Capstone.Services
                                 AccountId = studentId,
                                 Action = "Leave group",
                                 Description = $"Student ID:{studentId} has left Group ID:{groupId}",
-                                Timestamp = DateTime.Now,
+                                CreatAt = DateTime.Now,
                                 IpAddress = ipAddress
                             };
                             await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
@@ -850,7 +850,7 @@ namespace Capstone.Services
                         AccountId = studentId,
                         Action = "Join group by invite code",
                         Description = $"Student ID:{studentId} joined Group ID:{group.GroupId} using invite code",
-                        Timestamp = DateTime.Now,
+                        CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));

@@ -375,7 +375,7 @@ namespace Capstone.Services
                         AccountId = accountId,
                         Action = "Insert offline quiz result",
                         Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId ?? 0}) with score: {score}%",
-                        Timestamp = DateTime.Now,
+                        CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
