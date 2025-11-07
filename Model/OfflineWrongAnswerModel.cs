@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Capstone.Model
 {
     [Table("OfflineWrongAnswers")]
-    public class OfflineWrongAnswerModule
+    public class OfflineWrongAnswerModel
     {
         [Key]
         [Column("OffWrongId")]

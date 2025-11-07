@@ -45,7 +45,7 @@ namespace Capstone.UnitTest
             _mockRedis.Setup(r => r.GetStringAsync("quiz_questions_1")).ReturnsAsync((string)null);
             _mockRepo.Setup(r => r.GetAllQuestionEachQuiz(1)).ReturnsAsync(new List<getQuizQuestionWithoutAnswerDTO> { new getQuizQuestionWithoutAnswerDTO() });
 
-            var result = await _controller.GetQuizById(1);
+            var result = await _controller.GetQuestionOfQuiz_cache(1);
 
             Assert.IsType<OkObjectResult>(result);
         }
@@ -56,7 +56,7 @@ namespace Capstone.UnitTest
             var items = new List<GetQuizQuestionsDTO> { new GetQuizQuestionsDTO() };
             _mockRedis.Setup(r => r.GetStringAsync("quiz_questions_1")).ReturnsAsync(JsonSerializer.Serialize(items));
 
-            var result = await _controller.GetQuizById(1);
+            var result = await _controller.GetQuestionOfQuiz_cache(1);
 
             Assert.IsType<OkObjectResult>(result);
         }
@@ -66,7 +66,7 @@ namespace Capstone.UnitTest
         {
             _mockRedis.Setup(r => r.GetStringAsync("quiz_questions_1")).ReturnsAsync("not-json");
 
-            var result = await _controller.GetQuizById(1);
+            var result = await _controller.GetQuestionOfQuiz_cache(1);
 
             var obj = Assert.IsType<ObjectResult>(result);
             Assert.Equal(500, obj.StatusCode);

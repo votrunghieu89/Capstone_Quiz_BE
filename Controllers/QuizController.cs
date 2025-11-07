@@ -30,7 +30,7 @@ namespace Capstone.Controllers
         // ===== GET METHODS =====
         [HttpGet("GetQuestionOfQuizCache/{quizId}")]
         [Authorize(Roles = "Teacher")]
-        public async Task<IActionResult> GetQuizById(int quizId)
+        public async Task<IActionResult> GetQuestionOfQuiz_cache(int quizId)
         {
             var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
             if (json == null)

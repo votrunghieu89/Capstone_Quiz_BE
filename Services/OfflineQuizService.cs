@@ -266,7 +266,7 @@ namespace Capstone.Services
                     int offResultId = currentResult.OffResultId;
 
                     //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
-                    var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModule
+                    var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModel
                     {
                         OffResultId = offResultId,
                         QuestionId = wa.QuestionId,

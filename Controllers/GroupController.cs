@@ -27,7 +27,7 @@ namespace Capstone.Controllers
         // ===== GET METHODS =====
         [HttpGet("GetGroupByTeacherId/{teacherId}")]
         [Authorize(Roles = "Teacher")]
-        public async Task<IActionResult> GetGroupByTeacherId(int teacherId)
+        public async Task<IActionResult> GetGroupsByTeacherId(int teacherId)
         {
             _logger.LogInformation("GetGroupByTeacherId: Start - TeacherId={TeacherId}", teacherId);
             try
@@ -45,7 +45,7 @@ namespace Capstone.Controllers
 
         [HttpGet("GetAllStudentsByGroupId/{groupId}")]
         [Authorize(Roles = "Teacher,Student")]
-        public async Task<IActionResult> GetAllStudentsByGroupId(int groupId)
+        public async Task<IActionResult> GetAllStudentsByGroup(int groupId)
         {
             _logger.LogInformation("GetAllStudentsByGroupId: Start - GroupId={GroupId}", groupId);
             try
@@ -63,7 +63,7 @@ namespace Capstone.Controllers
 
         [HttpGet("GetAllGroupsByStudentId/{studentId}")]
         [Authorize(Roles = "Student")]
-        public async Task<IActionResult> GetAllGroupsByStudentId(int studentId)
+        public async Task<IActionResult> GetGroupsByStudentId(int studentId)
         {
             _logger.LogInformation("GetAllGroupsByStudentId: Start - StudentId={StudentId}", studentId);
             try

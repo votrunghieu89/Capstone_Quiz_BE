@@ -118,13 +118,6 @@ namespace Capstone.Services
         {
             try
             {
-                var quizzGroup = await _context.quizzGroups
-                    .Where(qg => qg.QuizId == quizzId && qg.QGId == QGId)
-                    .FirstOrDefaultAsync();
-                if (quizzGroup == null)
-                    return ExpiredEnumDTO.ExpiredEnum.QuizGroupNotFound;
-                if (newExpiredTime <= DateTime.Now)
-                    return ExpiredEnumDTO.ExpiredEnum.InvalidExpiredTime;
                 int isUpdate = await _context.quizzGroups
                     .Where(qg => qg.QuizId == quizzId && qg.QGId == QGId)
                     .ExecuteUpdateAsync(u => u.SetProperty(qg => qg.ExpiredTime, newExpiredTime)

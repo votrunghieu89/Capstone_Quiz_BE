@@ -42,7 +42,7 @@ namespace Capstone.UnitTest
             _mockRepo.Setup(r => r.GetAllGroupsbyTeacherId(teacherId))
                      .ReturnsAsync(new List<AllGroupDTO> { new AllGroupDTO { GroupId = 1, GroupName = "G1" } });
 
-            var result = await _controller.GetGroupByTeacherId(teacherId);
+            var result = await _controller.GetGroupsByTeacherId(teacherId);
 
             var ok = Assert.IsType<OkObjectResult>(result);
             var list = Assert.IsType<List<AllGroupDTO>>(ok.Value);
@@ -58,7 +58,7 @@ namespace Capstone.UnitTest
             _mockRepo.Setup(r => r.GetAllStudentsByGroupId(groupId))
                      .ReturnsAsync(new List<ViewStudentDTO> { new ViewStudentDTO { StudentId = 10, FullName = "A" } });
 
-            var result = await _controller.GetAllStudentsByGroupId(groupId);
+            var result = await _controller.GetAllStudentsByGroup(groupId);
 
             var ok = Assert.IsType<OkObjectResult>(result);
             var list = Assert.IsType<List<ViewStudentDTO>>(ok.Value);
@@ -74,7 +74,7 @@ namespace Capstone.UnitTest
             _mockRepo.Setup(r => r.GetAllGroupsByStudentId(studentId))
                      .ReturnsAsync(new List<AllGroupDTO> { new AllGroupDTO { GroupId = 2, GroupName = "G2" } });
 
-            var result = await _controller.GetAllGroupsByStudentId(studentId);
+            var result = await _controller.GetAllStudentsByGroup(studentId);
 
             var ok = Assert.IsType<OkObjectResult>(result);
             var list = Assert.IsType<List<AllGroupDTO>>(ok.Value);
