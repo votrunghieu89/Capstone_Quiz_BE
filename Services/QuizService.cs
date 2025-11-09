@@ -441,7 +441,7 @@ namespace Capstone.Services
 
         public async Task<RightAnswerDTO> getCorrectAnswer(GetCorrectAnswer getCorrectAnswer) // quizId, questionId
         {
-            var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer");
+            var json = await _redis.GetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correctAnswer");
             if (json == null)
             {
                 _logger.LogWarning("No cached correct answer found for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
@@ -465,7 +465,7 @@ namespace Capstone.Services
                     OptionId = correctOption.OptionId,
                     OptionContent = correctOption.OptionContent
                 };
-                await _redis.SetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correcAnswer", JsonSerializer.Serialize(rightAnswerDTO), TimeSpan.FromHours(2));
+                await _redis.SetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correctAnswer", JsonSerializer.Serialize(rightAnswerDTO), TimeSpan.FromHours(2));
                 return rightAnswerDTO;
             }
             var correctAnswer = JsonSerializer.Deserialize<RightAnswerDTO>(json);

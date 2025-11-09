@@ -8,7 +8,6 @@ using System.Collections.Concurrent;
 
 namespace Capstone.SignalR
 {
-    [Authorize]
     public class QuizHub : Hub
     {
         // list ở dây là tên giáo viên và học sinh
@@ -57,8 +56,7 @@ namespace Capstone.SignalR
 
             await base.OnDisconnectedAsync(exception);
         }
-
-        [Authorize(Roles = "Teacher")]
+        //[Authorize(Roles = "Teacher")]
         public async Task<string> CreateRoom(int quizId, int teacherId, int totalQuestion)
         {
             string roomCode;
@@ -82,7 +80,6 @@ namespace Capstone.SignalR
             await _redis.SetStringAsync($"quiz:room:{roomCode}",jsonData, TimeSpan.FromHours(3));
             return roomCode;
         }
-        [Authorize(Roles = "Student")]
         public async Task<string> JoinRoom(string roomCode, string studentName, int totalQuestion)
         {
             // Kiểm tra phòng tồn tại trong bộ nhớ cục bộ (Rooms)
@@ -127,7 +124,7 @@ namespace Capstone.SignalR
                 roomCode
             });
         }
-        [Authorize(Roles = "Teacher")]
+        //[Authorize(Roles = "Teacher")]
         public async Task StartGame(string roomCode)
         {
             if (Rooms.ContainsKey(roomCode))
@@ -155,8 +152,9 @@ namespace Capstone.SignalR
                     await Clients.Client(teacherConnectionId).SendAsync("GameStarted");
             }
         }
-        [Authorize(Roles = "Teacher")]
-        public async Task EndBeforeStartGameHandler(string roomCode)
+        //[Authorize(Roles = "Teacher")]
+        // Giáo viên Kết thúc live trước khi bắt đầu trò chơi
+        public async Task EndBeforeStartGame(string roomCode)
         {
             _logger.LogInformation("Ending game for room {RoomCode}", roomCode);
 
@@ -179,8 +177,9 @@ namespace Capstone.SignalR
                 _logger.LogError(ex, "Error while ending game for room {RoomCode}", roomCode);
             }
         }
-        [Authorize(Roles = "Teacher")]
+        //[Authorize(Roles = "Teacher")]
         // Đặt hàm này trong QuizHub
+        // Giáo viên click end sau khi hoàn thành trò chơi
         public async Task EndAfterComplete(string roomCode)
         {
             _logger.LogInformation("Processing end of game and saving results for room {RoomCode}", roomCode);
@@ -197,18 +196,17 @@ namespace Capstone.SignalR
 
                 // 1. Lấy toàn bộ studentId và điểm (score) theo điểm giảm dần từ Sorted Set
                 var studentsWithScores = await _redis.ZRevRangeWithScoresAsync(leaderboardKey, 0, -1);
-
                 int rank = 1;
-
                 // 2. LẶP QUA TỪNG HỌC SINH ĐỂ CẬP NHẬT RANK VÀ GỬI KẾT QUẢ CUỐI CÙNG
                 foreach (var (studentId, score) in studentsWithScores)
                 {
                     // Cập nhật Rank vào Hash Set (:detail)
                     string detailKey = $"quiz:room:{roomCode}:student:{studentId}:detail";
-
                     // Cập nhật trường "Rank" trong Hash Set của học sinh
                     await _redis.HSetAsync(detailKey, "Rank", rank.ToString(), TimeSpan.FromHours(3));
                     rank++;
+
+                    await StudentComplete(roomCode, studentId);
                 }
                 _logger.LogInformation("Successfully updated ranks for all participants in room {RoomCode}.", roomCode);
                 await Clients.Group(roomCode).SendAsync("GameEnded");
@@ -219,7 +217,8 @@ namespace Capstone.SignalR
                 _logger.LogError(ex, "Error while ending game after completion for room {RoomCode}", roomCode);
             }
         }
-        [Authorize(Roles = "Teacher")]
+        //[Authorize(Roles = "Teacher")]
+        // XAu khi giáo viên click nút thoát thì gọi để làm sạch rác
         public async Task EndClick(string roomCode)
         {
             try
@@ -232,7 +231,6 @@ namespace Capstone.SignalR
                 _logger.LogError(ex, "Error while ending game after completion for room {RoomCode}", roomCode);
             }
         }
-        [Authorize(Roles = "Student")]
         public async Task StudentComplete(string roomCode, string studentId) // result
         {
             string leaderboardKey = $"quiz:room:{roomCode}:leaderboard";
@@ -264,8 +262,8 @@ namespace Capstone.SignalR
             // Kết quả
             Dictionary<string, string> StudentDetail = await _redis.HGetAllAsync($"quiz:room:{roomCode}:student:{studentId}:detail");
 
-
-            var wrongAnswersDict = studentData.WrongAnswerRedisDTOs.ToDictionary(w => w.QuestionId, w => w);
+            var wrongAnswersDict = (studentData?.WrongAnswerRedisDTOs ?? new List<InsertWrongAnswerDTO>())
+                                   .ToDictionary(w => w.QuestionId, w => w);
             var resultQuestions = new List<QuestionResultDTO>();
             foreach (var q in listQuestion)
             {

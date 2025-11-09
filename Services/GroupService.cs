@@ -576,11 +576,14 @@ namespace Capstone.Services
                 int isDeleteReport = await _appDbContext.offlinereports
                     .Where(r => r.QGId == QgId)
                     .ExecuteDeleteAsync();
+                int isUpdate = await _appDbContext.offlineResults.Where(qg => qg.QGId.Equals(QgId)).ExecuteUpdateAsync(setters => setters
+                                                                                                          .SetProperty(or => or.QGId, (int?)null)
+                                                                                                          .SetProperty(or => or.GroupId, (int?)null));
                 // Xóa quan hệ quiz-group
                 int isDeleteQuizzGroup = await _appDbContext.quizzGroups
                     .Where(gq => gq.GroupId == groupId && gq.QuizId == quizId)
                     .ExecuteDeleteAsync();
-
+              
                 if (isDeleteQuizzGroup > 0)
                 {
                     await transaction.CommitAsync();

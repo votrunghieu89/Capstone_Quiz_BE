@@ -13,7 +13,7 @@ namespace Capstone.Database
         {
         }
 
-        public DbSet<AuthModel> authModels { get; set; }
+        public DbSet<AccountModel> authModels { get; set; }
 
         // Profile / Account related
         public DbSet<StudentProfileModel> studentProfiles { get; set; }

@@ -62,7 +62,7 @@ namespace Capstone.Services
                 {
                     try
                     {
-                        AuthModel authModel = new AuthModel
+                        AccountModel authModel = new AccountModel
                         {
                             Email = authRegisterDTO.Email,
                             PasswordHash = Hash.HashPassword(authRegisterDTO.PasswordHash),
@@ -118,7 +118,7 @@ namespace Capstone.Services
                 {
                     try
                     {
-                        AuthModel authModel = new AuthModel
+                        AccountModel authModel = new AccountModel
                         {
                             Email = authRegisterDTO.Email,
                             PasswordHash = Hash.HashPassword(authRegisterDTO.PasswordHash),
@@ -183,7 +183,7 @@ namespace Capstone.Services
         {
             try
             {
-                AuthModel? user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == authLoginDTO.Email);
+                AccountModel? user = await _context.authModels.FirstOrDefaultAsync(u => u.Email == authLoginDTO.Email);
                 if (user == null)
                 {
                     _logger.LogWarning("Login attempt failed: email not found '{Email}'.", authLoginDTO.Email);
@@ -456,7 +456,7 @@ namespace Capstone.Services
         {
             try
             {
-                var newAccount = new AuthModel
+                var newAccount = new AccountModel
                 {
                     Email = adminAccount.Email,
                     PasswordHash = Hash.HashPassword(adminAccount.PasswordHash),

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace Capstone.Model
 {
     [Table("Accounts")]
-    public class AuthModel
+    public class AccountModel
     {
         [Key]
         [Column("AccountId")]

@@ -56,7 +56,7 @@ namespace Capstone.UnitTest
             var testEmail = "existing1@example.com";
             var expectedAccountId = 123;
 
-            var existingAccount = new AuthModel
+            var existingAccount = new AccountModel
             {
                 AccountId = expectedAccountId,
                 Email = testEmail,
@@ -118,7 +118,7 @@ namespace Capstone.UnitTest
         {
             // Arrange
             var existingEmail = "duplicate@example.com";
-            var existingAccount = new AuthModel
+            var existingAccount = new AccountModel
             {
                 Email = existingEmail,
                 PasswordHash = Hash.HashPassword("oldpassword"),
@@ -195,7 +195,7 @@ namespace Capstone.UnitTest
         {
             // Arrange
             var existingEmail = "duplicate.teacher@example.com";
-            var existingAccount = new AuthModel
+            var existingAccount = new AccountModel
             {
                 Email = existingEmail,
                 PasswordHash = Hash.HashPassword("oldpassword"),
@@ -243,7 +243,7 @@ namespace Capstone.UnitTest
             var password = "password123";
             var hashedPassword = Hash.HashPassword(password);
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = hashedPassword,
@@ -282,7 +282,7 @@ namespace Capstone.UnitTest
             var correctPassword = "correctpassword";
             var wrongPassword = "wrongpassword";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = Hash.HashPassword(correctPassword),
@@ -326,7 +326,7 @@ namespace Capstone.UnitTest
             var email = "banned@example.com";
             var password = "password123";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = Hash.HashPassword(password),
@@ -358,7 +358,7 @@ namespace Capstone.UnitTest
             var oldPassword = "oldpassword";
             var newPassword = "newpassword";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = Hash.HashPassword(oldPassword),
@@ -390,7 +390,7 @@ namespace Capstone.UnitTest
             var wrongOldPassword = "wrongoldpassword";
             var newPassword = "newpassword";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = Hash.HashPassword(oldPassword),
@@ -524,7 +524,7 @@ namespace Capstone.UnitTest
             var accountId = 123;
             var newPassword = "newpassword123";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 AccountId = accountId,
                 Email = "user@example.com",
@@ -569,7 +569,7 @@ namespace Capstone.UnitTest
             var accountId = 123;
             var refreshToken = "valid-refresh-token";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 AccountId = accountId,
                 Email = "user@example.com",
@@ -643,7 +643,7 @@ namespace Capstone.UnitTest
             // Arrange
             var email = "student@gmail.com";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = "hashedpassword",
@@ -694,7 +694,7 @@ namespace Capstone.UnitTest
             // Arrange
             var email = "teacher@gmail.com";
 
-            var user = new AuthModel
+            var user = new AccountModel
             {
                 Email = email,
                 PasswordHash = "hashedpassword",

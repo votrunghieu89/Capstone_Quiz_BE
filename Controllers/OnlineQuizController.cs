@@ -3,6 +3,7 @@ using Capstone.DTOs.Quizzes;
 using Capstone.DTOs.Quizzes.QuizzOnline;
 using Capstone.Repositories.Quizzes;
 using Capstone.SignalR;
+using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Newtonsoft.Json;
@@ -99,13 +100,21 @@ namespace Capstone.Controllers
         {
             try
             {
-                bool isCorrect = await _quizRepository.checkAnswer(new CheckAnswerDTO
+                bool isCorrect;
+                string? isCorrecJson = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}: question_{onlineAnswerDTO.questionId}: option_{onlineAnswerDTO.optionId}");
+                if (isCorrecJson == null)
                 {
-                    QuizId = onlineAnswerDTO.quizId,
-                    QuestionId = onlineAnswerDTO.questionId,
-                    OptionId = onlineAnswerDTO.optionId
-                });
-
+                    isCorrect = await _quizRepository.checkAnswer(new CheckAnswerDTO
+                    {
+                        QuizId = onlineAnswerDTO.quizId,
+                        QuestionId = onlineAnswerDTO.questionId,
+                        OptionId = onlineAnswerDTO.optionId
+                    });
+                }
+                else
+                {
+                    isCorrect = Convert.ToBoolean(isCorrecJson);
+                }
                 string studentHashKey = $"quiz:room:{onlineAnswerDTO.roomCode}:student:{onlineAnswerDTO.studentId}:detail";
                 string studentJsonKey = $"quiz:room:{onlineAnswerDTO.roomCode}:student:{onlineAnswerDTO.studentId}";
                 var Score = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}_Score");
@@ -120,14 +129,29 @@ namespace Capstone.Controllers
                 }
                 else
                 {
+                    //quiz_questions_{ quizId}:question_{ q.QuestionId}
+                    //_Score
                     await _redis.HashIncrementAsync(studentHashKey, "WrongCount", 1);
-
-                    var correctAnswer = await _quizRepository.getCorrectAnswer(new GetCorrectAnswer
+                    RightAnswerDTO correctAnswer = null;
+                    var correctAnswerJson = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}:correctAnswer");
+                    if (string.IsNullOrEmpty(correctAnswerJson))
                     {
-                        QuizId = onlineAnswerDTO.quizId,
-                        QuestionId = onlineAnswerDTO.questionId
-                    });
+                        correctAnswer = await _quizRepository.getCorrectAnswer(new GetCorrectAnswer
+                        {
+                            QuizId = onlineAnswerDTO.quizId,
+                            QuestionId = onlineAnswerDTO.questionId
+                        });
 
+                        if (correctAnswer == null)
+                        {
+                            _logger.LogWarning("No correct answer found for quizId {QuizId}, questionId {QuestionId}",
+                                onlineAnswerDTO.quizId, onlineAnswerDTO.questionId);
+                        }
+                    }
+                    else
+                    {
+                        correctAnswer = JsonConvert.DeserializeObject<RightAnswerDTO>(correctAnswerJson);
+                    }
                     string json = await _redis.GetStringAsync(studentJsonKey);
                     if (!string.IsNullOrEmpty(json))
                     {
@@ -158,19 +182,19 @@ namespace Capstone.Controllers
                 return StatusCode(500, new { message = "Lỗi máy chủ nội bộ" });
             }
         }
-        [HttpPut("Update TotalParticipant")]
-        public async Task<IActionResult> UpdateTotal(int quizId, int Total)
-        {
-            try
-            {
-                var result = await _onlineQuizRepository.UpdateNumberOfParticipants(quizId, Total);   
-                return Ok(new { message = $"Cache for quiz {quizId} cleared successfully." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
-                return StatusCode(500, "Error clearing quiz cache.");
-            }
-        }
+        //[HttpPut("Update TotalParticipant")]
+        //public async Task<IActionResult> UpdateTotal(int quizId, int Total)
+        //{
+        //    try
+        //    {
+        //        var result = await _onlineQuizRepository.UpdateNumberOfParticipants(quizId, Total);   
+        //        return Ok(new { message = $"Cache for quiz {quizId} cleared successfully." });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
+        //        return StatusCode(500, "Error clearing quiz cache.");
+        //    }
+        //}
     }
 }

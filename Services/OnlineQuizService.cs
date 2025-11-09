@@ -100,6 +100,7 @@ namespace Capstone.Services
                         await _context.onlineResults.AddRangeAsync(resultsToInsert);
                         await _context.SaveChangesAsync();
 
+                        int isUpdate = await _context.quizzes.Where(q => q.QuizId == insertOnlineReportDTO.QuizId).ExecuteUpdateAsync(e => e.SetProperty(q => q.TotalParticipants, q => q.TotalParticipants + insertOnlineReportDTO.TotalParticipants));
 
                         for (int i = 0; i < resultsToInsert.Count; i++)
                         {
@@ -161,7 +162,6 @@ namespace Capstone.Services
 
         public async Task<bool> updateLeaderBoard(string roomCode)
         {
-            Console.WriteLine($"Updating leaderboard for room {roomCode}");
             string leaderboardKey = $"quiz:room:{roomCode}:leaderboard";
             string roomJson = await _redis.GetStringAsync($"quiz:room:{roomCode}");
             if (string.IsNullOrEmpty(roomJson)) return false;
@@ -196,20 +196,20 @@ namespace Capstone.Services
                             .SendAsync("ReceiveLeaderboard", leaderboard);
             return true;
         }
-        public async Task<bool> UpdateNumberOfParticipants(int quizId, int totalParticipant)
-        {
-            try
-            {
-                int isUpdate = await _context.quizzes.Where(q => q.QuizId == quizId).ExecuteUpdateAsync(e => e.SetProperty(q => q.TotalParticipants, q => q.TotalParticipants + totalParticipant));
-                if (isUpdate > 0) { 
-                    return true;
-                }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                return false;
-            }
-        }
+        //public async Task<bool> UpdateNumberOfParticipants(int quizId, int totalParticipant)
+        //{
+        //    try
+        //    {
+        //        int isUpdate = await _context.quizzes.Where(q => q.QuizId == quizId).ExecuteUpdateAsync(e => e.SetProperty(q => q.TotalParticipants, q => q.TotalParticipants + totalParticipant));
+        //        if (isUpdate > 0) { 
+        //            return true;
+        //        }
+        //        return false;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return false;
+        //    }
+        //}
     }
 }

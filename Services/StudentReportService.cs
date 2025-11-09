@@ -117,7 +117,7 @@ namespace Capstone.Services
                 var result = await (from or in _context.offlineResults
                                     join q in _context.quizzes on or.QuizId equals q.QuizId
                                     join a in _context.authModels on q.TeacherId equals a.AccountId
-                                    where or.StudentId == studentId && or.GroupId != null
+                                    where or.StudentId == studentId && or.GroupId != null && or.QGId != null
                                     select new GetAllCompletedPrivateQuizzesDTO
                                     {
                                         QuizId = q.QuizId,
@@ -155,7 +155,7 @@ namespace Capstone.Services
                 var result = await (from or in _context.offlineResults
                                     join q in _context.quizzes on or.QuizId equals q.QuizId
                                     join a in _context.authModels on q.TeacherId equals a.AccountId
-                                    where or.StudentId == studentId && or.GroupId == null
+                                    where or.StudentId == studentId && or.GroupId == null && or.QGId == null
                                     select new GetAllCompletedPublicQuizzesDTO
                                     {
                                         QuizId = q.QuizId,
