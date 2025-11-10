@@ -1,5 +1,6 @@
 ﻿using Capstone.Repositories.Folder;
 using Capstone.Services;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -76,6 +77,10 @@ namespace Capstone.Controllers
             try
             {
                 var folderDetail = await _repoFolder.GetFolderDetail(teacherId, folderId);
+                foreach( var quiz in folderDetail.QuizzFolder)
+                {
+                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                }
                 if (folderDetail == null)
                 {
                     _logger.LogInformation("No folder detail found for TeacherID={TeacherID}, FolderID={FolderID}", teacherId, folderId);

@@ -94,6 +94,10 @@ namespace Capstone.Controllers
                 }
 
                 List<ViewQuizDTO> quizzes = await _groupRepository.GetAllDeliveredQuizzesByGroupId(groupId);
+                foreach (var quiz in quizzes)
+                {
+                    quiz.DeliveredQuiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.DeliveredQuiz.AvatarURL.Replace("\\", "/")}";
+                }
                 var FronendURL = _configuration["Frontend:BaseUrl"];
                 var urlInvite = $"{FronendURL}/join-group/{group.IdUnique}";
                 var newObject = new
@@ -107,6 +111,7 @@ namespace Capstone.Controllers
                     group.CreateAt,
                     Quizzes = quizzes
                 };
+                
                 _logger.LogInformation("getGroupDetail: Success - GroupId={GroupId}, QuizCount={QuizCount}", groupId, quizzes?.Count ?? 0);
                 return Ok(newObject);
             }
