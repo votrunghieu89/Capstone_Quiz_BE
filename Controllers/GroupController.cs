@@ -392,7 +392,7 @@ namespace Capstone.Controllers
             }
         }
 
-        [HttpDelete("RemoveQuizFromGroup/{groupId}/{quizId}")]
+        [HttpDelete("RemoveQuizFromGroup/{QgID}/{groupId}/{quizId}")]
         [Authorize(Roles = "Teacher")]
             public async Task<IActionResult> RemoveQuizFromGroup(int QgID, int groupId, int quizId)
             {
