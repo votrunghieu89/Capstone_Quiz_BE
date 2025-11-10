@@ -316,8 +316,8 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task RemoveQuizFromGroup_Success_ReturnsOk()
         {
-            _mockRepo.Setup(r => r.RemoveQuizFromGroup(1, 2, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync(true);
-            var result = await _controller.RemoveQuizFromGroup(1, 2);
+            _mockRepo.Setup(r => r.RemoveQuizFromGroup(1,1, 2, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync(true);
+            var result = await _controller.RemoveQuizFromGroup(1,1, 2);
             var ok = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(ok.Value);
         }
@@ -325,8 +325,8 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task RemoveQuizFromGroup_NotFound_ReturnsNotFound()
         {
-            _mockRepo.Setup(r => r.RemoveQuizFromGroup(1, 2, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync(false);
-            var result = await _controller.RemoveQuizFromGroup(1, 2);
+            _mockRepo.Setup(r => r.RemoveQuizFromGroup(1,1, 2, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync(false);
+            var result = await _controller.RemoveQuizFromGroup(1,1, 2);
             Assert.IsType<NotFoundObjectResult>(result);
         }
         #endregion

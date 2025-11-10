@@ -18,7 +18,7 @@ namespace Capstone.Repositories.Groups
         public Task<List<ViewStudentDTO>> GetAllStudentsByGroupId(int groupId);   //
 
         public Task<InsertQuiz> InsertQuizToGroup(InsertQuiz insertQuiz, int accountId, string ipAddress); //
-        public Task<bool> RemoveQuizFromGroup(int groupId, int quizId, int accountId, string ipAddress); //
+        public Task<bool> RemoveQuizFromGroup(int QgID, int groupId, int quizId, int accountId, string ipAddress); //
         public Task<List<ViewQuizDTO>> GetAllDeliveredQuizzesByGroupId(int groupId); //
 
         // For Student

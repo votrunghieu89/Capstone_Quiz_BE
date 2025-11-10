@@ -554,36 +554,29 @@ namespace Capstone.Services
         }
 
         // Đã thêm accountId và ipAddress
-        public async Task<bool> RemoveQuizFromGroup(int groupId, int quizId, int accountId, string ipAddress)
+        public async Task<bool> RemoveQuizFromGroup(int QgID, int groupId, int quizId, int accountId, string ipAddress)
         {
-            _logger.LogInformation("RemoveQuizFromGroup: Start - QuizId={QuizId}, GroupId={GroupId}, AccountId={AccountId}", quizId, groupId, accountId);
+            _logger.LogInformation("RemoveQuizFromGroup: Start - QgID={QgID}, GroupId={GroupId}, AccountId={AccountId}", QgID, groupId, accountId);
 
             await using var transaction = await _appDbContext.Database.BeginTransactionAsync();
             try
             {
-                var QgId = await _appDbContext.quizzGroups
-                    .Where(gq => gq.GroupId == groupId && gq.QuizId == quizId)
-                    .Select(gq => gq.QGId)
-                    .FirstOrDefaultAsync();
-
-                if (QgId == 0)
-                {
-                    _logger.LogWarning("RemoveQuizFromGroup: Not found - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
-                    return false;
-                }
-
                 // Xóa report trước
                 int isDeleteReport = await _appDbContext.offlinereports
-                    .Where(r => r.QGId == QgId)
+                    .Where(r => r.QGId == QgID)
                     .ExecuteDeleteAsync();
-                int isUpdate = await _appDbContext.offlineResults.Where(qg => qg.QGId.Equals(QgId)).ExecuteUpdateAsync(setters => setters
-                                                                                                          .SetProperty(or => or.QGId, (int?)null)
-                                                                                                          .SetProperty(or => or.GroupId, (int?)null));
+
+                int isUpdate = await _appDbContext.offlineResults
+                    .Where(qg => qg.QGId == QgID)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(or => or.QGId, (int?)null)
+                        .SetProperty(or => or.GroupId, (int?)null));
+
                 // Xóa quan hệ quiz-group
                 int isDeleteQuizzGroup = await _appDbContext.quizzGroups
-                    .Where(gq => gq.GroupId == groupId && gq.QuizId == quizId)
+                    .Where(gq => gq.QGId == QgID)
                     .ExecuteDeleteAsync();
-              
+
                 if (isDeleteQuizzGroup > 0)
                 {
                     await transaction.CommitAsync();
@@ -593,27 +586,28 @@ namespace Capstone.Services
                     {
                         AccountId = accountId,
                         Action = "Remove quiz from group",
-                        Description = $"Quiz ID:{quizId} has been removed from Group ID:{groupId} by account ID:{accountId}",
+                        Description = $"Quiz ID:{QgID} has been removed from Group ID:{groupId} by Account ID:{accountId}",
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
 
-                    _logger.LogInformation("RemoveQuizFromGroup: Success - QuizId={QuizId} removed from GroupId={GroupId}", quizId, groupId);
+                    _logger.LogInformation("RemoveQuizFromGroup: Success - QgID={QgID} removed from GroupId={GroupId}", QgID, groupId);
                     return true;
                 }
 
                 await transaction.RollbackAsync();
-                _logger.LogWarning("RemoveQuizFromGroup: Nothing deleted - QuizId={QuizId}, GroupId={GroupId}", quizId, groupId);
+                _logger.LogWarning("RemoveQuizFromGroup: No quiz-group relationship deleted - QgID={QgID}, GroupId={GroupId}", QgID, groupId);
                 return false;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError(ex, "RemoveQuizFromGroup: Error removing QuizId={QuizId} from GroupId={GroupId}", quizId, groupId);
+                _logger.LogError(ex, "RemoveQuizFromGroup: Error removing QgID={QgID} from GroupId={GroupId}", QgID, groupId);
                 return false;
             }
         }
+
 
         public async Task<List<ViewQuizDTO>> GetAllDeliveredQuizzesByGroupId(int groupId)
         {

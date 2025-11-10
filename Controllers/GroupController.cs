@@ -394,30 +394,35 @@ namespace Capstone.Controllers
 
         [HttpDelete("RemoveQuizFromGroup/{groupId}/{quizId}")]
         [Authorize(Roles = "Teacher")]
-        public async Task<IActionResult> RemoveQuizFromGroup(int groupId, int quizId)
-        {
-            _logger.LogInformation("removeQuizFromGroup: Start - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-            try
+            public async Task<IActionResult> RemoveQuizFromGroup(int QgID, int groupId, int quizId)
             {
-                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
-                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
-                var result = await _groupRepository.RemoveQuizFromGroup(groupId, quizId,accountId,ipAddess);
-                if (result)
+                _logger.LogInformation("RemoveQuizFromGroup: Start - QgID={QgID}", QgID);
+
+                try
                 {
-                    _logger.LogInformation("removeQuizFromGroup: Success - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-                    return Ok(new { Message = "Xóa bài kiểm tra khỏi nhóm thành công" });
+                    var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                    var ipAddress = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                                    ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                    // Giả sử repository method trả về true/false
+                    var result = await _groupRepository.RemoveQuizFromGroup(QgID, groupId, quizId,accountId, ipAddress);
+
+                    if (result)
+                    {
+                        _logger.LogInformation("RemoveQuizFromGroup: Success - QgID={QgID}", QgID);
+                        return Ok(new { Message = "Xóa bài kiểm tra khỏi nhóm thành công" });
+                    }
+                    else
+                    {
+                        _logger.LogWarning("RemoveQuizFromGroup: Quiz not found or nothing deleted - QgID={QgID}", QgID);
+                        return NotFound(new { Message = "Không tìm thấy nhóm hoặc bài kiểm tra" });
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    _logger.LogWarning("removeQuizFromGroup: Quiz not found in group - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-                    return NotFound(new { Message = "Không tìm thấy nhóm hoặc bài kiểm tra" });
+                    _logger.LogError(ex, "RemoveQuizFromGroup: Error removing QgID={QgID}", QgID);
+                    return StatusCode(500, "Lỗi máy chủ nội bộ");
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "removeQuizFromGroup: Error removing quiz from group - GroupId={GroupId}, QuizId={QuizId}", groupId, quizId);
-                return StatusCode(500, "Lỗi máy chủ nội bộ");
-            }
         }
     }
 }
