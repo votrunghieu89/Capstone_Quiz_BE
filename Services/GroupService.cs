@@ -634,7 +634,8 @@ namespace Capstone.Services
                                          TeacherName = t.FullName,
                                          DateCreated = gq.CreateAt,
                                          ExpiredDate = gq.ExpiredTime,
-                                         Message = gq.Message
+                                         Message = gq.Message,
+                                         TotalAttempst = gq.MaxAttempts,
                                      }).ToListAsync();
                 List<ViewQuizDTO> result = new List<ViewQuizDTO>();
                 foreach (var quiz in quizzes)
@@ -655,7 +656,8 @@ namespace Capstone.Services
                         TeacherName = quiz.TeacherName,
                         DateCreated = quiz.DateCreated,
                         ExpiredDate = quiz.ExpiredDate,
-                        Message = quiz.Message
+                        Message = quiz.Message,
+                        TotalAttempts = quiz.TotalAttempst
                     };
                     result.Add(newViewQuizDTO);
                 }

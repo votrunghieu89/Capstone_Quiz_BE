@@ -9,6 +9,7 @@
         public DateTime DateCreated { get; set; }
         public DateTime ExpiredDate { get; set; }
         public string? Message { get; set; }
+        public int? TotalAttempts { get; set; }
     }
     public class DeliveredQuizz
     {
