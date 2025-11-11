@@ -89,6 +89,10 @@ namespace Capstone.Controllers
             try
             {
                 QuizDetailHPDTO quiz = await _quizRepository.getDetailOfQuizHP(quizId);
+                if (!string.IsNullOrEmpty(quiz.AvatarURL))
+                {
+                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                }
                 if (quiz == null)
                 {
                     return NotFound(new {message = "Could not find any information"});
