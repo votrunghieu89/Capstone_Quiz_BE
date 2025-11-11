@@ -75,30 +75,45 @@ namespace Capstone.Controllers
                 }
                 var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
-                var folderName = _configuration["UploadSettings:AvatarFolder"];
-                var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
-                if (!Directory.Exists(uploadsFolder))
+                var studentProfileModel = new StudentProfileModel();
+
+                if (studentProfile.FormFile != null)
                 {
-                    _logger.LogDebug("updateStudentProfile: Creating uploads folder at {UploadsFolder}", uploadsFolder);
-                    Directory.CreateDirectory(uploadsFolder);
+
+                    var folderName = _configuration["UploadSettings:AvatarFolder"];
+                    var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        _logger.LogDebug("updateStudentProfile: Creating uploads folder at {UploadsFolder}", uploadsFolder);
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var extension = Path.GetExtension(studentProfile.FormFile.FileName);
+                    var FileName = $"{studentProfile.StudentId}_{Guid.NewGuid()}{extension}";
+                    var filePath = Path.Combine(uploadsFolder, FileName);
+
+                    _logger.LogDebug("updateStudentProfile: Saving uploaded avatar to {FilePath}", filePath);
+                    using (var stream = System.IO.File.Create(filePath))
+                    {
+                        await studentProfile.FormFile.CopyToAsync(stream);
+                    }
+
+                    studentProfileModel = new Capstone.Model.StudentProfileModel
+                    {
+                        StudentId = studentProfile.StudentId,
+                        FullName = studentProfile.FullName,
+                        AvatarURL = Path.Combine(folderName, FileName)
+                    };
                 }
-
-                var extension = Path.GetExtension(studentProfile.FormFile.FileName);
-                var FileName = $"{studentProfile.StudentId}_{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadsFolder, FileName);
-
-                _logger.LogDebug("updateStudentProfile: Saving uploaded avatar to {FilePath}", filePath);
-                using (var stream = System.IO.File.Create(filePath))
+                else
                 {
-                    await studentProfile.FormFile.CopyToAsync(stream);
+                    studentProfileModel = new Capstone.Model.StudentProfileModel
+                    {
+                        StudentId = studentProfile.StudentId,
+                        FullName = studentProfile.FullName,
+                        AvatarURL = null
+                    };
                 }
-
-                var studentProfileModel = new Capstone.Model.StudentProfileModel
-                {
-                    StudentId = studentProfile.StudentId,
-                    FullName = studentProfile.FullName,
-                    AvatarURL = Path.Combine(folderName, FileName)
-                };
 
                 _logger.LogDebug("updateStudentProfile: Updating DB for StudentId={StudentId}", studentProfileModel.StudentId);
                 var updatedProfile = await _studentProfileRepository.updateStudentProfile(studentProfileModel,accountId,ipAddess);
@@ -109,7 +124,7 @@ namespace Capstone.Controllers
                     return StatusCode(500, new { message = "Cập nhật hồ sơ thất bại" });
                 }
 
-                if (!string.IsNullOrEmpty(updatedProfile.oldAvatar))
+                if (studentProfile.FormFile != null && !string.IsNullOrEmpty(updatedProfile.oldAvatar))
                 {
                     var oldAvatarPath = Path.Combine(_webHostEnvironment.ContentRootPath, updatedProfile.oldAvatar);
                     _logger.LogDebug("updateStudentProfile: Deleting old avatar at {OldAvatarPath} if exists", oldAvatarPath);

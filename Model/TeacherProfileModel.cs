@@ -14,7 +14,7 @@ namespace Capstone.Model
         [Column("FullName")]
         [Required]
         [MaxLength(100)]
-        public string FullName { get; set; } = string.Empty;
+        public string? FullName { get; set; } 
 
         [Column("PhoneNumber")]
         [MaxLength(100)]
@@ -25,12 +25,11 @@ namespace Capstone.Model
         public string? AvatarURL { get; set; }
 
         [Column("IdUnique")]
-        public string IdUnique { get; set; } = string.Empty;
+        public string IdUnique { get; set; } 
 
         [Column("OrganizationName")]
-        [Required]
         [MaxLength(100)]
-        public string? OrganizationName { get; set; } = string.Empty;
+        public string? OrganizationName { get; set; } 
 
         [Column("OrganizationAddress")]
         [MaxLength(100)]

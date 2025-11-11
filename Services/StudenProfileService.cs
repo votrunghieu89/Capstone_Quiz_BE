@@ -55,17 +55,29 @@ namespace Capstone.Services
             _logger.LogInformation("updateStudentProfile: Start - StudentId={StudentId}, AccountId={AccountId}", studentProfile?.StudentId, accountId);
             try
             {
-                // Logic cũ: Lấy avatar cũ trước khi update
-                var oldAvatar = await _context.studentProfiles.Where(s => s.StudentId == studentProfile.StudentId)
-                                                             .Select(s => s.AvatarURL)
-                                                             .FirstOrDefaultAsync();
+                int updated;
+                string oldAvatar = null;
+                if (studentProfile.AvatarURL != null)
+                {
+                    // Logic cũ: Lấy avatar cũ trước khi update
+                    oldAvatar = await _context.studentProfiles.Where(s => s.StudentId == studentProfile.StudentId)
+                                                                .Select(s => s.AvatarURL)
+                                                                .FirstOrDefaultAsync();
 
-                // Logic cũ: Update profile
-                int updated = await _context.studentProfiles.Where(s => s.StudentId == studentProfile.StudentId)
-                                                            .ExecuteUpdateAsync(u => u
-                                                                .SetProperty(s => s.FullName, studentProfile.FullName)
-                                                                .SetProperty(s => s.AvatarURL, studentProfile.AvatarURL)
-                                                                .SetProperty(s => s.UpdateAt, DateTime.Now));
+                    // Logic cũ: Update profile
+                    updated = await _context.studentProfiles.Where(s => s.StudentId == studentProfile.StudentId)
+                                                               .ExecuteUpdateAsync(u => u
+                                                                   .SetProperty(s => s.FullName, studentProfile.FullName)
+                                                                   .SetProperty(s => s.AvatarURL, studentProfile.AvatarURL)
+                                                                   .SetProperty(s => s.UpdateAt, DateTime.Now));
+                }
+                else
+                {
+                    updated = await _context.studentProfiles.Where(s => s.StudentId == studentProfile.StudentId)
+                                                              .ExecuteUpdateAsync(u => u
+                                                                  .SetProperty(s => s.FullName, studentProfile.FullName)
+                                                                  .SetProperty(s => s.UpdateAt, DateTime.Now));
+                }
 
                 if (updated <= 0)
                 {

@@ -24,7 +24,7 @@ namespace Capstone.Services
             _logger.LogInformation("getTeacherProfile: Start - AccountId={AccountId}", accountId);
             try
             {
-                var teacherProfile = await _context.teacherProfiles.Where(t => t.TeacherId == accountId).FirstOrDefaultAsync();
+                TeacherProfileModel? teacherProfile = await _context.teacherProfiles.Where(t => t.TeacherId == accountId).FirstOrDefaultAsync();
                 if (teacherProfile == null)
                 {
                     _logger.LogWarning("getTeacherProfile: Not found - AccountId={AccountId}", accountId);
@@ -35,6 +35,7 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
+                Console.WriteLine("Step4 ");
                 _logger.LogError(ex, "getTeacherProfile: Error retrieving profile for AccountId={AccountId}", accountId);
                 return null;
             }

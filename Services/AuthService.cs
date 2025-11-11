@@ -78,6 +78,7 @@ namespace Capstone.Services
                         {
                             StudentId = authModel.AccountId,
                             FullName = authRegisterDTO.FullName,
+                            AvatarURL = null,
                             IdUnique = uniqueId,
                         };
                         await _context.studentProfiles.AddAsync(studentProfile);
@@ -136,6 +137,7 @@ namespace Capstone.Services
                             TeacherId = authModel.AccountId,
                             FullName = authRegisterDTO.FullName,
                             IdUnique = uniqueId,
+                            AvatarURL = null,
                             OrganizationName = authRegisterDTO.OrganizationName ?? null,
                             OrganizationAddress = authRegisterDTO.OrganizationAddress ?? null,
                         };
