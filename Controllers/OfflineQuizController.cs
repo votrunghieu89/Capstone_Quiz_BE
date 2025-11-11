@@ -3,7 +3,9 @@ using Capstone.Repositories.Quizzes;
 using Capstone.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using static Capstone.ENUMs.OfflineQuizzEnum;
 
 namespace Capstone.Controllers
 {
@@ -27,8 +29,25 @@ namespace Capstone.Controllers
         {
             try
             {
-                await _offlineRepo.StartOfflineQuiz(dto);
-                return Ok(new { message = "Quiz started successfully." });
+                var result = await _offlineRepo.StartOfflineQuiz(dto);
+
+                switch (result)
+                {
+                    case CheckStartOfflineQuizz.QuizExpired:
+                        _logger.LogWarning("Quiz Expired");
+                        return BadRequest(new { message = "Quizzes Expired" });
+
+                    case CheckStartOfflineQuizz.Success:
+                        _logger.LogInformation("QuizId = {QuizId} start successfully.", dto.QuizId);
+                        return Ok(new { message = "Start quizzes successfully." });
+                    case CheckStartOfflineQuizz.Failed:
+                        _logger.LogError("No quiz found QuizId = {QuizId} ", dto.QuizId);
+                        return BadRequest();
+
+                    default:
+                        _logger.LogWarning("Exceed the number of times done for QGId: {QGId}", dto.QGId);
+                        return BadRequest(new { message = "Exceed the number of times." });
+                }
             }
             catch (Exception ex)
             {
@@ -88,12 +107,12 @@ namespace Capstone.Controllers
 
         [HttpGet("result/{studentId}/{quizId}")]
         [Authorize(Roles = "Teacher,Student")]
-        public async Task<IActionResult> GetResult(int studentId, int quizId)
+        public async Task<IActionResult> GetResult(int studentId, int quizId, [FromQuery]  int? qgId)
         {
             try
             {
                 // Lấy kết quả cuối cùng từ DB (bao gồm cả Rank)
-                var result = await _offlineRepo.GetOfflineResult(studentId, quizId);
+                var result = await _offlineRepo.GetOfflineResult(studentId, quizId, qgId);
 
                 if (result == null)
                     return NotFound(new { message = "No results found." });

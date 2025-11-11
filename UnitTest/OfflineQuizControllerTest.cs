@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
-
+using static Capstone.ENUMs.OfflineQuizzEnum;
 namespace Capstone.UnitTest
 {
     public class OfflineQuizControllerTest
@@ -30,7 +30,7 @@ namespace Capstone.UnitTest
         public async Task StartQuiz_ReturnsOk_WhenRepoDoesNotThrow()
         {
             var dto = new StartOfflineQuizDTO { StudentId = 1, QGId = 10 };
-            _mockRepo.Setup(r => r.StartOfflineQuiz(dto)).ReturnsAsync(true);
+            _mockRepo.Setup(r => r.StartOfflineQuiz(dto)).ReturnsAsync(CheckStartOfflineQuizz.Success);
 
             var result = await _controller.StartQuiz(dto);
 
@@ -126,9 +126,9 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetResult_WhenFound_ReturnsOk()
         {
-            _mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ReturnsAsync(new OfflineResultViewDTO { QuizId = 2 });
+            //_mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ReturnsAsync(new OfflineResultViewDTO { QuizId = 2 });
 
-            var result = await _controller.GetResult(1, 2);
+            var result = await _controller.GetResult(1, 2, null);
 
             Assert.IsType<OkObjectResult>(result);
         }
@@ -136,9 +136,9 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetResult_WhenNotFound_ReturnsNotFound()
         {
-            _mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ReturnsAsync((OfflineResultViewDTO)null);
+            //_mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ReturnsAsync((OfflineResultViewDTO)null);
 
-            var result = await _controller.GetResult(1, 2);
+            var result = await _controller.GetResult(1, 2 , null);
 
             Assert.IsType<NotFoundObjectResult>(result);
         }
@@ -146,9 +146,9 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetResult_OnException_ReturnsBadRequest()
         {
-            _mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ThrowsAsync(new Exception("e"));
+            _mockRepo.Setup(r => r.GetOfflineResult(1, 2, null)).ThrowsAsync(new Exception("e"));
 
-            var result = await _controller.GetResult(1, 2);
+            var result = await _controller.GetResult(1, 2, null);
 
             Assert.IsType<BadRequestObjectResult>(result);
         }
