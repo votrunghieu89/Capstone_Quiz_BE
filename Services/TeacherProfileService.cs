@@ -46,19 +46,34 @@ namespace Capstone.Services
             _logger.LogInformation("updateTeacherProfile: Start - TeacherId={TeacherId}, AccountId={AccountId}", teacherProfile?.TeacherId, accountId);
             try
             {
-                var oldAvatar = await _context.teacherProfiles.Where(t => t.TeacherId == teacherProfile.TeacherId)
-                                                             .Select(t => t.AvatarURL)
-                                                             .FirstOrDefaultAsync();
+                if (teacherProfile == null) return null;
+                int updated;
+                string oldAvatar = null;
+                if (teacherProfile.AvatarURL != null)
+                {
+                    oldAvatar = await _context.teacherProfiles.Where(t => t.TeacherId == teacherProfile.TeacherId)
+                                                                 .Select(t => t.AvatarURL)
+                                                                 .FirstOrDefaultAsync();
 
-                int updated = await _context.teacherProfiles.Where(t => t.TeacherId == teacherProfile.TeacherId)
-                                                             .ExecuteUpdateAsync(u => u
-                                                                 .SetProperty(t => t.FullName, teacherProfile.FullName)
-                                                                 .SetProperty(t => t.AvatarURL, teacherProfile.AvatarURL)
-                                                                 .SetProperty(t => t.PhoneNumber, teacherProfile.PhoneNumber)
-                                                                 .SetProperty(t => t.OrganizationName, teacherProfile.OrganizationName)
-                                                                 .SetProperty(t => t.OrganizationAddress, teacherProfile.OrganizationAddress)
-                                                                 .SetProperty(t => t.UpdateAt, DateTime.Now));
-
+                    updated = await _context.teacherProfiles.Where(t => t.TeacherId == teacherProfile.TeacherId)
+                                                                 .ExecuteUpdateAsync(u => u
+                                                                     .SetProperty(t => t.FullName, teacherProfile.FullName)
+                                                                     .SetProperty(t => t.AvatarURL, teacherProfile.AvatarURL)
+                                                                     .SetProperty(t => t.PhoneNumber, teacherProfile.PhoneNumber)
+                                                                     .SetProperty(t => t.OrganizationName, teacherProfile.OrganizationName)
+                                                                     .SetProperty(t => t.OrganizationAddress, teacherProfile.OrganizationAddress)
+                                                                     .SetProperty(t => t.UpdateAt, DateTime.Now));
+                }
+                else
+                {
+                    updated = await _context.teacherProfiles.Where(t => t.TeacherId == teacherProfile.TeacherId)
+                                                                .ExecuteUpdateAsync(u => u
+                                                                    .SetProperty(t => t.FullName, teacherProfile.FullName)
+                                                                    .SetProperty(t => t.PhoneNumber, teacherProfile.PhoneNumber)
+                                                                    .SetProperty(t => t.OrganizationName, teacherProfile.OrganizationName)
+                                                                    .SetProperty(t => t.OrganizationAddress, teacherProfile.OrganizationAddress)
+                                                                    .SetProperty(t => t.UpdateAt, DateTime.Now));
+                }
                 if (updated <= 0)
                 {
                     _logger.LogWarning("updateTeacherProfile: No rows updated for TeacherId={TeacherId}", teacherProfile.TeacherId);

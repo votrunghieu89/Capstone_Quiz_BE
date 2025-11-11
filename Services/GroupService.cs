@@ -629,7 +629,7 @@ namespace Capstone.Services
                                          DateCreated = gq.CreateAt,
                                          ExpiredDate = gq.ExpiredTime,
                                          Message = gq.Message,
-                                         TotalAttempst = gq.MaxAttempts,
+                                         MaxAttempts = gq.MaxAttempts,
                                      }).ToListAsync();
                 List<ViewQuizDTO> result = new List<ViewQuizDTO>();
                 foreach (var quiz in quizzes)
@@ -651,7 +651,7 @@ namespace Capstone.Services
                         DateCreated = quiz.DateCreated,
                         ExpiredDate = quiz.ExpiredDate,
                         Message = quiz.Message,
-                        TotalAttempts = quiz.TotalAttempst
+                        MaxAttempts = quiz.MaxAttempts
                     };
                     result.Add(newViewQuizDTO);
                 }

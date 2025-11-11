@@ -66,38 +66,54 @@ namespace Capstone.Controllers
                     _logger.LogWarning("updateTeacherProfile: Request body null");
                     return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
                 }
+                var model = new TeacherProfileModel();
                 var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
-                var folderName = _configuration["UploadSettings:AvatarFolder"];
-                var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
-                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-                var extension = Path.GetExtension(dto.FormFile.FileName);
-                var fileName = $"{dto.TeacherId}_{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadsFolder, fileName);
-                using (var stream = System.IO.File.Create(filePath))
+                if (dto.FormFile != null)
                 {
-                    await dto.FormFile.CopyToAsync(stream);
+                    var folderName = _configuration["UploadSettings:AvatarFolder"];
+                    var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
+                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+                    var extension = Path.GetExtension(dto.FormFile.FileName);
+                    var fileName = $"{dto.TeacherId}_{Guid.NewGuid()}{extension}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+                    using (var stream = System.IO.File.Create(filePath))
+                    {
+                        await dto.FormFile.CopyToAsync(stream);
+                    }
+
+                    model = new TeacherProfileModel
+                    {
+                        TeacherId = dto.TeacherId,
+                        FullName = dto.FullName,
+                        PhoneNumber = dto.PhoneNumber,
+                        OrganizationName = dto.OrganizationName,
+                        OrganizationAddress = dto.OrganizationAddress,
+                        AvatarURL = Path.Combine(folderName, fileName)
+                    };
+                }
+                else
+                {
+                    model = new TeacherProfileModel
+                    {
+                        TeacherId = dto.TeacherId,
+                        FullName = dto.FullName,
+                        PhoneNumber = dto.PhoneNumber,
+                        OrganizationName = dto.OrganizationName,
+                        OrganizationAddress = dto.OrganizationAddress,
+                        AvatarURL = null,
+                    };
                 }
 
-                var model = new TeacherProfileModel
-                {
-                    TeacherId = dto.TeacherId,
-                    FullName = dto.FullName,
-                    PhoneNumber = dto.PhoneNumber,
-                    OrganizationName = dto.OrganizationName,
-                    OrganizationAddress = dto.OrganizationAddress,
-                    AvatarURL = Path.Combine(folderName, fileName)
-                };
-
-                var updated = await _teacherProfileRepository.updateTeacherProfile(model, accountId, ipAddess);
+                    var updated = await _teacherProfileRepository.updateTeacherProfile(model, accountId, ipAddess);
                 if (updated == null)
                 {
                     _logger.LogWarning("updateTeacherProfile: Update failed for TeacherId={TeacherId}", dto.TeacherId);
                     return StatusCode(500, new { message = "Cập nhật hồ sơ thất bại" });
                 }
 
-                if (!string.IsNullOrEmpty(updated.oldAvatar))
+                if (dto.FormFile != null && !string.IsNullOrEmpty(updated.oldAvatar))
                 {
                     var oldAvatarPath = Path.Combine(_webHostEnvironment.ContentRootPath, updated.oldAvatar);
                     if (System.IO.File.Exists(oldAvatarPath)) System.IO.File.Delete(oldAvatarPath);
