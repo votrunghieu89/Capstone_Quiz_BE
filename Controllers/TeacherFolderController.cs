@@ -77,18 +77,19 @@ namespace Capstone.Controllers
             try
             {
                 var folderDetail = await _repoFolder.GetFolderDetail(teacherId, folderId);
-                foreach( var quiz in folderDetail.QuizzFolder)
+                if (folderDetail == null)
+                {
+                    _logger.LogInformation("No folder detail found for TeacherID={TeacherID}, FolderID={FolderID}", teacherId, folderId);
+                    return NotFound(new { message = "No folder detail found for this teacher or folder." });
+                }
+                foreach ( var quiz in folderDetail.QuizzFolder)
                 {
                    if(quiz.AvatarURL != null)
                     {
                         quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
                     }
                 }
-                if (folderDetail == null)
-                {
-                    _logger.LogInformation("No folder detail found for TeacherID={TeacherID}, FolderID={FolderID}", teacherId, folderId);
-                    return NotFound(new { message = "No folder detail found for this teacher or folder." });
-                }
+              
 
                 _logger.LogInformation("Returned folder detail for TeacherID={TeacherID}, FolderID={FolderID}", teacherId, folderId);
                 return Ok(folderDetail);
