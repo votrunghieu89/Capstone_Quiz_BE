@@ -29,7 +29,9 @@ namespace Capstone.Controllers
             }
             foreach (var quiz in getAllFavouriteQuizzes)
             {
-               quiz.AvatarURL = quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                if (quiz.AvatarURL != null) {
+                    quiz.AvatarURL = quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                }
             }
             return Ok(getAllFavouriteQuizzes);
         }
