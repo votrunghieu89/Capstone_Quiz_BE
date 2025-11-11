@@ -32,6 +32,7 @@ namespace Capstone.Services
                     where pc.AccountId == accountId
                     select new ViewFavouriteDTO
                     {
+                        FavouriteId = qf.FavouriteId,
                         QuizId = q.QuizId,
                         Title = q.Title,
                         AvatarURL = q.AvatarURL,
@@ -140,5 +141,24 @@ namespace Capstone.Services
             }
             return false;
         }
+
+        public async Task<bool> RemoveFavouriteQuizzesinDetail(int quizzId, int accountId)
+        {
+            try
+            {
+                int checkDeleteQuizzF = await _context.quizzFavourites.
+                    Where(qf => qf.QuizId == quizzId && qf.AccountId == accountId).ExecuteDeleteAsync();
+                if (checkDeleteQuizzF > 0)
+                    {
+                    _logger.LogInformation("Delete Quizz Favoirite in detail succesfully");
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Can not remove Favourite Quiz in detail");
+                return false;
+            }
     }
 }

@@ -80,5 +80,16 @@ namespace Capstone.Controllers
             }
             return Ok(removeFavouriteQuizzes);
         }
+        [HttpDelete("removeFavouriteQuizInDetail")]
+        [Authorize(Roles = "Teacher,Student")]
+        public async Task<IActionResult> RemoveFavouriteQuizzesInDetail(int quizzID, int accountId )
+        {
+            var removeFavouriteQuizzes = await _repository.RemoveFavouriteQuizzesinDetail(quizzID, accountId);
+            if (removeFavouriteQuizzes == false)
+            {
+                return StatusCode(500, "An error occurred while remove the Favourite Quiz.");
+            }
+            return Ok(removeFavouriteQuizzes);
+        }
     }
 }

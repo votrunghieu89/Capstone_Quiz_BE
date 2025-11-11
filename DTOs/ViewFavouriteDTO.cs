@@ -2,6 +2,7 @@
 {
     public class ViewFavouriteDTO
     {
+        public int FavouriteId { get; set; }
         public int QuizId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string AvatarURL { get; set; } = string.Empty;
