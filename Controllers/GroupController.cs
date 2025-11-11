@@ -2,6 +2,7 @@
 using Capstone.DTOs.Group;
 using Capstone.Model;
 using Capstone.Repositories.Groups;
+using DocumentFormat.OpenXml.Math;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -51,6 +52,11 @@ namespace Capstone.Controllers
             try
             {
                 List<ViewStudentDTO> students = await _groupRepository.GetAllStudentsByGroupId(groupId);
+                foreach (var student in students) {
+                    if (student.Avatar != null) {
+                        student.Avatar = $"{Request.Scheme}://{Request.Host}/{student.Avatar.Replace("\\", "/")}";
+                    }
+                }
                 _logger.LogInformation("GetAllStudentsByGroupId: Retrieved {Count} students for GroupId={GroupId}", students?.Count ?? 0, groupId);
                 return Ok(students);
             }

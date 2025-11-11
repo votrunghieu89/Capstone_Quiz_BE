@@ -1,6 +1,7 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs;
 using Capstone.DTOs.Admin;
+using Capstone.DTOs.Group;
 using Capstone.DTOs.Quizzes;
 using Capstone.DTOs.Reports.Teacher.OfflineReport;
 using Capstone.DTOs.Reports.Teacher.OnlineReport;
@@ -101,31 +102,47 @@ namespace Capstone.Services
             }
         }
 
-        public async Task<List<ParticipantDTO>> SearchParticipantInGroup(string Name, int groupId)
+        public async Task<List<ViewStudentDTO>> SearchParticipantInGroup(string name, int groupId)
         {
+            _logger.LogInformation("SearchParticipantInGroup: Start - GroupId={GroupId}, Name={Name}", groupId, name);
+
             try
             {
-                var nomalName = Name.ToLower();
+                var normalizedName = name.ToLower();
 
-                var query = _dbContext.studentGroups.Where(sg => sg.GroupId == groupId)
-                    .Join(_dbContext.studentProfiles, sg => sg.StudentId, sp => sp.StudentId, (sg, sp) => sp)
-                    .Join(_dbContext.authModels, sp => sp.StudentId, acc => acc.AccountId, (sp, acc) => new { Student = sp, Account = acc })
-                    .Where(joined => joined.Student.FullName.ToLower().Contains(nomalName))
-                    .Select(joined => new ParticipantDTO
-                    {
-                        StudentId = joined.Student.StudentId,
-                        StudentName = joined.Student.FullName,
-                        Email = joined.Account.Email,
-                    });
-                    return await query.ToListAsync();
+                var students = await (from sg in _dbContext.studentGroups
+                                      join sp in _dbContext.studentProfiles on sg.StudentId equals sp.StudentId
+                                      join a in _dbContext.authModels on sp.StudentId equals a.AccountId
+                                      where sg.GroupId == groupId &&
+                                            sp.FullName.ToLower().Contains(normalizedName)
+                                      select new ViewStudentDTO
+                                      {
+                                          StudentId = sp.StudentId,
+                                          FullName = sp.FullName,
+                                          Email = a.Email,
+                                          Avatar = sp.AvatarURL,
+                                          DateJoined = sg.CreateAt,
+                                          Permission = "Student"
+                                      }).ToListAsync();
+
+                if (students.Any())
+                {
+                    _logger.LogInformation("SearchParticipantInGroup: Found {Count} students matching '{Name}' in GroupId={GroupId}", students.Count, name, groupId);
+                    return students;
+                }
+                else
+                {
+                    _logger.LogInformation("SearchParticipantInGroup: No students found matching '{Name}' in GroupId={GroupId}", name, groupId);
+                    return new List<ViewStudentDTO>();
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error when searching for student in group {GroupId} with name {Name}", groupId, Name);
-                return new List<ParticipantDTO>();
-
+                _logger.LogError(ex, "SearchParticipantInGroup: Error while searching for students with name '{Name}' in GroupId={GroupId}", name, groupId);
+                return new List<ViewStudentDTO>();
             }
         }
+
 
         public async Task<List<SearchStudentInOfflineReportDTO>> SearchStudentInOfflineReport(string Name, int reportId)
         {

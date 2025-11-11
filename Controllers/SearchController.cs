@@ -4,6 +4,7 @@ using Capstone.Repositories.Filter_Search;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Capstone.Controllers
 {
@@ -96,6 +97,13 @@ namespace Capstone.Controllers
             try
             {
                 var parListGr = await _repo.SearchParticipantInGroup(Name, groupId);
+                foreach (var par in parListGr)
+                {
+                    if (par.Avatar != null)
+                    {
+                        par.Avatar = $"{Request.Scheme}://{Request.Host}/{par.Avatar.Replace("\\", "/")}";
+                    }
+                }
                 _logger.LogInformation($"Search Participant In Group by Name and groupId: {Name}, {groupId}");
 
                 if (parListGr == null || !parListGr.Any())
