@@ -68,4 +68,36 @@
         public int? SelectedOptionId { get; set; }
         public int? CorrectOptionId { get; set; }
     }
+
+    public class OptionResultDTO
+    {
+        public int OptionId { get; set; }
+        public string OptionContent { get; set; }
+        public bool IsCorrect { get; set; } // Cho FE biết đây có phải đáp án đúng 
+    }
+    public class QuestionResultDTO
+    {
+        public int QuestionId { get; set; }
+        public string QuestionContent { get; set; }
+        public int? SelectedOptionId { get; set; } // Id đáp án user đã chọn , để hiện dấu x
+        public int CorrectOptionId { get; set; }  // Id đáp án đúng để hiện dấu tit
+        public List<OptionResultDTO> Options { get; set; } // Danh sách các lựa chọn
+    }
+    public class OfflineResultDetailViewDTO
+    {
+        public int QuizId { get; set; }
+        public string QuizTitle { get; set; }
+        public int CountAttempts { get; set; }
+        public int MaxAttempts { get; set; }
+        public int CorrectCount { get; set; }
+        public int WrongCount { get; set; }
+        public int TotalQuestion { get; set; }
+        public int Score { get; set; }
+        public int? RANK { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public int Duration { get; set; }
+
+        public List<QuestionResultDTO> QuestionDetails { get; set; }
+    }
 }

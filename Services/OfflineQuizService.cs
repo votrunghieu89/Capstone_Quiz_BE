@@ -10,6 +10,9 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using OptionResultDTO = Capstone.DTOs.OptionResultDTO;
+using QuestionResultDTO = Capstone.DTOs.QuestionResultDTO;
+using static Capstone.ENUMs.OfflineQuizzEnum;
 
 namespace Capstone.Services
 {
@@ -31,7 +34,7 @@ namespace Capstone.Services
         }
 
         // START QUIZ 
-        public async Task<bool> StartOfflineQuiz(StartOfflineQuizDTO dto)
+        public async Task<CheckStartOfflineQuizz> StartOfflineQuiz(StartOfflineQuizDTO dto)
         {
             try
             {
@@ -45,7 +48,13 @@ namespace Capstone.Services
                     if (qg == null)
                     {
                         _logger.LogError("Quiz group does not exist (QGId: {QGId})", dto.QGId);
-                        return false;
+                        return CheckStartOfflineQuizz.Failed;
+                    }
+                    _logger.LogWarning("Thời gian làm (QGId: {Starttime})  hết hạn {ExpiredTime}", dto.StartTime, qg.ExpiredTime);
+                    if (dto.StartTime> qg.ExpiredTime)
+                    {
+                        _logger.LogWarning("Attempt to start quiz (QGId: {QGId}) failed: Quiz has expired. Expired at: {ExpiredTime}", dto.QGId, qg.ExpiredTime);
+                        return CheckStartOfflineQuizz.QuizExpired; // đã quá hạn
                     }
 
                     quizIdToLoad = qg.QuizId; // Lấy QuizId từ QG nếu tồn tại
@@ -57,7 +66,7 @@ namespace Capstone.Services
                     if (result != null && result.CountAttempts >= qg.MaxAttempts)
                     {
                         _logger.LogError("Exceed the number of times done for QGId: {QGId}", dto.QGId);
-                        return false;
+                        return CheckStartOfflineQuizz.ExceedNumberAttempts;
                     }
                 }
 
@@ -66,7 +75,7 @@ namespace Capstone.Services
                 if (quiz == null)
                 {
                     _logger.LogError("No quiz found for QuizId: {QuizId}", quizIdToLoad);
-                    return false;
+                    return CheckStartOfflineQuizz.Failed;
                 }
 
                 var redisKey = $"offline_quiz:{dto.StudentId}:{quiz.QuizId}";
@@ -101,12 +110,12 @@ namespace Capstone.Services
                 );
 
                 _logger.LogInformation($"Offline quiz started/resumed: Student {dto.StudentId} - Quiz {quiz.QuizId}");
-                return true;
+                return CheckStartOfflineQuizz.Success;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error starting offline quiz.");
-                return false;
+                return CheckStartOfflineQuizz.Failed;
             }
         }
 
@@ -416,40 +425,103 @@ namespace Capstone.Services
         }
 
         // GET OFFLINE RESULT
-        public async Task<OfflineResultViewDTO?> GetOfflineResult(int studentId, int quizId)
+        public async Task<OfflineResultDetailViewDTO?> GetOfflineResult(int studentId, int quizId, int? qgId)
         {
             try
             {
-                // Lấy kết quả mới nhất của học sinh cho quiz đó
-                // (Ưu tiên kết quả có QGId nếu có nhiều)
-                var result = await (
+                // Lấy kết quả  dựa trên studentId, quizId, và qgId
+                var resultStats = await (
                     from r in _context.offlineResults
                     join q in _context.quizzes on r.QuizId equals q.QuizId
                     join g in _context.quizzGroups on r.QGId equals g.QGId into qgGroup
-                    from g in qgGroup.DefaultIfEmpty() // Cho phép g (Quizz_Group) là NULL
-                    where r.StudentId == studentId && r.QuizId == quizId
-                    orderby r.QGId descending, r.EndDate descending // Ưu tiên kết quả có QGId, sau đó là mới nhất
-                    select new OfflineResultViewDTO
-                    {
-                        QuizId = r.QuizId,
-                        QuizTitle = q.Title,
-                        CountAttempts = r.CountAttempts,
-                        MaxAttempts = (g != null) ? g.MaxAttempts : 1,
-                        CorrectCount = r.CorrecCount,
-                        WrongCount = r.WrongCount,
-                        TotalQuestion = r.TotalQuestion,
-                        Score = r.Score,
-                        StartDate = r.StartDate,
-                        EndDate = r.EndDate,
-                        Duration = r.Duration,
-                        RANK = r.RANK
-                    }).FirstOrDefaultAsync();
+                    from g in qgGroup.DefaultIfEmpty()
 
-                return result;
+                        // Lọc theo StudentId, QuizId, VÀ QGId (có thể là NULL)
+                    where r.StudentId == studentId && r.QuizId == quizId && r.QGId == qgId
+                    select new
+                    {
+                        Result = r, // Lấy toàn bộ OfflineResultModel
+                        QuizTitle = q.Title,
+                        MaxAttempts = (g != null) ? g.MaxAttempts : 1
+                    }).FirstOrDefaultAsync(); // Chỉ tìm 1 kết quả 
+
+                if (resultStats == null)
+                {
+                    _logger.LogWarning($"No offline result found for Student {studentId}, Quiz {quizId}, QGId {qgId?.ToString() ?? "NULL"}");
+                    return null; // Không tìm thấy kết quả
+                }
+
+                // Lấy tất cả câu hỏi và lựa chọn của bài quiz
+                var allQuestionsWithOptions = await _context.questions
+                    .Where(q => q.QuizId == quizId && q.IsDeleted == false)
+                    .Include(q => q.Options.Where(o => o.IsDeleted == false))
+                    .Select(q => new
+                    {
+                        QuestionId = q.QuestionId,
+                        QuestionContent = q.QuestionContent,
+                        CorrectOptionId = q.Options.First(o => o.IsCorrect).OptionId,
+                        Options = q.Options.Select(o => new OptionResultDTO
+                        {
+                            OptionId = o.OptionId,
+                            OptionContent = o.OptionContent,
+                            IsCorrect = o.IsCorrect
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                // Lấy các câu trả lời SAI của học sinh 
+                var wrongAnswersMap = await _context.offlineWrongAnswers
+                    .Where(wa => wa.OffResultId == resultStats.Result.OffResultId)
+                    .ToDictionaryAsync(wa => wa.QuestionId, wa => wa.SelectedOptionId);
+
+                // chi tiết câu hỏi
+                var questionDetails = new List<QuestionResultDTO>();
+
+                foreach (var q in allQuestionsWithOptions)
+                {
+                    int? selectedId = null;
+
+                    if (wrongAnswersMap.ContainsKey(q.QuestionId))
+                    {
+                        selectedId = wrongAnswersMap[q.QuestionId];
+                    }
+                    else
+                    {
+                        selectedId = q.CorrectOptionId;
+                    }
+
+                    questionDetails.Add(new QuestionResultDTO
+                    {
+                        QuestionId = q.QuestionId,
+                        QuestionContent = q.QuestionContent,
+                        SelectedOptionId = selectedId,
+                        CorrectOptionId = q.CorrectOptionId,
+                        Options = q.Options
+                    });
+                }
+
+                var finalResult = new OfflineResultDetailViewDTO
+                {
+                    QuizId = resultStats.Result.QuizId,
+                    QuizTitle = resultStats.QuizTitle,
+                    CountAttempts = resultStats.Result.CountAttempts,
+                    MaxAttempts = resultStats.MaxAttempts,
+                    CorrectCount = resultStats.Result.CorrecCount,
+                    WrongCount = resultStats.Result.WrongCount,
+                    TotalQuestion = resultStats.Result.TotalQuestion,
+                    Score = resultStats.Result.Score,
+                    StartDate = resultStats.Result.StartDate,
+                    EndDate = resultStats.Result.EndDate,
+                    Duration = resultStats.Result.Duration,
+                    RANK = resultStats.Result.RANK,
+                    QuestionDetails = questionDetails
+                };
+
+                return finalResult;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting offline quiz result.");
+                _logger.LogError(ex, "Error getting detailed offline quiz result.");
                 return null;
             }
         }
