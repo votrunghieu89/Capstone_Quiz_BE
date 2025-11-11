@@ -79,7 +79,10 @@ namespace Capstone.Controllers
                 var folderDetail = await _repoFolder.GetFolderDetail(teacherId, folderId);
                 foreach( var quiz in folderDetail.QuizzFolder)
                 {
-                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                   if(quiz.AvatarURL != null)
+                    {
+                        quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                    }
                 }
                 if (folderDetail == null)
                 {
