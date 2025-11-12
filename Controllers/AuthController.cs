@@ -5,9 +5,11 @@ using Capstone.Repositories;
 using Capstone.Security;
 using Capstone.Services;
 using Capstone.Settings;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
+using Newtonsoft.Json;
 using System.Security.Cryptography;
 
 namespace Capstone.Controllers
@@ -42,6 +44,99 @@ namespace Capstone.Controllers
             return otp.ToString($"D{length}");
         }
 
+        [HttpPost("send_otp_teacher")]
+        public async Task<ActionResult> SendOTPTeacher([FromBody] AuthRegisterTeacherDTO authRegisterDTO)
+        {
+            try
+            {
+                if (authRegisterDTO == null)
+                {
+                    _logger.LogWarning("registerTeacher: Request body null");
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
+                }
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.PasswordHash)
+                    || string.IsNullOrWhiteSpace(authRegisterDTO.OrganizationName) || string.IsNullOrWhiteSpace(authRegisterDTO.OrganizationAddress))
+                {
+                    _logger.LogWarning("registerTeacher: Missing required fields for Email={Email}", authRegisterDTO.Email);
+                    return BadRequest(new { message = "Email, mật khẩu, tên tổ chức và địa chỉ tổ chức là bắt buộc." });
+                }
+                int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
+                if (checkEmail != 0)
+                {
+                    _logger.LogInformation("registerTeacher: Email already exists: {Email}", authRegisterDTO.Email);
+                    return BadRequest(new { message = "Email đã tồn tại. Vui lòng sử dụng email khác." });
+                }
+                string RedisKey = $"Account_{authRegisterDTO.Email}";
+                await _redis.SetStringAsync(RedisKey, JsonConvert.SerializeObject(authRegisterDTO), TimeSpan.FromMinutes(5));
+
+                string RedisKey_OTP = $"OTP_{authRegisterDTO.Email}";
+                var otp = GenerateOTP();
+                var otpHash = Hash.HashPassword(otp);
+                await _redis.SetStringAsync(RedisKey_OTP, otpHash, TimeSpan.FromMinutes(5));
+
+                string subject = "Xác thực tài khoản giáo viên";
+                string body = $"<p>Mã OTP của bạn là: <b>{otp}</b> (hiệu lực 5 phút)</p>";
+                await _emailService.SendEmailAsync(authRegisterDTO.Email, subject, body);
+                return Ok(new { message = "Đã gửi mã OTP, vui lòng kiểm tra email của bạn." });
+            }
+            catch (Exception ex) {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu của bạn." });
+            }
+        }
+
+        [HttpPost("send_otp_student")]
+        public async Task<ActionResult> SendOTPStudent([FromBody] AuthRegisterStudentDTO authRegisterDTO)
+        {
+            try
+            {
+             
+                if (authRegisterDTO == null)
+                {
+                    _logger.LogWarning("registerStudent: Request body null");
+                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
+                }
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.PasswordHash))
+                {
+                    _logger.LogWarning("registerStudent: Missing email or password");
+                    return BadRequest(new { message = "Email và mật khẩu là bắt buộc." });
+                }
+
+                if (string.IsNullOrWhiteSpace(authRegisterDTO.FullName))
+                {
+                    _logger.LogWarning("registerStudent: Missing FullName for Email={Email}", authRegisterDTO.Email);
+                    return BadRequest(new { message = "Họ và tên là bắt buộc." });
+                }
+
+                int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
+                if (checkEmail != 0)
+                {
+                    _logger.LogInformation("registerStudent: Email already exists: {Email}", authRegisterDTO.Email);
+                    return BadRequest(new { message = "Email đã tồn tại. Vui lòng sử dụng email khác." });
+                }
+                string RedisKey = $"Account_{authRegisterDTO.Email}";
+                await _redis.SetStringAsync(RedisKey, JsonConvert.SerializeObject(authRegisterDTO), TimeSpan.FromMinutes(5));
+
+                string RedisKey_OTP = $"OTP_{authRegisterDTO.Email}";
+                var otp = GenerateOTP();
+                var otpHash = Hash.HashPassword(otp);
+                await _redis.SetStringAsync(RedisKey_OTP, otpHash, TimeSpan.FromMinutes(5));
+
+                string subject = "Xác thực tài khoản giáo viên";
+                string body = $"<p>Mã OTP của bạn là: <b>{otp}</b> (hiệu lực 5 phút)</p>";
+                await _emailService.SendEmailAsync(authRegisterDTO.Email, subject, body);
+                return Ok(new { message = "Đã gửi mã OTP, vui lòng kiểm tra email của bạn." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu của bạn." });
+            }
+        }
+
+
+
+
         // ===== POST METHODS =====
         [HttpPost("checkEmail")]
         public async Task<ActionResult> isEmailExist([FromBody] string email)
@@ -73,7 +168,7 @@ namespace Capstone.Controllers
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu của bạn." });
             }
         }
-
+        
         [HttpPost("verifyOTP")]
         public async Task<ActionResult> verifyOTP([FromBody] VerifyOTP verifyOTP)
         {
@@ -184,36 +279,22 @@ namespace Capstone.Controllers
         }
 
         [HttpPost("registerStudent")]
-        public async Task<ActionResult> registerStudent([FromBody] AuthRegisterStudentDTO authRegisterDTO)
+        public async Task<ActionResult> registerStudent(string email, string otp)
         {
             try
             {
-                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
-             ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                bool checkOTP = await _authRepository.verifyOTP(email, otp);
+                if (!checkOTP)
+                {
+                    return BadRequest(new { message = "OTP không hợp lệ." });
+                }
+              
+                string RedisKey = $"Account_{email}";
+                var authRegisterStuidentDTOJson = await _redis.GetStringAsync(RedisKey);
+                var authRegisterDTO = JsonConvert.DeserializeObject<AuthRegisterStudentDTO>(authRegisterStuidentDTOJson ?? string.Empty);
                 if (authRegisterDTO == null)
-                {
-                    _logger.LogWarning("registerStudent: Request body null");
-                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
-                }
-
-                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.PasswordHash))
-                {
-                    _logger.LogWarning("registerStudent: Missing email or password");
-                    return BadRequest(new { message = "Email và mật khẩu là bắt buộc." });
-                }
-
-                if (string.IsNullOrWhiteSpace(authRegisterDTO.FullName))
-                {
-                    _logger.LogWarning("registerStudent: Missing FullName for Email={Email}", authRegisterDTO.Email);
-                    return BadRequest(new { message = "Họ và tên là bắt buộc." });
-                }
-
-                int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
-                if (checkEmail != 0)
-                {
-                    _logger.LogInformation("registerStudent: Email already exists: {Email}", authRegisterDTO.Email);
-                    return BadRequest(new { message = "Email đã tồn tại. Vui lòng sử dụng email khác." });
-                }
+                    return BadRequest(new { message = "Không tìm thấy thông tin đăng ký. Vui lòng đăng ký lại." });
 
                 var isRegistered = await _authRepository.RegisterStudent(authRegisterDTO, ipAddess);
                 if (!isRegistered)
@@ -221,43 +302,37 @@ namespace Capstone.Controllers
                     _logger.LogError("registerStudent: Registration failed for Email={Email}", authRegisterDTO.Email);
                     return BadRequest(new { message = "Đăng ký thất bại. Vui lòng thử lại." });
                 }
-
+                await _redis.DeleteKeyAsync($"Account_{email}");
+                await _redis.DeleteKeyAsync($"OTP_{email}");
                 _logger.LogInformation("registerStudent: Student registered successfully. Email={Email}", authRegisterDTO.Email);
                 return Ok(new { message = "Đăng ký học viên thành công." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "registerStudent: Error while registering student for Email={Email}", authRegisterDTO?.Email);
+                _logger.LogError(ex, "registerStudent: Error while registering student for Email={Email}", email);
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu của bạn." });
             }
         }
 
         [HttpPost("registerTeacher")]
-        public async Task<ActionResult> RegisterTeacher([FromBody] AuthRegisterTeacherDTO authRegisterDTO)
+        public async Task<ActionResult> RegisterTeacher(string email, string otp)
         {
             try
             {
-                if (authRegisterDTO == null)
+                bool checkOTP = await _authRepository.verifyOTP(email, otp);
+                if (!checkOTP)
                 {
-                    _logger.LogWarning("registerTeacher: Request body null");
-                    return BadRequest(new { message = "Yêu cầu phải có dữ liệu đầu vào." });
-                }
-
-                if (string.IsNullOrWhiteSpace(authRegisterDTO.Email) || string.IsNullOrWhiteSpace(authRegisterDTO.PasswordHash)
-                    || string.IsNullOrWhiteSpace(authRegisterDTO.OrganizationName) || string.IsNullOrWhiteSpace(authRegisterDTO.OrganizationAddress))
-                {
-                    _logger.LogWarning("registerTeacher: Missing required fields for Email={Email}", authRegisterDTO.Email);
-                    return BadRequest(new { message = "Email, mật khẩu, tên tổ chức và địa chỉ tổ chức là bắt buộc." });
-                }
-
-                int checkEmail = await _authRepository.isEmailExist(authRegisterDTO.Email);
-                if (checkEmail != 0)
-                {
-                    _logger.LogInformation("registerTeacher: Email already exists: {Email}", authRegisterDTO.Email);
-                    return BadRequest(new { message = "Email đã tồn tại. Vui lòng sử dụng email khác." });
+                     return BadRequest(new { message = "OTP không hợp lệ." });
                 }
                 var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault()
              ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                string RedisKey = $"Account_{email}";
+                var authRegisterTeacherDTOJson = await _redis.GetStringAsync(RedisKey);
+                var authRegisterDTO = JsonConvert.DeserializeObject<AuthRegisterTeacherDTO>(authRegisterTeacherDTOJson ?? string.Empty);
+                if (authRegisterDTO == null)
+                    return BadRequest(new { message = "Không tìm thấy thông tin đăng ký. Vui lòng đăng ký lại." });
+
+
                 var isRegistered = await _authRepository.RegisterTeacher(authRegisterDTO, ipAddess);
                 if (!isRegistered)
                 {
@@ -265,11 +340,13 @@ namespace Capstone.Controllers
                     return BadRequest(new { message = "Đăng ký thất bại. Vui lòng thử lại." });
                 }
                 _logger.LogInformation("registerTeacher: Teacher registered successfully. Email={Email}", authRegisterDTO.Email);
+                await _redis.DeleteKeyAsync($"Account_{email}");
+                await _redis.DeleteKeyAsync($"OTP_{email}");
                 return Ok(new { message = "Đăng ký giáo viên thành công." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "registerTeacher: Error while registering teacher for Email={Email}", authRegisterDTO?.Email);
+                _logger.LogError(ex, "registerTeacher: Error while registering teacher for Email={Email}", email);
                 return StatusCode(500, new { message = "Đã xảy ra lỗi khi xử lý yêu cầu của bạn." });
             }
         }

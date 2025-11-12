@@ -105,7 +105,7 @@ namespace Capstone.Services
             {
                 bool isExist = await _context.quizzFavourites
                     .AnyAsync(qf => qf.AccountId == accountId && qf.QuizId == quizzId);
-                if(isExist)
+                if (isExist)
                 {
                     _logger.LogInformation("Favourite exists for AccountId {accountId} and QuizId {quizzId}", accountId, quizzId);
                     return true;
@@ -115,7 +115,7 @@ namespace Capstone.Services
                     _logger.LogInformation("Favourite does not exist for AccountId {accountId} and QuizId {quizzId}", accountId, quizzId);
                     return false;
                 }
-            }   
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Cannot check Favourite Quiz existence");
@@ -134,7 +134,8 @@ namespace Capstone.Services
                     _logger.LogInformation("Delete Quizz Favoirite succesfully");
                     return true;
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Can not insert Quizz Favoirite ");
                 return false;
@@ -149,7 +150,7 @@ namespace Capstone.Services
                 int checkDeleteQuizzF = await _context.quizzFavourites.
                     Where(qf => qf.QuizId == quizzId && qf.AccountId == accountId).ExecuteDeleteAsync();
                 if (checkDeleteQuizzF > 0)
-                    {
+                {
                     _logger.LogInformation("Delete Quizz Favoirite in detail succesfully");
                     return true;
                 }
@@ -160,5 +161,6 @@ namespace Capstone.Services
                 _logger.LogError(ex, "Can not remove Favourite Quiz in detail");
                 return false;
             }
+        }
     }
 }
