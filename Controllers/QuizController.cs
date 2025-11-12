@@ -111,29 +111,15 @@ namespace Capstone.Controllers
             if (pages.page <= 0 || pages.pageSize <= 0)
                 return BadRequest(new { message = "Trang và kích thước trang phải lớn hơn 0." });
 
-            string cacheKey = $"all_quizzes_page_{pages.page}_size_{pages.pageSize}";
-            // all_quizzes_page_{page}_size_{pageSize}
-            var cachedJson = await _redis.GetStringAsync(cacheKey);
-            if (cachedJson == null)
-            {
-
-            }
+           
             List<ViewAllQuizDTO>? quizzes = null;
 
-            if (!string.IsNullOrEmpty(cachedJson))
-            {
-                quizzes = JsonSerializer.Deserialize<List<ViewAllQuizDTO>>(cachedJson);
-
-            }
-
-
-            if (quizzes == null || !quizzes.Any())
-            {
+           
                 quizzes = await _quizRepository.getAllQuizzes(pages.page, pages.pageSize);
 
                 if (quizzes == null || !quizzes.Any())
                     return NotFound(new { message = "Không tìm thấy bài kiểm tra nào." });
-            }
+            
             foreach (var quiz in quizzes)
             {
                 if (!string.IsNullOrEmpty(quiz.AvatarURL))
@@ -158,7 +144,7 @@ namespace Capstone.Controllers
 
             string avatarPath = Path.Combine(folderName, "Default.jpg");
 
-            if (dto.AvatarURL != null && dto.AvatarURL.Length <= 2 * 1024 * 1024) // 2MB
+            if (dto.AvatarURL != null) // 2MB
             {
                 var extension = Path.GetExtension(dto.AvatarURL.FileName);
                 var uniqueFileName = $"{Guid.NewGuid()}{extension}";
