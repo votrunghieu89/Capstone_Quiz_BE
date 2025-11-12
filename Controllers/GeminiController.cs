@@ -59,24 +59,37 @@ namespace Capstone.Controllers
                     return BadRequest(new { message = "Unsupported file format." });
             }
             var prompt = $@"
-                                Create {input.NumberOfQuestion} multiple-choice questions (each with 4 options) 
-                                from the following content:
-                                '{text}'
-    
-                                Return a valid JSON format only, no explanation or extra characters:
+                            INPUT IS TEXT (EXTRACTED FROM DOCX OR PDF FILE):
+                            '{text}'
+
+                            REQUIREMENTS:
+                            1. **Extract Existing Questions:** If the input text already contains numbered questions with options A, B, C, D, extract the questions and options **exactly**.
+                            2. **Identify Correct Answers:** If an option is marked with an asterisk `*` before/after it, or contains the keyword ""CORRECT ANSWER"", treat it as the correct answer.
+                            3. **Generate Additional Questions (If Needed):** If the number of extracted questions is less than {input.NumberOfQuestion}, generate additional questions from the remaining content to reach a total of {input.NumberOfQuestion} questions. Each newly generated question must have 4 options and **must not duplicate any existing question content**.
+                            4. **Output Format:** Return **ONLY** a valid JSON object, **no explanations, comments, or markdown**.
+
+                            REQUIRED JSON FORMAT:
+                            {{
+                              ""questions"": [
                                 {{
-                                  ""questions"": [
-                                    {{
-                                      ""questionContent"": ""string"",
-                                      ""options"": [
-                                        {{
-                                          ""optionContent"": ""string"",
-                                          ""isCorrect"": true
-                                        }}
-                                      ]
-                                    }}
+                                  ""questionContent"": ""string (question content)"",
+                                  ""options"": [
+                                    {{ ""optionContent"": ""string (option 1)"", ""isCorrect"": true/false }},
+                                    {{ ""optionContent"": ""string (option 2)"", ""isCorrect"": true/false }},
+                                    {{ ""optionContent"": ""string (option 3)"", ""isCorrect"": true/false }},
+                                    {{ ""optionContent"": ""string (option 4)"", ""isCorrect"": true/false }}
                                   ]
-                                }}";
+                                }}
+                              ]
+                            }}
+
+                            DETAILED INSTRUCTIONS:
+                            - Keep existing correct answers as-is.
+                            - When generating new questions, ensure content does **not duplicate any existing questions**.
+                            - Return exactly {input.NumberOfQuestion} questions.
+                            - Do not add explanations, commentary, or markdown formatting; only return valid JSON.
+                            ";
+
             var jsonResponse = await _geminiService.GenerateQuestions(prompt);
             if (jsonResponse == null)
                 return BadRequest(new { message = "Failed to generate questions using Gemini API." });

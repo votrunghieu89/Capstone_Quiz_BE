@@ -75,8 +75,24 @@ namespace Capstone.Controllers
                 var otpHash = Hash.HashPassword(otp);
                 await _redis.SetStringAsync(RedisKey_OTP, otpHash, TimeSpan.FromMinutes(5));
 
-                string subject = "Xác thực tài khoản giáo viên";
-                string body = $"<p>Mã OTP của bạn là: <b>{otp}</b> (hiệu lực 5 phút)</p>";
+
+                string subject = "🎓 Xác thực tài khoản giáo viên - Hệ thống EduQuiz";
+
+                string body = $@"
+                                    <html>
+                                    <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                                        <h2 style='color: #4a90e2;'>Xin chào {authRegisterDTO.Email},</h2>
+                                        <p>Cảm ơn bạn đã đăng ký tài khoản giáo viên tại <strong>EduQuiz</strong>.</p>
+                                        <p>Để hoàn tất quá trình đăng ký, vui lòng nhập mã xác thực (OTP) bên dưới:</p>
+
+                                        <div style='background-color: #f3f4f6; padding: 12px 20px; display: inline-block; border-radius: 8px; margin: 10px 0;'>
+                                            <h2 style='color: #111827; letter-spacing: 4px;'>{otp}</h2>
+                                        </div>
+
+                                        <p>Mã OTP này sẽ hết hạn sau <strong>5 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                                        <p style='margin-top: 20px;'>Trân trọng,<br><strong>Đội ngũ EduQuiz</strong></p>
+                                    </body>
+                                    </html>";
                 await _emailService.SendEmailAsync(authRegisterDTO.Email, subject, body);
                 return Ok(new { message = "Đã gửi mã OTP, vui lòng kiểm tra email của bạn." });
             }
@@ -123,8 +139,23 @@ namespace Capstone.Controllers
                 var otpHash = Hash.HashPassword(otp);
                 await _redis.SetStringAsync(RedisKey_OTP, otpHash, TimeSpan.FromMinutes(5));
 
-                string subject = "Xác thực tài khoản giáo viên";
-                string body = $"<p>Mã OTP của bạn là: <b>{otp}</b> (hiệu lực 5 phút)</p>";
+                string subject = "🎓 Xác thực tài khoản học sinh - Hệ thống EduQuiz";
+
+                string body = $@"
+                                    <html>
+                                    <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                                        <h2 style='color: #4a90e2;'>Xin chào {authRegisterDTO.Email},</h2>
+                                        <p>Cảm ơn bạn đã đăng ký tài khoản giáo viên tại <strong>EduQuiz</strong>.</p>
+                                        <p>Để hoàn tất quá trình đăng ký, vui lòng nhập mã xác thực (OTP) bên dưới:</p>
+
+                                        <div style='background-color: #f3f4f6; padding: 12px 20px; display: inline-block; border-radius: 8px; margin: 10px 0;'>
+                                            <h2 style='color: #111827; letter-spacing: 4px;'>{otp}</h2>
+                                        </div>
+
+                                        <p>Mã OTP này sẽ hết hạn sau <strong>5 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                                        <p style='margin-top: 20px;'>Trân trọng,<br><strong>Đội ngũ EduQuiz</strong></p>
+                                    </body>
+                                    </html>";
                 await _emailService.SendEmailAsync(authRegisterDTO.Email, subject, body);
                 return Ok(new { message = "Đã gửi mã OTP, vui lòng kiểm tra email của bạn." });
             }
@@ -156,9 +187,24 @@ namespace Capstone.Controllers
                 var otp = GenerateOTP();
                 var otpHash = Hash.HashPassword(otp);
                 await _redis.SetStringAsync($"OTP_{email}", otpHash, TimeSpan.FromMinutes(5));
+                string subject = "🎓 Quên mật khẩu - Hệ thống EduQuiz";
 
-                string subject = "Mã xác thực của bạn";
-                await _emailService.SendEmailAsync(email, subject, otp);
+                string body = $@"
+                                    <html>
+                                    <body style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                                        <h2 style='color: #4a90e2;'>Xin chào {email},</h2>
+                                        <p>Cảm ơn bạn đã đăng ký tài khoản giáo viên tại <strong>EduQuiz</strong>.</p>
+                                        <p>Để hoàn tất quá trình đăng ký, vui lòng nhập mã xác thực (OTP) bên dưới:</p>
+
+                                        <div style='background-color: #f3f4f6; padding: 12px 20px; display: inline-block; border-radius: 8px; margin: 10px 0;'>
+                                            <h2 style='color: #111827; letter-spacing: 4px;'>{otp}</h2>
+                                        </div>
+
+                                        <p>Mã OTP này sẽ hết hạn sau <strong>5 phút</strong>. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                                        <p style='margin-top: 20px;'>Trân trọng,<br><strong>Đội ngũ EduQuiz</strong></p>
+                                    </body>
+                                    </html>";
+                await _emailService.SendEmailAsync(email, subject, body);
                 _logger.LogInformation("checkEmail: OTP generated and sent for AccountId={AccountId}, Email={Email}", isExist, email);
                 return Ok(new { message = "Mã OTP đã được gửi đến email của bạn.", AccountId = isExist});
             }
