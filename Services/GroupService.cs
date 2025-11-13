@@ -9,6 +9,7 @@ using Capstone.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
+using System.Linq;
 using System.Net;
 using static Capstone.ENUMs.GroupEnum;
 
@@ -77,7 +78,7 @@ namespace Capstone.Services
 
             try
             {
-                List<int> QgIdList = await _appDbContext.quizzGroups
+                List<int>? QgIdList = await _appDbContext.quizzGroups
                     .Where(gq => gq.GroupId == groupId)
                     .Select(gq => gq.QGId)
                     .ToListAsync();
@@ -89,9 +90,12 @@ namespace Capstone.Services
                     int deletedReports = await _appDbContext.offlinereports
                         .Where(r => QgIdList.Contains(r.QGId))
                         .ExecuteDeleteAsync();
-                    //int deletedResult = await _appDbContext.offlineResults
-                    // .Where(r => r.GroupId == groupId)
-                    // .ExecuteDeleteAsync();
+                    int update = await _appDbContext.offlineResults
+                                      .Where(or => or.GroupId == groupId && or.QGId != null && QgIdList.Contains(or.QGId.Value))
+                                      .ExecuteUpdateAsync(setters => setters
+                                          .SetProperty(or => or.GroupId, (int?)null)
+                                          .SetProperty(or => or.QGId, (int ?)null)
+                                      );
                     _logger.LogInformation("DeleteGroup: Deleted {Count} reports related to GroupId={GroupId}", deletedReports, groupId);
                 }
                 int deletedQuizzGroups = await _appDbContext.quizzGroups
