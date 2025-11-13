@@ -15,6 +15,7 @@
         public int QuestionId { get; set; }
         public string QuestionContent { get; set; }
         public List<OptionResultDTO> Options { get; set; }
+        public bool? IsSkipped { get; set; }
     }
     public class OptionResultDTO
     {

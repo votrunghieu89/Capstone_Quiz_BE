@@ -148,9 +148,6 @@ namespace Capstone.Database
         public async Task<bool> HDelAsync(string key, string field)
             => await _db.HashDeleteAsync(key, field);
 
-        public async Task<long> HIncrByAsync(string key, string field, long increment)
-            => await _db.HashIncrementAsync(key, field, increment);
-
         public async Task<long> HashIncrementAsync(string key, string field, long increment)
             => await _db.HashIncrementAsync(key, field, increment);
 

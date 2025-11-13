@@ -38,7 +38,7 @@ using System.Threading.Tasks;
         Task<string?> HGetAsync(string key, string field);
         Task<Dictionary<string, string>> HGetAllAsync(string key);
         Task<bool> HDelAsync(string key, string field);
-        Task<long> HIncrByAsync(string key, string field, long increment);
+       
         Task<long> HashIncrementAsync(string key, string field, long increment);
 
         // --------------------------

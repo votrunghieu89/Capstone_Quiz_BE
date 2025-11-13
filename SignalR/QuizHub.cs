@@ -3,6 +3,7 @@ using Capstone.DTOs.Quizzes;
 using Capstone.DTOs.Quizzes.QuizzOnline;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 
@@ -16,11 +17,13 @@ namespace Capstone.SignalR
         private static ConcurrentDictionary<string, (string RoomCode, string StudentId)> StudentConnections = new();
         private readonly IRedis _redis;
         private readonly ILogger<QuizHub> _logger;
+        private readonly AppDbContext _dbContext;
 
-        public QuizHub(IRedis redis, ILogger<QuizHub> logger)
+        public QuizHub(IRedis redis, ILogger<QuizHub> logger, AppDbContext dbContext)
         {
             _redis = redis;
             _logger = logger;
+            _dbContext = dbContext;
         }
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
@@ -64,7 +67,7 @@ namespace Capstone.SignalR
             {
                 roomCode = new Random().Next(100000, 999999).ToString();
             } while (await _redis.KeyExistsAsync($"quiz_room_{roomCode}"));
-
+            //int totalQuestions = await _dbContext.questions.Where(q => q.QuizId == quizId).CountAsync();
             Rooms[roomCode] = new ConcurrentDictionary<string, string>();
             await Groups.AddToGroupAsync(Context.ConnectionId, roomCode); 
             CreateRoomRedisDTO createRoomRedis = new CreateRoomRedisDTO()
@@ -281,7 +284,8 @@ namespace Capstone.SignalR
                 {
                     QuestionId = q.QuestionId,
                     QuestionContent = q.QuestionContent,
-                    Options = optionResults
+                    Options = optionResults,
+                    IsSkipped = wrong != null && wrong.SelectedOptionId == null
                 });
             }
 

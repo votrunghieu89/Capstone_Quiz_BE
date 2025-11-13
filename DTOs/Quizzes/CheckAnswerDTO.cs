@@ -4,6 +4,6 @@
     {
         public int QuizId { get; set; }
         public int QuestionId { get; set; }
-        public int OptionId { get; set; }
+        public int? OptionId { get; set; }
     }
 }

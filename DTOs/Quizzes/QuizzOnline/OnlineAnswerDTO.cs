@@ -6,6 +6,6 @@
         public string studentId { get; set; }
         public int quizId { get; set; }
         public int questionId { get; set; }
-        public int optionId { get; set; }
+        public int? optionId { get; set; }
     }
 }

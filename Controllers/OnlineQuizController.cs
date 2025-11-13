@@ -99,40 +99,18 @@ namespace Capstone.Controllers
         public async Task<IActionResult> CheckOnlineAnswer([FromBody] OnlineAnswerDTO onlineAnswerDTO)
         {
             try
+
             {
-                bool isCorrect;
-                string? isCorrecJson = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}: question_{onlineAnswerDTO.questionId}: option_{onlineAnswerDTO.optionId}");
-                if (isCorrecJson == null)
-                {
-                    isCorrect = await _quizRepository.checkAnswer(new CheckAnswerDTO
-                    {
-                        QuizId = onlineAnswerDTO.quizId,
-                        QuestionId = onlineAnswerDTO.questionId,
-                        OptionId = onlineAnswerDTO.optionId
-                    });
-                }
-                else
-                {
-                    isCorrect = Convert.ToBoolean(isCorrecJson);
-                }
                 string studentHashKey = $"quiz:room:{onlineAnswerDTO.roomCode}:student:{onlineAnswerDTO.studentId}:detail";
                 string studentJsonKey = $"quiz:room:{onlineAnswerDTO.roomCode}:student:{onlineAnswerDTO.studentId}";
                 var Score = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}_Score");
-                if (isCorrect)
+                string json = await _redis.GetStringAsync(studentJsonKey);
+                bool isCorrect;
+                RightAnswerDTO correctAnswer = null;
+                // không chọn câu hỏi nào
+                if (onlineAnswerDTO.optionId == null)
                 {
-                    // Tăng điểm + câu đúng + leaderboard
-                    await Task.WhenAll(
-                        _redis.HashIncrementAsync(studentHashKey, "Score", Convert.ToInt32(Score)),
-                        _redis.HashIncrementAsync(studentHashKey, "CorrectCount", 1),
-                        _redis.ZIncrByAsync($"quiz:room:{onlineAnswerDTO.roomCode}:leaderboard", onlineAnswerDTO.studentId, Convert.ToInt32(Score))
-                    );
-                }
-                else
-                {
-                    //quiz_questions_{ quizId}:question_{ q.QuestionId}
-                    //_Score
                     await _redis.HashIncrementAsync(studentHashKey, "WrongCount", 1);
-                    RightAnswerDTO correctAnswer = null;
                     var correctAnswerJson = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}:correctAnswer");
                     if (string.IsNullOrEmpty(correctAnswerJson))
                     {
@@ -152,7 +130,69 @@ namespace Capstone.Controllers
                     {
                         correctAnswer = JsonConvert.DeserializeObject<RightAnswerDTO>(correctAnswerJson);
                     }
-                    string json = await _redis.GetStringAsync(studentJsonKey);
+                    if (!string.IsNullOrEmpty(json))
+                    {
+                        var studentData = JsonConvert.DeserializeObject<CreateStudentRedisDTO>(json);
+                        studentData.WrongAnswerRedisDTOs.Add(new InsertWrongAnswerDTO // cehckj
+                        {
+                            QuestionId = onlineAnswerDTO.questionId,
+                            SelectedOptionId = onlineAnswerDTO.optionId,
+                            CorrectOptionId = correctAnswer.OptionId
+                        });
+                        await _redis.SetStringAsync(studentJsonKey, JsonConvert.SerializeObject(studentData), TimeSpan.FromHours(3));
+                    }
+                    isCorrect = false;
+                    return Ok(new { isCorrect });
+                }
+           
+                string? isCorrecJson = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}:option_{onlineAnswerDTO.optionId}");
+                if (isCorrecJson == null)
+                {
+                    isCorrect = await _quizRepository.checkAnswer(new CheckAnswerDTO
+                    {
+                        QuizId = onlineAnswerDTO.quizId,
+                        QuestionId = onlineAnswerDTO.questionId,
+                        OptionId = onlineAnswerDTO.optionId
+                    });
+                }
+                else
+                {
+                    isCorrect = Convert.ToBoolean(isCorrecJson);
+                }
+             
+                if (isCorrect)
+                {
+                    // Tăng điểm + câu đúng + leaderboard
+                    await Task.WhenAll(
+                        _redis.HashIncrementAsync(studentHashKey, "Score", Convert.ToInt32(Score)),
+                        _redis.HashIncrementAsync(studentHashKey, "CorrectCount", 1),
+                        _redis.ZIncrByAsync($"quiz:room:{onlineAnswerDTO.roomCode}:leaderboard", onlineAnswerDTO.studentId, Convert.ToInt32(Score))
+                    );
+                }
+                else
+                {
+                    //quiz_questions_{ quizId}:question_{ q.QuestionId}
+                    //_Score
+                    await _redis.HashIncrementAsync(studentHashKey, "WrongCount", 1);
+                    var correctAnswerJson = await _redis.GetStringAsync($"quiz_questions_{onlineAnswerDTO.quizId}:question_{onlineAnswerDTO.questionId}:correctAnswer");
+                    if (string.IsNullOrEmpty(correctAnswerJson))
+                    {
+                        correctAnswer = await _quizRepository.getCorrectAnswer(new GetCorrectAnswer
+                        {
+                            QuizId = onlineAnswerDTO.quizId,
+                            QuestionId = onlineAnswerDTO.questionId
+                        });
+
+                        if (correctAnswer == null)
+                        {
+                            _logger.LogWarning("No correct answer found for quizId {QuizId}, questionId {QuestionId}",
+                                onlineAnswerDTO.quizId, onlineAnswerDTO.questionId);
+                        }
+                    }
+                    else
+                    {
+                        correctAnswer = JsonConvert.DeserializeObject<RightAnswerDTO>(correctAnswerJson);
+                    }
                     if (!string.IsNullOrEmpty(json))
                     {
                         var studentData = JsonConvert.DeserializeObject<CreateStudentRedisDTO>(json);

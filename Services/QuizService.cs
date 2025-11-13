@@ -391,23 +391,24 @@ namespace Capstone.Services
                         OptionContent = o.OptionContent
                     }).ToList()
                 }).ToList();
+                var totalTime = await _context.questions.Where(q => q.QuizId == quizId).SumAsync(q => q.Time);
+                var TTL = totalTime + 200;
 
-                
                 await _redis.SetStringAsync(
-                    $"quiz_questions_{quizId}_withoutAnswer",JsonSerializer.Serialize(cacheWithoutAnswer),TimeSpan.FromHours(2)
+                    $"quiz_questions_{quizId}_withoutAnswer",JsonSerializer.Serialize(cacheWithoutAnswer),TimeSpan.FromSeconds(TTL)
                 );
-                await _redis.SetStringAsync($"quiz_questions_{quizId}_Answer", JsonSerializer.Serialize(result), TimeSpan.FromHours(2));
+                await _redis.SetStringAsync($"quiz_questions_{quizId}_Answer", JsonSerializer.Serialize(result), TimeSpan.FromSeconds(TTL));
             
                 foreach (var q in result)
                 {
-                    await _redis.SetStringAsync($"quiz_questions_{quizId}:question_{q.QuestionId}_Score", q.Score.ToString(), TimeSpan.FromHours(2));
+                    await _redis.SetStringAsync($"quiz_questions_{quizId}:question_{q.QuestionId}_Score", q.Score.ToString(), TimeSpan.FromSeconds(TTL));
                     RightAnswerDTO? optionModel = null;
                     foreach (var o in q.Options)
                     {
                         await _redis.SetStringAsync(
                             $"quiz_questions_{quizId}:question_{q.QuestionId}:option_{o.OptionId}",
                             o.IsCorrect.ToString().ToLower(),
-                            TimeSpan.FromHours(2)
+                            TimeSpan.FromSeconds(TTL)
                         );
 
                         if (o.IsCorrect)
@@ -425,7 +426,7 @@ namespace Capstone.Services
                         await _redis.SetStringAsync(
                             $"quiz_questions_{quizId}:question_{q.QuestionId}:correctAnswer",
                             JsonSerializer.Serialize(optionModel),
-                            TimeSpan.FromHours(2)
+                            TimeSpan.FromSeconds(TTL)
                         );
                     }
                 }
@@ -449,6 +450,8 @@ namespace Capstone.Services
                     .Where(q => q.QuizId == getCorrectAnswer.QuizId && q.QuestionId == getCorrectAnswer.QuestionId)
                     .Include(q => q.Options)
                     .FirstOrDefaultAsync();
+                var totalTime = await _context.questions.Where(q => q.QuizId == getCorrectAnswer.QuizId).SumAsync(q => q.Time);
+                var TTL = totalTime + 200;
                 if (question == null)
                 {
                     _logger.LogWarning("Question not found for quizId: {QuizId}, questionId: {QuestionId}", getCorrectAnswer.QuizId, getCorrectAnswer.QuestionId);
@@ -465,7 +468,7 @@ namespace Capstone.Services
                     OptionId = correctOption.OptionId,
                     OptionContent = correctOption.OptionContent
                 };
-                await _redis.SetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correctAnswer", JsonSerializer.Serialize(rightAnswerDTO), TimeSpan.FromHours(2));
+                await _redis.SetStringAsync($"quiz_questions_{getCorrectAnswer.QuizId}:question_{getCorrectAnswer.QuestionId}:correctAnswer", JsonSerializer.Serialize(rightAnswerDTO), TimeSpan.FromSeconds(TTL));
                 return rightAnswerDTO;
             }
             var correctAnswer = JsonSerializer.Deserialize<RightAnswerDTO>(json);
@@ -491,12 +494,14 @@ namespace Capstone.Services
                     var option = await _context.options
                          .Where(o => o.QuestionId == checkAnswerDTO.QuestionId && o.OptionId == checkAnswerDTO.OptionId)
                          .FirstOrDefaultAsync();
+                    var totalTime = await _context.questions.Where(q => q.QuizId == checkAnswerDTO.QuizId).SumAsync(q => q.Time);
+                    var TTL = totalTime + 200;
                     if (option == null)
                     {
                         _logger.LogWarning("Option not found for questionId: {QuestionId}, optionId: {OptionId}", checkAnswerDTO.QuestionId, checkAnswerDTO.OptionId);
                         return false;
                     }
-                    await _redis.SetStringAsync($"quiz_questions_{checkAnswerDTO.QuizId}:question_{checkAnswerDTO.QuestionId}:option_{checkAnswerDTO.OptionId}", option.IsCorrect.ToString().ToLower(), TimeSpan.FromHours(2));
+                    await _redis.SetStringAsync($"quiz_questions_{checkAnswerDTO.QuizId}:question_{checkAnswerDTO.QuestionId}:option_{checkAnswerDTO.OptionId}", option.IsCorrect.ToString().ToLower(), TimeSpan.FromSeconds(TTL));
                     return option.IsCorrect;
                 }
                 else
@@ -702,14 +707,6 @@ namespace Capstone.Services
                         }
                     }
                 }
-                if (result.Count > 0) {
-                    Console.WriteLine("121ewe");
-                }
-                else
-                {
-                    Console.WriteLine("zxczxc");
-                }
-                    await _redis.SetStringAsync($"all_quizzes_page_{page}_size_{pageSize}", JsonSerializer.Serialize(result), TimeSpan.FromHours(3));
             }
             catch (Exception ex)
             {
