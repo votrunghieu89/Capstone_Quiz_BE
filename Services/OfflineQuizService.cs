@@ -119,7 +119,7 @@ namespace Capstone.Services
             }
         }
 
-        // PROCESS STUDENT ANSWER (Không thay đổi logic)
+        // PROCESS STUDENT ANSWER (check answer)
         public async Task<bool> ProcessStudentAnswer(StudentAnswerSubmissionDTO dto)
         {
             var redisKey = $"offline_quiz:{dto.StudentId}:{dto.QuizId}";
@@ -139,24 +139,29 @@ namespace Capstone.Services
                 return true;
             }
 
-            var answerCheckKey = $"quiz_questions_{dto.QuizId}:question_{dto.QuestionId}:option_{dto.SelectedOptionId}";
-            var isCorrectJson = await _redis.GetStringAsync(answerCheckKey);
+            // kiểm tra ch ưa chọn đáp án 
             bool isCorrect = false;
 
-            if (isCorrectJson != null)
+            if (dto.SelectedOptionId != null)
             {
-                isCorrect = isCorrectJson.ToLower() == "true";
-            }
-            else
-            {
-                var checkDto = new CheckAnswerDTO
+                var answerCheckKey = $"quiz_questions_{dto.QuizId}:question_{dto.QuestionId}:option_{dto.SelectedOptionId}";
+                var isCorrectJson = await _redis.GetStringAsync(answerCheckKey);
+                if (isCorrectJson != null)
                 {
-                    QuizId = dto.QuizId,
-                    QuestionId = dto.QuestionId,
-                    OptionId = (int)dto.SelectedOptionId
-                };
-                isCorrect = await _quizRepository.checkAnswer(checkDto);
+                    isCorrect = isCorrectJson.ToLower() == "true";
+                }
+                else
+                {
+                    var checkDto = new CheckAnswerDTO
+                    {
+                        QuizId = dto.QuizId,
+                        QuestionId = dto.QuestionId,
+                        OptionId = (int)dto.SelectedOptionId
+                    };
+                    isCorrect = await _quizRepository.checkAnswer(checkDto);
+                }
             }
+
             var questionScore = await _context.questions
               .Where(q => q.QuestionId == dto.QuestionId)
               .Select(q => q.Score)
