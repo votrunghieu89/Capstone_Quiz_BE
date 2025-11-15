@@ -2,6 +2,7 @@
 using Capstone.DTOs.Folder.Teacher;
 using Capstone.Model;
 using Capstone.Repositories.Folder;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using static Capstone.ENUMs.TeacherFolderEnum;
@@ -13,13 +14,13 @@ namespace Capstone.Services
         private readonly AppDbContext _context;
         private readonly Redis _redis;
         private readonly ILogger<TeacherFolderService> _logger;
-        public TeacherFolderService(ILogger<TeacherFolderService> logger , Redis redis , AppDbContext appDbContext)
+        public TeacherFolderService(ILogger<TeacherFolderService> logger, Redis redis, AppDbContext appDbContext)
         {
             _logger = logger;
             _redis = redis;
             _context = appDbContext;
         }
-        public async Task<bool> createFolder(int teacherID, string folderName, int? parentFolderID )
+        public async Task<bool> createFolder(int teacherID, string folderName, int? parentFolderID)
         {
             try
             {
@@ -34,12 +35,13 @@ namespace Capstone.Services
                 _context.quizzFolders.Add(folder);
                 int check = await _context.SaveChangesAsync();
                 if (check > 0)
-                {                    
+                {
                     _logger.LogInformation("Tạo thư mục thành công");
                     return true;
-                }              
+                }
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 _logger.LogError(ex, "Không thể tạo thư mục cho teacherId={TeacherId}", teacherID);
                 return false;
             }
@@ -73,7 +75,8 @@ namespace Capstone.Services
                     {
                         folderDict[folder.ParentFolderId.Value].Folders.Add(folder);
                     }
-                    else                    {
+                    else
+                    {
                         rootFolders.Add(folder);
                     }
                 }
@@ -83,7 +86,7 @@ namespace Capstone.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex ,"Không thể lấy danh sách thư mục");
+                _logger.LogError(ex, "Không thể lấy danh sách thư mục");
                 return null;
             }
 
@@ -126,7 +129,7 @@ namespace Capstone.Services
                                          TotalQuestion = q.Questions.Count,
                                          TopicName = t.TopicName,
                                          TotalParticipants = q.TotalParticipants,
-                                         TeacherName = teacherEmail 
+                                         TeacherName = teacherEmail
                                      })
                       .ToListAsync();
 
@@ -153,12 +156,14 @@ namespace Capstone.Services
             {
                 int isChange = await _context.quizzes.Where(qf => qf.QuizId == quizId).ExecuteUpdateAsync
                     (e => e.SetProperty(qf => qf.FolderId, folderId));
-                if (isChange > 0) { 
+                if (isChange > 0)
+                {
                     return true;
                 }
                 return false;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 return false;
             }
         }
@@ -170,7 +175,8 @@ namespace Capstone.Services
                 int UpdateCoute = await _context.quizzFolders.Where(qf => qf.FolderId == folderId).ExecuteUpdateAsync
                     (e => e.SetProperty(qf => qf.FolderName, folderName)
                            .SetProperty(qf => qf.UpdateAt, DateTime.Now));
-                if (UpdateCoute > 0) { 
+                if (UpdateCoute > 0)
+                {
                     return true;
                 }
                 return false;
@@ -190,14 +196,33 @@ namespace Capstone.Services
                     return CheckQuizInFolder.HasQuiz;
                 }
                 int deletedCount = await _context.quizzFolders.Where(qf => qf.FolderId == folderId).ExecuteDeleteAsync();
-                if(deletedCount > 0)
+                if (deletedCount > 0)
                 {
                     return CheckQuizInFolder.Success;
                 }
                 return CheckQuizInFolder.Error;
             }
-            catch (Exception ex) { 
+            catch (Exception ex)
+            {
                 return CheckQuizInFolder.Error;
+            }
+        }
+
+        public async Task<string> getFolderName(int folderId)
+        {
+            try
+            {
+                var TopicName = await _context.quizzFolders.Where(t => t.FolderId == folderId).Select(t => t.FolderName).FirstOrDefaultAsync();
+                if (TopicName == null)
+                {
+                    return null;
+                }
+                return TopicName;
+            }
+            catch (Exception ex)
+            {
+                return null;
+
             }
         }
     }

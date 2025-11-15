@@ -1,4 +1,5 @@
-﻿using Capstone.Repositories.Folder;
+﻿using Capstone.Repositories;
+using Capstone.Repositories.Folder;
 using Capstone.Services;
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Microsoft.AspNetCore.Authorization;
@@ -177,6 +178,20 @@ namespace Capstone.Controllers
             {
                 _logger.LogError(ex, "Error deleting FolderID={FolderID}", folderId);
                 return StatusCode(500, new { message = "Internal server error." });
+            }
+        }
+        [HttpGet("getFolderName")]
+        [Authorize(Roles = "Teacher,Student,Admin")]
+        public async Task<IActionResult> getFolderName(int FolderId)
+        {
+            try
+            {
+                var name = await _repoFolder.getFolderName(FolderId);
+                return Ok(name);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }

@@ -7,6 +7,7 @@ namespace Capstone.Repositories.Folder
     public interface ITeacherFolder
     {
         public Task<List<getAllFolderDTO?>> getAllFolder(int teacherID);
+        public Task<string> getFolderName(int folderId);
         public Task<bool> createFolder (int  teacherID , string folderName , int ? parentFolderID );
         public Task<FolderDetailDTO> GetFolderDetail(int techerId, int folderId);
         public Task<bool> UpdateFolder(int folderId, string folderName);

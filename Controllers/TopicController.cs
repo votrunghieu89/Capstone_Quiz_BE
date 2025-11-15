@@ -31,5 +31,19 @@ namespace Capstone.Controllers
                 return BadRequest(ex.Message);
             }
         }
+        [HttpGet("getTopicName")]
+        [Authorize(Roles = "Teacher,Student,Admin")]
+        public async Task<IActionResult> getTopicname(int topicId)
+        {
+            try
+            {
+                var Name = await _topicRepository.GetTopicName(topicId);
+                return Ok(Name);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }
