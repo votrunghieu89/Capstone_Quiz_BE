@@ -72,6 +72,9 @@ namespace Capstone.Controllers
                 QuizId = quizDetails.QuizId,
 
                 Title = quizDetails.Title,
+                FolderId = quizDetails.FolderId,
+                TopicId = quizDetails.TopicId,
+                IsPrivate = quizDetails.IsPrivate,
                 Description = quizDetails.Description,
                 AvatarURL = quizDetails.AvatarURL ?? string.Empty,
                 TotalParticipants = quizDetails.TotalParticipants,

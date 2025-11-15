@@ -531,6 +531,9 @@ namespace Capstone.Services
                     .Select(q => new
                     {
                         q.QuizId,
+                        q.TopicId,
+                        q.FolderId,
+                        q.IsPrivate,
                         q.Title,
                         q.Description,
                         q.AvatarURL,
@@ -572,6 +575,9 @@ namespace Capstone.Services
                 var viewDetailDTO = new ViewDetailDTO
                 {
                     QuizId = quizDetail.QuizId,
+                    FolderId = quizDetail.FolderId,
+                    TopicId = quizDetail.TopicId,
+                    IsPrivate = quizDetail.IsPrivate,
                     Title = quizDetail.Title,
                     Description = quizDetail.Description,
                     AvatarURL = quizDetail.AvatarURL,

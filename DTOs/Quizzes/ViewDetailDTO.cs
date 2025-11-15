@@ -3,6 +3,9 @@
     public class ViewDetailDTO
     {
         public int QuizId { get; set; }
+        public int? TopicId { get; set; }
+        public int FolderId { get; set; }
+        public bool IsPrivate { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? AvatarURL { get; set; }
