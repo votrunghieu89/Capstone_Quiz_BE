@@ -204,7 +204,6 @@ namespace Capstone.Services
                 .FirstOrDefaultAsync(q => q.QuizId == dto.QuizId);
 
             if (quiz == null) throw new Exception("Quiz not found");
-
             // Update quiz info
             quiz.FolderId = dto.FolderId;
             quiz.TopicId = dto.TopicId;
