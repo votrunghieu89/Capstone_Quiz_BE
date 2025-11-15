@@ -243,7 +243,6 @@ namespace Capstone.Controllers
                 var folderName = _configuration["UploadSettings:QuizFolder"];
                 string avatarPath = Path.Combine(folderName, "Default.jpg");
                 var oldImage = await _quizRepository.getOrlAvatarURL(dto.QuizId);
-                Console.WriteLine("ádasdasdasdasd"+ Path.Combine(folderName, oldImage).Replace("\\", "/"));
                 // Nếu user không upload ảnh mới -> giữ nguyên ảnh cũ
                 if (dto.AvatarURL == null)
                 {
