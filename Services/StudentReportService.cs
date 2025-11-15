@@ -125,7 +125,8 @@ namespace Capstone.Services
                                         QuizTitle = q.Title,
                                         AvatarURL = q.AvatarURL,
                                         CompletedAt = or.EndDate,
-                                        createBy = a.Email
+                                        createBy = a.Email,
+                                        CreatAt = or.CreateAt
                                     }).ToListAsync();
                 foreach (var item in result)
                 {
@@ -162,7 +163,8 @@ namespace Capstone.Services
                                         QuizTitle = q.Title,
                                         AvatarURL = q.AvatarURL,
                                         CompletedAt = or.EndDate,
-                                        createBy = a.Email
+                                        createBy = a.Email,
+                                        CreatAt = or.CreateAt
                                     }).ToListAsync();
                 foreach (var item in result) { 
                     item.TotalQuestions = await _context.questions.Where(q => q.QuizId == item.QuizId).CountAsync();
