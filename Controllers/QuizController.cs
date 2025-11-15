@@ -240,12 +240,14 @@ namespace Capstone.Controllers
         {
             try
             {
+                var folderName = _configuration["UploadSettings:QuizFolder"];
+                string avatarPath = Path.Combine(folderName, "Default.jpg");
                 var oldImage = await _quizRepository.getOrlAvatarURL(dto.QuizId);
-
+                Console.WriteLine("ádasdasdasdasd"+ Path.Combine(folderName, oldImage).Replace("\\", "/"));
                 // Nếu user không upload ảnh mới -> giữ nguyên ảnh cũ
                 if (dto.AvatarURL == null)
                 {
-                    return Ok(new { imageUrl = oldImage });
+                    return Ok(new { imageUrl = Path.Combine(folderName, oldImage).Replace("\\", "/") });
                 }
 
                 // Validate dung lượng
@@ -263,7 +265,7 @@ namespace Capstone.Controllers
                 }
 
                 // Tạo folder
-                var folderName = _configuration["UploadSettings:QuizFolder"];
+              
                 var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
                 if (!Directory.Exists(uploadFolder))
                     Directory.CreateDirectory(uploadFolder);
@@ -334,7 +336,7 @@ namespace Capstone.Controllers
                 }
                 // Xoá cache câu hỏi của quiz này trong Redis
                 await _redis.DeleteKeysByPatternAsync($"quiz_questions_{quiz.QuizId}*");
-                return Ok(updatedQuiz);
+                return Ok(new {messsage = "Cập nhật thành công"});
             }
             catch (Exception ex)
             {
