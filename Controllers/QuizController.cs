@@ -246,7 +246,7 @@ namespace Capstone.Controllers
                 // Nếu user không upload ảnh mới -> giữ nguyên ảnh cũ
                 if (dto.AvatarURL == null)
                 {
-                    return Ok(new { imageUrl = Path.Combine(folderName, oldImage).Replace("\\", "/") });
+                    return Ok(new { imageUrl = oldImage });
                 }
 
                 // Validate dung lượng
