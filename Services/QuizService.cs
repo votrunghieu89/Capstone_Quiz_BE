@@ -207,6 +207,7 @@ namespace Capstone.Services
 
             // Update quiz info
             quiz.FolderId = dto.FolderId;
+            quiz.TopicId = dto.TopicId;
             quiz.Title = dto.Title;
             quiz.Description = dto.Description;
             quiz.IsPrivate = dto.IsPrivate;
