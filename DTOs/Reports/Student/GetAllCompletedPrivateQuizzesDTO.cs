@@ -10,5 +10,6 @@
         public DateTime CompletedAt { get; set; }
         public string createBy { get; set; } = string.Empty;
         public int TotalQuestions { get; set; }
+        public DateTime CreatAt { get; set; }
     }
 }
