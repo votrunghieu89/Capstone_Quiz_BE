@@ -21,7 +21,7 @@ namespace Capstone.DTOs.Reports.Student
         public int QuestionId { get; set; }
         public string QuestionContent { get; set; } = string.Empty;
         public int Time { get; set; }
-
+        public int Score { get; set; }
         public List<OptionDetailDTO> Answers { get; set; } = new List<OptionDetailDTO>();
     }
     public class OptionDetailDTO

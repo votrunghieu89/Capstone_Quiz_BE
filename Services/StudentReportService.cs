@@ -48,6 +48,7 @@ namespace Capstone.Services
                                        QuestionId = ques.QuestionId,
                                        QuestionContent = ques.QuestionContent,
                                        Time = ques.Time,
+                                       Score = ques.Score,
                                        Answers = (from opt in _context.options
                                                   where opt.QuestionId == ques.QuestionId
                                                   select new OptionDetailDTO
