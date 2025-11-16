@@ -29,7 +29,6 @@ namespace Capstone.Controllers
 
         // ===== GET METHODS =====
         [HttpGet("GetQuestionOfQuizCache/{quizId}")]
-        [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> GetQuestionOfQuiz_cache(int quizId)
         {
             var json = await _redis.GetStringAsync($"quiz_questions_{quizId}"); // lấy câu hỏi từ Redis
@@ -86,7 +85,6 @@ namespace Capstone.Controllers
             return Ok(quiz);
         }
         [HttpGet("getDetailOfAHomePageQuiz/{quizId}")]
-        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> getDetailofAHPQuiz(int quizId)
         {
             try
@@ -108,7 +106,6 @@ namespace Capstone.Controllers
             }
         }
         [HttpGet("GetAllQuizzes")]
-        [Authorize(Roles = "Teacher,Student")]
         public async Task<IActionResult> GetAllQuizzes([FromQuery] PaginationDTO pages)
         {
             if (pages.page <= 0 || pages.pageSize <= 0)
