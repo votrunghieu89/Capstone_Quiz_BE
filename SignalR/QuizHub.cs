@@ -13,8 +13,8 @@ namespace Capstone.SignalR
     {
         // list ở dây là tên giáo viên và học sinh
         // String là mã Pin
-        private static ConcurrentDictionary<string, ConcurrentDictionary<string, string>> Rooms = new();
-        private static ConcurrentDictionary<string, (string RoomCode, string StudentId)> StudentConnections = new();
+        private static ConcurrentDictionary<string, ConcurrentDictionary<string, string>> Rooms = new(); // key là roomCode value là {StudentId; Name Student}
+        private static ConcurrentDictionary<string, (string RoomCode, string StudentId)> StudentConnections = new(); // key là connectionID value là {roomcoed; studentId}
         private readonly IRedis _redis;
         private readonly ILogger<QuizHub> _logger;
         private readonly AppDbContext _dbContext;
@@ -83,50 +83,50 @@ namespace Capstone.SignalR
             await _redis.SetStringAsync($"quiz:room:{roomCode}",jsonData, TimeSpan.FromHours(3));
             return roomCode;
         }
-        public async Task<string> JoinRoom(string roomCode, string studentName, int totalQuestion)
-        {
-            // Kiểm tra phòng tồn tại trong bộ nhớ cục bộ (Rooms)
-            if (!Rooms.ContainsKey(roomCode))
-            {
-                _logger.LogInformation("JoinRoom failed: Room {roomCode} does not exist.", roomCode);
-                return null;
-            }
-            string studentId = Guid.NewGuid().ToString("N");
-            Rooms[roomCode][studentId] = studentName;
-            StudentConnections[Context.ConnectionId] = (roomCode, studentId);
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
-            //
-            int TotalStudents = Rooms[roomCode].Count;
-            await Clients.Group(roomCode).SendAsync("UpdateStudentList", Rooms[roomCode].Values, TotalStudents);
+                public async Task<string> JoinRoom(string roomCode, string studentName, int totalQuestion)
+                {
+                    // Kiểm tra phòng tồn tại trong bộ nhớ cục bộ (Rooms)
+                    if (!Rooms.ContainsKey(roomCode))
+                    {
+                        _logger.LogInformation("JoinRoom failed: Room {roomCode} does not exist.", roomCode);
+                        return null;
+                    }
+                    string studentId = Guid.NewGuid().ToString("N");
+                    Rooms[roomCode][studentId] = studentName;
+                    StudentConnections[Context.ConnectionId] = (roomCode, studentId);
+                    await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
+                    //
+                    int TotalStudents = Rooms[roomCode].Count;
+                    await Clients.Group(roomCode).SendAsync("UpdateStudentList", Rooms[roomCode].Values, TotalStudents);
 
-            CreateStudentRedisDTO newStudentRedis = new CreateStudentRedisDTO()
-            {
-                StudentName = studentName,
-                TotalQuestions = totalQuestion,
-                WrongAnswerRedisDTOs = new List<InsertWrongAnswerDTO>()
-            };
-            string jsonData = JsonConvert.SerializeObject(newStudentRedis);
-            string redisKey = $"quiz:room:{roomCode}:student:{studentId}";
-            await _redis.SAddAsync($"quiz:room:{roomCode}:student", redisKey, TimeSpan.FromHours(3));
-            await _redis.SetStringAsync(redisKey, jsonData, TimeSpan.FromHours(3));
+                    CreateStudentRedisDTO newStudentRedis = new CreateStudentRedisDTO()
+                    {
+                        StudentName = studentName,
+                        TotalQuestions = totalQuestion,
+                        WrongAnswerRedisDTOs = new List<InsertWrongAnswerDTO>()
+                    };
+                    string jsonData = JsonConvert.SerializeObject(newStudentRedis);
+                    string redisKey = $"quiz:room:{roomCode}:student:{studentId}";
+                    await _redis.SAddAsync($"quiz:room:{roomCode}:student", redisKey, TimeSpan.FromHours(3));
+                    await _redis.SetStringAsync(redisKey, jsonData, TimeSpan.FromHours(3));
 
 
-            await _redis.HSetAsync($"quiz:room:{roomCode}:student:{studentId}:detail", new Dictionary<string, string>
-            {
-                ["Score"] = "0",
-                ["CorrectCount"] = "0",
-                ["WrongCount"] = "0",
-                ["Rank"] = "0"
-            }, TimeSpan.FromHours(3));
-            await _redis.ZAddAsync($"quiz:room:{roomCode}:leaderboard", studentId, 0, TimeSpan.FromHours(3));
-            _logger.LogInformation("Student {StudentName} joined room {RoomCode} with RedisKey {RedisKey}", studentName, roomCode, redisKey);
-            return JsonConvert.SerializeObject(new
-            {
-                studentId,
-                totalStudents = TotalStudents,
-                roomCode
-            });
-        }
+                    await _redis.HSetAsync($"quiz:room:{roomCode}:student:{studentId}:detail", new Dictionary<string, string>
+                    {
+                        ["Score"] = "0",
+                        ["CorrectCount"] = "0",
+                        ["WrongCount"] = "0",
+                        ["Rank"] = "0"
+                    }, TimeSpan.FromHours(3));
+                    await _redis.ZAddAsync($"quiz:room:{roomCode}:leaderboard", studentId, 0, TimeSpan.FromHours(3));
+                    _logger.LogInformation("Student {StudentName} joined room {RoomCode} with RedisKey {RedisKey}", studentName, roomCode, redisKey);
+                    return JsonConvert.SerializeObject(new
+                    {
+                        studentId,
+                        totalStudents = TotalStudents,
+                        roomCode
+                    });
+                }
         //[Authorize(Roles = "Teacher")]
         public async Task StartGame(string roomCode)
         {
@@ -170,11 +170,28 @@ namespace Capstone.SignalR
             try
             {
                 _logger.LogInformation("Ending game for room {RoomCode}", roomCode);
+
+               
                 await Clients.Group(roomCode).SendAsync("EndBeforeStartGame", $"Room {roomCode} has ended.");
+
+              
                 await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}*");
+
+            
                 Rooms.TryRemove(roomCode, out _);
-                _logger.LogInformation("All Redis data for room {RoomCode} deleted.", roomCode);
-            } 
+
+                var connectionsToRemove = StudentConnections
+                    .Where(kv => kv.Value.RoomCode == roomCode)
+                    .Select(kv => kv.Key)
+                    .ToList();
+
+                foreach (var connId in connectionsToRemove)
+                {
+                    StudentConnections.TryRemove(connId, out _);
+                }
+
+                _logger.LogInformation("All Redis data and in-memory data for room {RoomCode} deleted.", roomCode);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while ending game for room {RoomCode}", roomCode);
@@ -182,7 +199,7 @@ namespace Capstone.SignalR
         }
         //[Authorize(Roles = "Teacher")]
         // Đặt hàm này trong QuizHub
-        // Giáo viên click end sau khi hoàn thành trò chơi
+        // Giáo viên click end sau khi hoàn thành trò chơi và show ra leaderboard cuối
         public async Task EndAfterComplete(string roomCode)
         {
             _logger.LogInformation("Processing end of game and saving results for room {RoomCode}", roomCode);
@@ -205,10 +222,9 @@ namespace Capstone.SignalR
                 {
                     // Cập nhật Rank vào Hash Set (:detail)
                     string detailKey = $"quiz:room:{roomCode}:student:{studentId}:detail";
-                    // Cập nhật trường "Rank" trong Hash Set của học sinh
+                    // Cập nhật trường Rank trong Hash Set của học sinh
                     await _redis.HSetAsync(detailKey, "Rank", rank.ToString(), TimeSpan.FromHours(3));
                     rank++;
-
                     await StudentComplete(roomCode, studentId);
                 }
                 _logger.LogInformation("Successfully updated ranks for all participants in room {RoomCode}.", roomCode);
@@ -226,14 +242,28 @@ namespace Capstone.SignalR
         {
             try
             {
+              
                 await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}*");
+                var connectionsToRemove = StudentConnections
+                    .Where(kv => kv.Value.RoomCode == roomCode)
+                    .Select(kv => kv.Key)
+                    .ToList();
+
+                foreach (var connId in connectionsToRemove)
+                {
+                    StudentConnections.TryRemove(connId, out _);
+                }
                 Rooms.TryRemove(roomCode, out _);
+                await Clients.Group(roomCode).SendAsync("EndClick", $"Room {roomCode} has ended.");
+
+                _logger.LogInformation("Room {RoomCode} ended and all related memory & Redis data deleted.", roomCode);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error while ending game after completion for room {RoomCode}", roomCode);
+                _logger.LogError(ex, "Error while ending game for room {RoomCode}", roomCode);
             }
         }
+        // Khi học sinh hoàn thành bài quiz của mình
         public async Task StudentComplete(string roomCode, string studentId) // result
         {
             string leaderboardKey = $"quiz:room:{roomCode}:leaderboard";
@@ -307,5 +337,19 @@ namespace Capstone.SignalR
                 await Clients.Client(Connection).SendAsync("CompleteQuiz", studentCompleteResultDTO);
             }
         }
+        // Khi học sinh tự động thoát phòng
+        public async Task LeaveRoom(string roomCode, string studentId)
+        {
+            if (Rooms.TryGetValue(roomCode, out var students)) // lấy values ứng với room code nếu có
+            {
+                students.TryRemove(studentId, out _); // xoá student ứng với studnet
+                int totalStudentsLeft = students.Count;
+                await Clients.Group(roomCode).SendAsync("UpdateStudentList", students.Values, totalStudentsLeft);
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, roomCode);
+            }
+            StudentConnections.TryRemove(Context.ConnectionId, out _);
+            await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}:student:{studentId}*");
+        }
+
     }
 }
