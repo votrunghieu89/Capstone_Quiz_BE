@@ -34,20 +34,20 @@ namespace Capstone.SignalR
                 {
                     var (roomCode, studentId) = info;
 
-                    // Kiểm tra phòng có tồn tại
+        
                     if (Rooms.TryGetValue(roomCode, out var studentsInRoom))
                     {
-                        // Xoá student khỏi phòng
+                
                         if (studentsInRoom.TryRemove(studentId, out var studentName))
                         {
                             _logger.LogInformation("Student {StudentName} ({StudentId}) disconnected from room {RoomCode}",
                                 studentName, studentId, roomCode);
 
-                            // Gửi update danh sách student còn lại cho toàn bộ phòng
+                        
                             await Clients.Group(roomCode).SendAsync("UpdateStudentList", studentsInRoom.Values, studentsInRoom.Count);
                         }
 
-                        // Nếu phòng trống, bạn có thể xóa room luôn
+                
                         if (studentsInRoom.IsEmpty)
                         {
                             Rooms.TryRemove(roomCode, out _);
@@ -55,21 +55,25 @@ namespace Capstone.SignalR
                         }
                     }
 
-                    // Xoá dữ liệu Redis nếu cần
+                    // Xoá dữ liệu Redis
                     await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}:student:{studentId}*");
 
-                    // Nếu học sinh đang ở trong leaderboard, hãy loại bỏ họ
+                    // Loại bỏ khỏi leaderboard
                     await _redis.ZRemAsync($"quiz:room:{roomCode}:leaderboard", studentId);
 
-                    // Nếu bạn có key tổng hợp danh sách student keys (như trong JoinRoom), hãy xóa key của student này khỏi tập hợp đó
+                    // Xóa khỏi tập hợp student keys
                     await _redis.SRemAsync($"quiz:room:{roomCode}:student", $"quiz:room:{roomCode}:student:{studentId}");
                 }
-
             }
-            catch (Exception ex) { 
-            
+            catch (Exception ex)
+            {  
+                _logger.LogError(ex, "Error while disconnecting student with ConnectionId {ConnectionId}", Context.ConnectionId);
             }
-            await base.OnDisconnectedAsync(exception);
+            finally
+            {
+                // Đảm bảo luôn gọi base method
+                await base.OnDisconnectedAsync(exception);
+            }
         }
         //[Authorize(Roles = "Teacher")]
         public async Task<string> CreateRoom(int quizId, int teacherId, int totalQuestion)
