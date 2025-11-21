@@ -175,8 +175,8 @@ namespace Capstone.SignalR
                 await _redis.SetStringAsync($"quiz:room:{roomCode}", JsonConvert.SerializeObject(createRoomRedis), TimeSpan.FromHours(3));
                 var teacherConnectionId = roomData?.TeacherConnectionId;
 
-                if (!string.IsNullOrEmpty(teacherConnectionId))
-                    await Clients.Client(teacherConnectionId).SendAsync("GameStarted",createRoomRedis.QuizId);
+                //if (!string.IsNullOrEmpty(teacherConnectionId))
+                //    await Clients.Client(teacherConnectionId).SendAsync("GameStarted",createRoomRedis.QuizId);
                 return JsonConvert.SerializeObject(new
                 {
                     quizId = createRoomRedis.QuizId,
