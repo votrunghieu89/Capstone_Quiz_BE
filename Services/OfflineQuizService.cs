@@ -379,7 +379,7 @@ namespace Capstone.Services
                         _context.offlineResults.Update(currentResult);
                         await _context.SaveChangesAsync(); // Lưu Rank
                     }
-
+                    int updateTotalParticipationinQuiz = await _context.quizzes.Where(q => q.QuizId == dto.QuizId).ExecuteUpdateAsync(e => e.SetProperty(q => q.TotalParticipants, q => q.TotalParticipants + 1));
                     // Commit toàn bộ
                     await transaction.CommitAsync();
 

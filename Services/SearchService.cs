@@ -83,8 +83,11 @@ namespace Capstone.Services
         {
             try
             {
-                var account = await  _dbContext.authModels
-                    .Where(a => a.Email == email)
+                // Trim spaces + convert to lowercase
+                var normalizedEmail = email?.Trim().ToLower();
+
+                var account = await _dbContext.authModels
+                    .Where(a => a.Email.ToLower() == normalizedEmail)
                     .Select(a => new AllAccountByRoleDTO
                     {
                         AccountId = a.AccountId,
@@ -92,7 +95,9 @@ namespace Capstone.Services
                         Role = a.Role,
                         IsActive = a.IsActive,
                         CreateAt = a.CreateAt,
-                    }).FirstOrDefaultAsync();
+                    })
+                    .FirstOrDefaultAsync();
+
                 return account;
             }
             catch (Exception ex)
