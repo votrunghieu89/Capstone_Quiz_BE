@@ -136,25 +136,33 @@ namespace Capstone.SignalR
             }, TimeSpan.FromHours(3));
             await _redis.ZAddAsync($"quiz:room:{roomCode}:leaderboard", studentId, 0, TimeSpan.FromHours(3));
             _logger.LogInformation("Student {StudentName} joined room {RoomCode} with RedisKey {RedisKey}", studentName, roomCode, redisKey);
+            var joinRoom = await _redis.GetStringAsync($"quiz:room:{roomCode}");
+            CreateRoomRedisDTO joinRoomDe = new CreateRoomRedisDTO();
+            if (!string.IsNullOrEmpty(joinRoom))
+            {
+                 joinRoomDe = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(joinRoom);
+                // Sử dụng joinRoomDe tiếp theo
+            }
             return JsonConvert.SerializeObject(new
             {
                 studentId,
                 totalStudents = TotalStudents,
-                roomCode
+                roomCode,
+                quizId = joinRoomDe.QuizId
             });
         }
         //[Authorize(Roles = "Teacher")]
-        public async Task StartGame(string roomCode)
+        public async Task<string> StartGame(string roomCode)
         {
+            string roomJson = await _redis.GetStringAsync($"quiz:room:{roomCode}");
+            var roomData = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(roomJson);
             if (Rooms.ContainsKey(roomCode))
             {
-                await Clients.Group(roomCode).SendAsync("GameStarted");
+                await Clients.Group(roomCode).SendAsync("GameStarted",roomData.QuizId);
             }
-            string roomJson = await _redis.GetStringAsync($"quiz:room:{roomCode}");
             int totalStudents = Rooms[roomCode].Count;
             if (!string.IsNullOrEmpty(roomJson))
             {
-                var roomData = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(roomJson);
                 CreateRoomRedisDTO createRoomRedis = new CreateRoomRedisDTO()
                 {
                     QuizId = roomData.QuizId,
@@ -168,8 +176,13 @@ namespace Capstone.SignalR
                 var teacherConnectionId = roomData?.TeacherConnectionId;
 
                 if (!string.IsNullOrEmpty(teacherConnectionId))
-                    await Clients.Client(teacherConnectionId).SendAsync("GameStarted");
+                    await Clients.Client(teacherConnectionId).SendAsync("GameStarted",createRoomRedis.QuizId);
+                return JsonConvert.SerializeObject(new
+                {
+                    quizId = createRoomRedis.QuizId,
+                });
             }
+            return null;
         }
         //[Authorize(Roles = "Teacher")]
         // Giáo viên Kết thúc live trước khi bắt đầu trò chơi
