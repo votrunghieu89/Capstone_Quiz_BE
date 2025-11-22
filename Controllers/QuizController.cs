@@ -1,6 +1,7 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
+using Capstone.Repositories;
 using Capstone.Repositories.Quizzes;
 using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.AspNetCore.Authorization;
@@ -18,13 +19,15 @@ namespace Capstone.Controllers
         private readonly IRedis _redis;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _webHostEnvironment;
-        public QuizController(ILogger<QuizController> logger, IQuizRepository quizRepository, IRedis redis, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
+        private readonly IAWS _S3;
+        public QuizController(ILogger<QuizController> logger, IQuizRepository quizRepository, IRedis redis, IConfiguration configuration, IWebHostEnvironment webHostEnvironment, IAWS S3)
         {
             _logger = logger;
             _quizRepository = quizRepository;
             _redis = redis;
             _configuration = configuration;
             _webHostEnvironment = webHostEnvironment;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====
@@ -64,12 +67,11 @@ namespace Capstone.Controllers
             }
             if (!string.IsNullOrEmpty(quizDetails.AvatarURL))
             {
-                quizDetails.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quizDetails.AvatarURL.Replace("\\", "/")}";
+                quizDetails.AvatarURL = await _S3.ReadImage(quizDetails.AvatarURL);
             }
             ViewDetailDTO quiz = new ViewDetailDTO
             {
                 QuizId = quizDetails.QuizId,
-
                 Title = quizDetails.Title,
                 FolderId = quizDetails.FolderId,
                 TopicId = quizDetails.TopicId,
@@ -92,7 +94,7 @@ namespace Capstone.Controllers
                 QuizDetailHPDTO quiz = await _quizRepository.getDetailOfQuizHP(quizId);
                 if (!string.IsNullOrEmpty(quiz.AvatarURL))
                 {
-                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                    quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
                 }
                 if (quiz == null)
                 {
@@ -124,7 +126,7 @@ namespace Capstone.Controllers
             {
                 if (!string.IsNullOrEmpty(quiz.AvatarURL))
                 {
-                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                    quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
                 }
             }
 
@@ -136,27 +138,37 @@ namespace Capstone.Controllers
         [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> UploadImage([FromForm] QuizCreateFormDTO dto)
         {
-            var folderName = _configuration["UploadSettings:QuizFolder"];
-            var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
+            //var folderName = _configuration["UploadSettings:QuizFolder"];
+            //var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
 
-            if (!Directory.Exists(uploadFolder))
-                Directory.CreateDirectory(uploadFolder);
+            //if (!Directory.Exists(uploadFolder))
+            //    Directory.CreateDirectory(uploadFolder);
 
-            string avatarPath = Path.Combine(folderName, "Default.jpg");
+            //string avatarPath = Path.Combine(folderName, "Default.jpg");
 
-            if (dto.AvatarURL != null) // 2MB
+            //if (dto.AvatarURL != null) // 2MB
+            //{
+            //    var extension = Path.GetExtension(dto.AvatarURL.FileName);
+            //    var uniqueFileName = $"{Guid.NewGuid()}{extension}";
+            //    var filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+            //    using var fileStream = new FileStream(filePath, FileMode.Create);
+            //    await dto.AvatarURL.CopyToAsync(fileStream);
+
+            //    avatarPath = Path.Combine(folderName, uniqueFileName);
+            //}
+
+            //return Ok(new { imageUrl = avatarPath.Replace("\\", "/") });
+            string avatarURL;
+            if (dto.AvatarURL == null ||  dto.AvatarURL.Length == 0)
             {
-                var extension = Path.GetExtension(dto.AvatarURL.FileName);
-                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadFolder, uniqueFileName);
-
-                using var fileStream = new FileStream(filePath, FileMode.Create);
-                await dto.AvatarURL.CopyToAsync(fileStream);
-
-                avatarPath = Path.Combine(folderName, uniqueFileName);
+                avatarURL = $"quiz/Default.jpg";
             }
-
-            return Ok(new { imageUrl = avatarPath.Replace("\\", "/") });
+            else
+            {
+                avatarURL = await _S3.UploadQuizImageToS3(dto.AvatarURL);
+            }
+            return Ok(new { imageUrl = avatarURL });
         }
         //[Authorize(Roles = "Teacher")]
         [HttpPost("createQuiz")]
@@ -237,8 +249,6 @@ namespace Capstone.Controllers
         {
             try
             {
-                var folderName = _configuration["UploadSettings:QuizFolder"];
-                string avatarPath = Path.Combine(folderName, "Default.jpg");
                 var oldImage = await _quizRepository.getOrlAvatarURL(dto.QuizId);
                 // Nếu user không upload ảnh mới -> giữ nguyên ảnh cũ
                 if (dto.AvatarURL == null)
@@ -251,41 +261,14 @@ namespace Capstone.Controllers
                 {
                     return BadRequest("File quá lớn, tối đa 2MB");
                 }
-
-                // Validate extension
-                var extension = Path.GetExtension(dto.AvatarURL.FileName).ToLower();
-                var allowedExt = new[] { ".jpg", ".jpeg", ".png" };
-                if (!allowedExt.Contains(extension))
-                {
-                    return BadRequest("Định dạng file không hợp lệ (chỉ cho phép .jpg, .jpeg, .png)");
-                }
-
-                // Tạo folder
-              
-                var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
-                if (!Directory.Exists(uploadFolder))
-                    Directory.CreateDirectory(uploadFolder);
-
-                // Tạo file mới
-                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadFolder, uniqueFileName);
-
-                using (var stream = System.IO.File.Create(filePath))
-                {
-                    await dto.AvatarURL.CopyToAsync(stream);
-                }
-
+                var newImage = await _S3.UploadQuizImageToS3(dto.AvatarURL);
                 // Sau khi lưu file mới thành công -> mới xóa file cũ
-                if (!string.IsNullOrEmpty(oldImage) && oldImage != "Default.jpg")
+                if (!string.IsNullOrEmpty(oldImage) && oldImage != "quiz/Default.jpg")
                 {
-                    var oldImagePath = Path.Combine(_webHostEnvironment.ContentRootPath, oldImage);
-                    if (System.IO.File.Exists(oldImagePath))
-                    {
-                        System.IO.File.Delete(oldImagePath);
-                    }
+                    bool isDelete = await _S3.DeleteImage(oldImage);
                 }
 
-                return Ok(new { imageUrl = Path.Combine(folderName, uniqueFileName).Replace("\\", "/") });
+                return Ok(new { imageUrl = newImage });
             }
             catch (Exception ex)
             {
@@ -347,25 +330,36 @@ namespace Capstone.Controllers
         [Authorize(Roles = "Teacher")]
         public async Task<IActionResult> DeleteQuiz(int quizId)
         {
-            var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
-            var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
-            string isDeleted = await _quizRepository.DeleteQuiz(quizId,accountId,ipAddess);
-            if (isDeleted == null)
+            try
             {
-                return NotFound(new { message = "Không tìm thấy bài kiểm tra hoặc không thể xóa." });
-            }
-            if(isDeleted == "QuizImage/Default.jpg")
-            {
-                return Ok(new { message = "Xóa bài kiểm tra thành công." });
-            }
-            else
-            {
-                var imagePath = Path.Combine(_webHostEnvironment.ContentRootPath, isDeleted);
-                if (System.IO.File.Exists(imagePath))
+                var accountId = Convert.ToInt32(User.FindFirst("AccountId")?.Value);
+                var ipAddess = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault() ?? HttpContext.Connection.RemoteIpAddress?.ToString();
+                string isDeleted = await _quizRepository.DeleteQuiz(quizId, accountId, ipAddess);
+                if (isDeleted == null)
                 {
-                    System.IO.File.Delete(imagePath);
+                    return NotFound(new { message = "Không tìm thấy bài kiểm tra hoặc không thể xóa." });
                 }
-                return Ok(new { message = "Xóa bài kiểm tra thành công." });
+                if (isDeleted == $"quiz/Default.jpg")
+                {
+                    return Ok(new { message = "Xóa bài kiểm tra thành công." });
+                }
+                else
+                {
+                    bool DeleteImage = await _S3.DeleteImage(isDeleted);
+                    if (DeleteImage)
+                    {
+                        return Ok(new { message = "Xóa bài kiểm tra thành công." });
+                    }
+                    else
+                    {
+                        return BadRequest(new { messsage = "Có lỗi xảy ra với AWS S3" });
+                    }
+                }
+            }
+            catch (Exception ex) {
+
+                _logger.LogError(ex, "Error clearing cache for quizId: {QuizId}", quizId);
+                return StatusCode(500, "Lỗi hệ thống.");
             }
         }
 

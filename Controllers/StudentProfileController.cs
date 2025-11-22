@@ -1,9 +1,11 @@
 ﻿using Capstone.DTOs.StudentProfile;
 using Capstone.Model;
+using Capstone.Repositories;
 using Capstone.Repositories.Profiles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Capstone.Controllers
 {
@@ -15,13 +17,15 @@ namespace Capstone.Controllers
         private readonly IStudentProfileRepository _studentProfileRepository;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IAWS _S3;
         public StudentProfileController(ILogger<StudentProfileController> logger,
-            IStudentProfileRepository studentProfileRepository, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
+            IStudentProfileRepository studentProfileRepository, IConfiguration configuration, IWebHostEnvironment webHostEnvironment, IAWS S3)
         {
             _logger = logger;
             _studentProfileRepository = studentProfileRepository;
             _configuration = configuration;
             _webHostEnvironment = webHostEnvironment;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====
@@ -40,7 +44,7 @@ namespace Capstone.Controllers
                 }
                 if (!string.IsNullOrEmpty(studentProfile.AvatarURL))
                 {
-                    studentProfile.AvatarURL = $"{Request.Scheme}://{Request.Host}/{studentProfile.AvatarURL.Replace("\\", "/")}";
+                    studentProfile.AvatarURL = await _S3.ReadImage(studentProfile.AvatarURL);
                 }
                 StudentProfileModel student = new StudentProfileModel
                 {
@@ -79,30 +83,13 @@ namespace Capstone.Controllers
 
                 if (studentProfile.FormFile != null)
                 {
-
-                    var folderName = _configuration["UploadSettings:AvatarFolder"];
-                    var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
-                    if (!Directory.Exists(uploadsFolder))
-                    {
-                        _logger.LogDebug("updateStudentProfile: Creating uploads folder at {UploadsFolder}", uploadsFolder);
-                        Directory.CreateDirectory(uploadsFolder);
-                    }
-
-                    var extension = Path.GetExtension(studentProfile.FormFile.FileName);
-                    var FileName = $"{studentProfile.StudentId}_{Guid.NewGuid()}{extension}";
-                    var filePath = Path.Combine(uploadsFolder, FileName);
-
-                    _logger.LogDebug("updateStudentProfile: Saving uploaded avatar to {FilePath}", filePath);
-                    using (var stream = System.IO.File.Create(filePath))
-                    {
-                        await studentProfile.FormFile.CopyToAsync(stream);
-                    }
+                    var profileImage = await _S3.UploadProfileImageToS3(studentProfile.FormFile);
 
                     studentProfileModel = new Capstone.Model.StudentProfileModel
                     {
                         StudentId = studentProfile.StudentId,
                         FullName = studentProfile.FullName,
-                        AvatarURL = Path.Combine(folderName, FileName)
+                        AvatarURL = profileImage
                     };
                 }
                 else
@@ -126,17 +113,7 @@ namespace Capstone.Controllers
 
                 if (studentProfile.FormFile != null && !string.IsNullOrEmpty(updatedProfile.oldAvatar))
                 {
-                    var oldAvatarPath = Path.Combine(_webHostEnvironment.ContentRootPath, updatedProfile.oldAvatar);
-                    _logger.LogDebug("updateStudentProfile: Deleting old avatar at {OldAvatarPath} if exists", oldAvatarPath);
-                    if (System.IO.File.Exists(oldAvatarPath))
-                    {
-                        System.IO.File.Delete(oldAvatarPath);
-                        _logger.LogInformation("updateStudentProfile: Deleted old avatar for StudentId={StudentId}", studentProfileModel.StudentId);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("updateStudentProfile: Old avatar file not found at {OldAvatarPath}", oldAvatarPath);
-                    }
+                    bool isdeleteImage = await _S3.DeleteImage(updatedProfile.oldAvatar);
                 }
 
                 _logger.LogInformation("updateStudentProfile: Success - StudentId={StudentId}", studentProfileModel.StudentId);

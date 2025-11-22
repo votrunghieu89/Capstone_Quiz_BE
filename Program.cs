@@ -141,6 +141,7 @@ builder.Services.AddScoped<IFavouriteRepository, FavouriteService>();
 builder.Services.AddScoped<ISearchRepository, SearchService>(); // ✅ từ Feature_Filter
 builder.Services.AddSingleton<IUserIdProvider, QueryStringUserIdProvider>(); // ✅ từ main
 builder.Services.AddScoped<IAuditLogRepository, AuditLogService>();
+builder.Services.AddScoped<IAWS, AWSService>();
 builder.Services.Configure<RabbitMQModel>(builder.Configuration.GetSection("RabbitMQSettings"));
 builder.Services.AddScoped<MongoDbContext>();
 builder.Services.AddSingleton<RabbitMQProducer>();

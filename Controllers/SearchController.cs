@@ -1,5 +1,6 @@
 ﻿using Capstone.DTOs;
 using Capstone.DTOs.Reports.Teacher.OnlineReport;
+using Capstone.Repositories;
 using Capstone.Repositories.Filter_Search;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,12 @@ namespace Capstone.Controllers
     {
         private readonly ISearchRepository _repo;
         private readonly ILogger<SearchController> _logger;
-        public SearchController(ISearchRepository repo, ILogger<SearchController> logger)
+        private readonly IAWS _S3;
+        public SearchController(ISearchRepository repo, ILogger<SearchController> logger, IAWS S3)
         {
             _repo = repo;
             _logger = logger;
+            _S3 = S3;
         }
 
         [HttpGet("filterByRole")]
@@ -101,7 +104,7 @@ namespace Capstone.Controllers
                 {
                     if (par.Avatar != null)
                     {
-                        par.Avatar = $"{Request.Scheme}://{Request.Host}/{par.Avatar.Replace("\\", "/")}";
+                        par.Avatar = await _S3.ReadImage(par.Avatar);
                     }
                 }
                 _logger.LogInformation($"Search Participant In Group by Name and groupId: {Name}, {groupId}");

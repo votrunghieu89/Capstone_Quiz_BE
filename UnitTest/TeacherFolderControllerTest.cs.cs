@@ -1,5 +1,6 @@
 ﻿using Capstone.Controllers;
 using Capstone.DTOs.Folder.Teacher;
+using Capstone.Repositories;
 using Capstone.Repositories.Folder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -16,12 +17,19 @@ namespace Capstone.UnitTest
         private readonly TeacherFolderController _controller;
         private readonly Mock<ITeacherFolder> _mockRepo;
         private readonly Mock<ILogger<TeacherFolderController>> _mockLogger;
+        private readonly Mock<IAWS> _mockAWS;
 
         public TeacherFolderControllerTest()
         {
             _mockRepo = new Mock<ITeacherFolder>();
             _mockLogger = new Mock<ILogger<TeacherFolderController>>();
-            _controller = new TeacherFolderController(_mockRepo.Object, _mockLogger.Object);
+            _mockAWS = new Mock<IAWS>();
+            
+            _controller = new TeacherFolderController(
+                _mockRepo.Object, 
+                _mockLogger.Object, 
+                _mockAWS.Object
+            );
         }
 
         [Fact]

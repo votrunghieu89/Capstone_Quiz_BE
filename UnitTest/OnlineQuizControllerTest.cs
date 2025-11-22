@@ -153,8 +153,8 @@ namespace Capstone.UnitTest
                 optionId = 4 
             };
             
-            // Setup: Correct answer không có trong cache
-            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}: question_{dto.questionId}: option_{dto.optionId}"))
+            // Setup: Correct answer không có trong cache - fixed key without spaces
+            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}:question_{dto.questionId}:option_{dto.optionId}"))
                 .ReturnsAsync((string)null);
             _mockQuizRepo.Setup(r => r.checkAnswer(It.IsAny<CheckAnswerDTO>()))
                 .ReturnsAsync(true);
@@ -204,8 +204,8 @@ namespace Capstone.UnitTest
                 optionId = 4 
             };
             
-            // Setup: Wrong answer
-            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}: question_{dto.questionId}: option_{dto.optionId}"))
+            // Setup: Wrong answer - fixed key without spaces
+            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}:question_{dto.questionId}:option_{dto.optionId}"))
                 .ReturnsAsync((string)null);
             _mockQuizRepo.Setup(r => r.checkAnswer(It.IsAny<CheckAnswerDTO>()))
                 .ReturnsAsync(false);
@@ -289,8 +289,8 @@ namespace Capstone.UnitTest
                 optionId = 4 
             };
             
-            // Setup: Correct answer from cache
-            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}: question_{dto.questionId}: option_{dto.optionId}"))
+            // Setup: Correct answer from cache - fixed key without spaces
+            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}:question_{dto.questionId}:option_{dto.optionId}"))
                 .ReturnsAsync("true");
             
             // Setup: Score value
@@ -334,8 +334,8 @@ namespace Capstone.UnitTest
                 optionId = 4 
             };
             
-            // Setup: Wrong answer
-            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}: question_{dto.questionId}: option_{dto.optionId}"))
+            // Setup: Wrong answer - fixed key without spaces
+            _mockRedis.Setup(r => r.GetStringAsync($"quiz_questions_{dto.quizId}:question_{dto.questionId}:option_{dto.optionId}"))
                 .ReturnsAsync("false");
             
             // Setup: Correct answer from cache

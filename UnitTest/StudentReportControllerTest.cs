@@ -1,5 +1,6 @@
 ﻿using Capstone.Controllers;
 using Capstone.DTOs.Reports.Student;
+using Capstone.Repositories;
 using Capstone.Repositories.Histories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +15,20 @@ namespace Capstone.UnitTest
         private readonly StudentReportController _controller;
         private readonly Mock<IStudentReportRepository> _mockRepo;
         private readonly Mock<ILogger<StudentReportController>> _mockLogger;
+        private readonly Mock<IAWS> _mockAWS;
 
         public StudentReportControllerTest()
         {
             _mockRepo = new Mock<IStudentReportRepository>();
             _mockLogger = new Mock<ILogger<StudentReportController>>();
+            _mockAWS = new Mock<IAWS>();
 
-            _controller = new StudentReportController(_mockLogger.Object, _mockRepo.Object);
+            _controller = new StudentReportController(
+                _mockLogger.Object, 
+                _mockRepo.Object, 
+                _mockAWS.Object
+            );
+            
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
@@ -39,13 +47,16 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetAllCompletedPublicQuizzes_Ok_TransformsUrls()
         {
-            var list = new List<GetAllCompletedPublicQuizzesDTO> { new GetAllCompletedPublicQuizzesDTO { AvatarURL = "A\\B.jpg" } };
+            var list = new List<GetAllCompletedPublicQuizzesDTO> { new GetAllCompletedPublicQuizzesDTO { AvatarURL = "quiz/B.jpg" } };
             _mockRepo.Setup(r => r.GetAllCompletedPublicQuizzes(1)).ReturnsAsync(list);
+            _mockAWS.Setup(a => a.ReadImage("quiz/B.jpg")).ReturnsAsync("https://bucket.s3.ap-southeast-2.amazonaws.com/quiz/B.jpg");
+            
             var res = await _controller.GetAllCompletedPublicQuizzes(1);
+            
             var ok = Assert.IsType<OkObjectResult>(res);
             var val = Assert.IsType<List<GetAllCompletedPublicQuizzesDTO>>(ok.Value);
-            Assert.StartsWith("http://localhost/", val[0].AvatarURL);
-            Assert.DoesNotContain("\\", val[0].AvatarURL);
+            Assert.StartsWith("https://", val[0].AvatarURL);
+            Assert.Contains("s3.ap-southeast-2.amazonaws.com", val[0].AvatarURL);
         }
 
         [Fact]
@@ -58,13 +69,16 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetAllCompletedPrivateQuizzes_Ok_TransformsUrls()
         {
-            var list = new List<GetAllCompletedPrivateQuizzesDTO> { new GetAllCompletedPrivateQuizzesDTO { AvatarURL = "A\\B.jpg" } };
+            var list = new List<GetAllCompletedPrivateQuizzesDTO> { new GetAllCompletedPrivateQuizzesDTO { AvatarURL = "quiz/B.jpg" } };
             _mockRepo.Setup(r => r.GetAllCompletedPrivateQuizzes(1)).ReturnsAsync(list);
+            _mockAWS.Setup(a => a.ReadImage("quiz/B.jpg")).ReturnsAsync("https://bucket.s3.ap-southeast-2.amazonaws.com/quiz/B.jpg");
+            
             var res = await _controller.GetAllCompletedPrivateQuizzes(1);
+            
             var ok = Assert.IsType<OkObjectResult>(res);
             var val = Assert.IsType<List<GetAllCompletedPrivateQuizzesDTO>>(ok.Value);
-            Assert.StartsWith("http://localhost/", val[0].AvatarURL);
-            Assert.DoesNotContain("\\", val[0].AvatarURL);
+            Assert.StartsWith("https://", val[0].AvatarURL);
+            Assert.Contains("s3.ap-southeast-2.amazonaws.com", val[0].AvatarURL);
         }
 
         [Fact]

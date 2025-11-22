@@ -1,4 +1,5 @@
 ﻿using Capstone.DTOs.Reports.Student;
+using Capstone.Repositories;
 using Capstone.Repositories.Histories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,11 +12,12 @@ namespace Capstone.Controllers
     {
         private readonly ILogger<StudentReportController> _logger;
         private readonly IStudentReportRepository _studentReportService;
-
-        public StudentReportController(ILogger<StudentReportController> logger, IStudentReportRepository studentReportService)
+        private readonly IAWS _S3;
+        public StudentReportController(ILogger<StudentReportController> logger, IStudentReportRepository studentReportService, IAWS S3)
         {
             _logger = logger;
             _studentReportService = studentReportService;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====
@@ -39,7 +41,7 @@ namespace Capstone.Controllers
                 var publicQuizzes = await _studentReportService.GetAllCompletedPublicQuizzes(studentId);
                 foreach (var quiz in publicQuizzes)
                 {
-                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                    quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
                 }
                 _logger.LogInformation("GetAllCompletedPublicQuizzes: Retrieved {Count} public quizzes for StudentId={StudentId}",
                     publicQuizzes?.Count ?? 0, studentId);
@@ -71,7 +73,7 @@ namespace Capstone.Controllers
                 var privateQuizzes = await _studentReportService.GetAllCompletedPrivateQuizzes(studentId);
                 foreach (var quiz in privateQuizzes)
                 {
-                    quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                    quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
                 }
                 _logger.LogInformation("GetAllCompletedPrivateQuizzes: Retrieved {Count} private quizzes for StudentId={StudentId}",
                     privateQuizzes?.Count ?? 0, studentId);

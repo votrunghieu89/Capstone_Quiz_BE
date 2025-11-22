@@ -2,6 +2,7 @@
 using Capstone.DTOs.Reports.Teacher;
 using Capstone.DTOs.Reports.Teacher.OfflineReport;
 using Capstone.DTOs.Reports.Teacher.OnlineReport;
+using Capstone.Repositories;
 using Capstone.Repositories.Histories;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -15,12 +16,19 @@ namespace Capstone.UnitTest
         private readonly TeacherReportController _controller;
         private readonly Mock<ITeacherReportRepository> _mockRepo;
         private readonly Mock<ILogger<TeacherReportController>> _mockLogger;
+        private readonly Mock<IAWS> _mockAWS;
 
         public TeacherReportControllerTest()
         {
             _mockRepo = new Mock<ITeacherReportRepository>();
             _mockLogger = new Mock<ILogger<TeacherReportController>>();
-            _controller = new TeacherReportController(_mockLogger.Object, _mockRepo.Object);
+            _mockAWS = new Mock<IAWS>();
+            
+            _controller = new TeacherReportController(
+                _mockLogger.Object, 
+                _mockRepo.Object, 
+                _mockAWS.Object
+            );
         }
 
         #region GET Offline Reports

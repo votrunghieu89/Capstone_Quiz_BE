@@ -1,6 +1,7 @@
 ﻿using Capstone.Controllers;
 using Capstone.DTOs;
 using Capstone.ENUMs;
+using Capstone.Repositories;
 using Capstone.Repositories.Favourite;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,13 +18,20 @@ namespace Capstone.UnitTest
         private readonly FavouriteController _controller;
         private readonly Mock<IFavouriteRepository> _mockRepo;
         private readonly Mock<ILogger<FavouriteController>> _mockLogger;
+        private readonly Mock<IAWS> _mockAWS;
 
         public FavouriteControllerTest()
         {
             _mockRepo = new Mock<IFavouriteRepository>();
             _mockLogger = new Mock<ILogger<FavouriteController>>();
+            _mockAWS = new Mock<IAWS>();
 
-            _controller = new FavouriteController(_mockLogger.Object, _mockRepo.Object);
+            _controller = new FavouriteController(
+                _mockLogger.Object, 
+                _mockRepo.Object, 
+                _mockAWS.Object
+            );
+            
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
@@ -40,10 +48,12 @@ namespace Capstone.UnitTest
             int accountId = 1;
             var data = new List<ViewFavouriteDTO>
             {
-                new ViewFavouriteDTO { QuizId = 10, Title = "Quiz 1", AvatarURL = "QuizImage\\img1.jpg", CreatedBy = "a@a.com", TotalQuestions = 5 },
-                new ViewFavouriteDTO { QuizId = 20, Title = "Quiz 2", AvatarURL = "QuizImage/img2.jpg", CreatedBy = "b@b.com", TotalQuestions = 7 }
+                new ViewFavouriteDTO { QuizId = 10, Title = "Quiz 1", AvatarURL = "quiz/img1.jpg", CreatedBy = "a@a.com", TotalQuestions = 5 },
+                new ViewFavouriteDTO { QuizId = 20, Title = "Quiz 2", AvatarURL = "quiz/img2.jpg", CreatedBy = "b@b.com", TotalQuestions = 7 }
             };
             _mockRepo.Setup(r => r.GetAllFavouriteQuizzes(accountId)).ReturnsAsync(data);
+            _mockAWS.Setup(a => a.ReadImage("quiz/img1.jpg")).ReturnsAsync("https://bucket.s3.ap-southeast-2.amazonaws.com/quiz/img1.jpg");
+            _mockAWS.Setup(a => a.ReadImage("quiz/img2.jpg")).ReturnsAsync("https://bucket.s3.ap-southeast-2.amazonaws.com/quiz/img2.jpg");
 
             // Act
             var result = await _controller.GetAllFavouriteQuizzes(accountId);
@@ -52,9 +62,9 @@ namespace Capstone.UnitTest
             var ok = Assert.IsType<OkObjectResult>(result);
             var list = Assert.IsType<List<ViewFavouriteDTO>>(ok.Value);
             Assert.Equal(2, list.Count);
-            Assert.StartsWith("http://localhost/", list[0].AvatarURL);
-            Assert.DoesNotContain("\\", list[0].AvatarURL);
-            Assert.StartsWith("http://localhost/", list[1].AvatarURL);
+            Assert.StartsWith("https://", list[0].AvatarURL);
+            Assert.Contains("s3.ap-southeast-2.amazonaws.com", list[0].AvatarURL);
+            Assert.StartsWith("https://", list[1].AvatarURL);
         }
 
         [Fact]

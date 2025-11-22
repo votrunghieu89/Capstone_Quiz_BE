@@ -19,13 +19,16 @@ namespace Capstone.Controllers
         private readonly IQuizRepository _quizRepository;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _webHostEnvironment;
-        public GeminiController(ILogger<GeminiController> logger, IGemeniService geminiService, IQuizRepository quizRepository, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
+        private readonly IAWS _S3;
+        public GeminiController(ILogger<GeminiController> logger, IGemeniService geminiService, IQuizRepository quizRepository,
+            IConfiguration configuration, IWebHostEnvironment webHostEnvironment, IAWS s3)
         {
             _logger = logger;
             _geminiService = geminiService;
             _quizRepository = quizRepository;
             _configuration = configuration;
             _webHostEnvironment = webHostEnvironment;
+            _S3 = s3;
         }
 
         [HttpPost("CreateQuizByGemini")]
@@ -97,24 +100,14 @@ namespace Capstone.Controllers
             if (questionDTOs == null || !questionDTOs.Any())
                 return BadRequest(new { message = "No questions were generated from the Gemini response." });
             // xử lí ảnh
-            var folderName = _configuration["UploadSettings:QuizFolder"];
-            var uploadFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
-
-            if (!Directory.Exists(uploadFolder))
-                Directory.CreateDirectory(uploadFolder);
-
-            string avatarPath = Path.Combine(folderName, "Default.jpg");
-
-            if (input.AvatarURL != null && input.AvatarURL.Length <= 2 * 1024 * 1024) // 2MB
+            string avatarPath;
+            if (input.AvatarURL == null ||  input.AvatarURL.Length == 0)
             {
-                var extension = Path.GetExtension(input.AvatarURL.FileName);
-                var uniqueFileName = $"{Guid.NewGuid()}{extension}";
-                var filePath = Path.Combine(uploadFolder, uniqueFileName);
-
-                using var fileStream = new FileStream(filePath, FileMode.Create);
-                await input.AvatarURL.CopyToAsync(fileStream);
-
-                avatarPath = Path.Combine(folderName, uniqueFileName);
+                avatarPath = $"quiz/Default.jpg";
+            }
+            else
+            {
+                avatarPath = await _S3.UploadQuizImageToS3(input.AvatarURL);
             }
             var quizModel = new QuizCreateDTo
             {

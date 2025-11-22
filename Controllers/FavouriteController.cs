@@ -1,4 +1,5 @@
-﻿using Capstone.Repositories.Favourite;
+﻿using Capstone.Repositories;
+using Capstone.Repositories.Favourite;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace Capstone.Controllers
     {
         public readonly ILogger<FavouriteController> _logger;
         public readonly IFavouriteRepository _repository;
-        public FavouriteController(ILogger<FavouriteController> logger, IFavouriteRepository repository)
+        private readonly IAWS _S3;
+        public FavouriteController(ILogger<FavouriteController> logger, IFavouriteRepository repository, IAWS S3)
         {
             _logger = logger;
             _repository = repository;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====
@@ -30,7 +33,7 @@ namespace Capstone.Controllers
             foreach (var quiz in getAllFavouriteQuizzes)
             {
                 if (quiz.AvatarURL != null) {
-                    quiz.AvatarURL = quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                   quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
                 }
             }
             return Ok(getAllFavouriteQuizzes);

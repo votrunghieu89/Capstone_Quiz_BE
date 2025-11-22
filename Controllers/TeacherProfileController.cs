@@ -1,6 +1,8 @@
 ﻿using Capstone.DTOs.TeacherProfile;
 using Capstone.Model;
+using Capstone.Repositories;
 using Capstone.Repositories.Profiles;
+using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -15,14 +17,16 @@ namespace Capstone.Controllers
         private readonly ITeacherProfileRepository _teacherProfileRepository;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly IAWS _S3;
 
         public TeacherProfileController(ILogger<TeacherProfileController> logger,
-            ITeacherProfileRepository teacherProfileRepository, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
+            ITeacherProfileRepository teacherProfileRepository, IConfiguration configuration, IWebHostEnvironment webHostEnvironment, IAWS S3)
         {
             _logger = logger;
             _teacherProfileRepository = teacherProfileRepository;
             _configuration = configuration;
             _webHostEnvironment = webHostEnvironment;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====
@@ -42,7 +46,7 @@ namespace Capstone.Controllers
 
                if(!string.IsNullOrEmpty(profile.AvatarURL))
                 {
-                    profile.AvatarURL = $"{Request.Scheme}://{Request.Host}/{profile.AvatarURL.Replace("\\", "/")}";
+                    profile.AvatarURL = await _S3.ReadImage(profile.AvatarURL);
                 }
                 _logger.LogInformation("getTeacherProfile: Success - TeacherId={TeacherId}", teacherId);
                 return Ok(new { message = "Lấy hồ sơ giáo viên thành công", profile });
@@ -72,17 +76,8 @@ namespace Capstone.Controllers
 
                 if (dto.FormFile != null)
                 {
-                    var folderName = _configuration["UploadSettings:AvatarFolder"];
-                    var uploadsFolder = Path.Combine(_webHostEnvironment.ContentRootPath, folderName);
-                    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-                    var extension = Path.GetExtension(dto.FormFile.FileName);
-                    var fileName = $"{dto.TeacherId}_{Guid.NewGuid()}{extension}";
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-                    using (var stream = System.IO.File.Create(filePath))
-                    {
-                        await dto.FormFile.CopyToAsync(stream);
-                    }
-
+                   
+                    var profileImage = await _S3.UploadProfileImageToS3(dto.FormFile);
                     model = new TeacherProfileModel
                     {
                         TeacherId = dto.TeacherId,
@@ -90,7 +85,7 @@ namespace Capstone.Controllers
                         PhoneNumber = dto.PhoneNumber,
                         OrganizationName = dto.OrganizationName,
                         OrganizationAddress = dto.OrganizationAddress,
-                        AvatarURL = Path.Combine(folderName, fileName)
+                        AvatarURL = profileImage
                     };
                 }
                 else
@@ -106,7 +101,7 @@ namespace Capstone.Controllers
                     };
                 }
 
-                    var updated = await _teacherProfileRepository.updateTeacherProfile(model, accountId, ipAddess);
+                var updated = await _teacherProfileRepository.updateTeacherProfile(model, accountId, ipAddess);
                 if (updated == null)
                 {
                     _logger.LogWarning("updateTeacherProfile: Update failed for TeacherId={TeacherId}", dto.TeacherId);
@@ -115,8 +110,7 @@ namespace Capstone.Controllers
 
                 if (dto.FormFile != null && !string.IsNullOrEmpty(updated.oldAvatar))
                 {
-                    var oldAvatarPath = Path.Combine(_webHostEnvironment.ContentRootPath, updated.oldAvatar);
-                    if (System.IO.File.Exists(oldAvatarPath)) System.IO.File.Delete(oldAvatarPath);
+                    bool isdeleteImage = await _S3.DeleteImage(updated.oldAvatar);
                 }
 
                 _logger.LogInformation("updateTeacherProfile: Success - TeacherId={TeacherId}", dto.TeacherId);

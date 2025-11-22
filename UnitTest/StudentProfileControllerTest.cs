@@ -1,6 +1,7 @@
 ﻿using Capstone.Controllers;
 using Capstone.DTOs.StudentProfile;
 using Capstone.Model;
+using Capstone.Repositories;
 using Capstone.Repositories.Profiles;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,7 @@ namespace Capstone.UnitTest
         private readonly Mock<ILogger<StudentProfileController>> _mockLogger;
         private readonly Mock<IConfiguration> _mockConfig;
         private readonly Mock<IWebHostEnvironment> _mockEnv;
+        private readonly Mock<IAWS> _mockAWS;
 
         public StudentProfileControllerTest()
         {
@@ -25,10 +27,19 @@ namespace Capstone.UnitTest
             _mockLogger = new Mock<ILogger<StudentProfileController>>();
             _mockConfig = new Mock<IConfiguration>();
             _mockEnv = new Mock<IWebHostEnvironment>();
+            _mockAWS = new Mock<IAWS>();
+            
             _mockEnv.Setup(e => e.ContentRootPath).Returns(Directory.GetCurrentDirectory());
             _mockConfig.Setup(c => c["UploadSettings:AvatarFolder"]).Returns("Avatars");
 
-            _controller = new StudentProfileController(_mockLogger.Object, _mockRepo.Object, _mockConfig.Object, _mockEnv.Object);
+            _controller = new StudentProfileController(
+                _mockLogger.Object, 
+                _mockRepo.Object, 
+                _mockConfig.Object, 
+                _mockEnv.Object, 
+                _mockAWS.Object
+            );
+            
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
@@ -49,16 +60,17 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetStudentProfile_Ok_WithTransformedUrl()
         {
-            var profile = new StudentProfileModel { StudentId = 1, FullName = "A", AvatarURL = "Avatar\\a.jpg", IdUnique = "U" };
+            var profile = new StudentProfileModel { StudentId = 1, FullName = "A", AvatarURL = "profile/a.jpg", IdUnique = "U" };
             _mockRepo.Setup(r => r.getStudentProfile(1)).ReturnsAsync(profile);
+            _mockAWS.Setup(a => a.ReadImage("profile/a.jpg")).ReturnsAsync("https://bucket.s3.ap-southeast-2.amazonaws.com/profile/a.jpg");
 
             var res = await _controller.getStudentProfile(1);
 
             var ok = Assert.IsType<OkObjectResult>(res);
             dynamic obj = ok.Value;
             string url = obj.profile.AvatarURL;
-            Assert.StartsWith("http://localhost/", url);
-            Assert.DoesNotContain("\\", url);
+            Assert.StartsWith("https://", url);
+            Assert.Contains("s3.ap-southeast-2.amazonaws.com", url);
         }
 
         [Fact]
@@ -84,8 +96,9 @@ namespace Capstone.UnitTest
         public async Task UpdateStudentProfile_Success_ReturnsOk()
         {
             var dto = CreateFormDto();
+            _mockAWS.Setup(a => a.UploadProfileImageToS3(It.IsAny<IFormFile>())).ReturnsAsync("profile/new.png");
             _mockRepo.Setup(r => r.updateStudentProfile(It.IsAny<StudentProfileModel>(), It.IsAny<int>(), It.IsAny<string>()))
-                     .ReturnsAsync(new StudentProfileResponseDTO { FullName = dto.FullName, AvatarURL = "Avatars/new.png", oldAvatar = null });
+                     .ReturnsAsync(new StudentProfileResponseDTO { FullName = dto.FullName, AvatarURL = "profile/new.png", oldAvatar = null });
 
             var res = await _controller.updateStudentProfile(dto);
             Assert.IsType<OkObjectResult>(res);

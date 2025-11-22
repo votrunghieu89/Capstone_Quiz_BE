@@ -3,6 +3,7 @@ using Capstone.Database;
 using Capstone.DTOs.Group;
 using Capstone.ENUMs;
 using Capstone.Model;
+using Capstone.Repositories;
 using Capstone.Repositories.Groups;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,7 @@ namespace Capstone.UnitTest
         private readonly Mock<ILogger<GroupController>> _mockLogger;
         private readonly Mock<IRedis> _mockRedis;
         private readonly Mock<IConfiguration> _mockConfig;
+        private readonly Mock<IAWS> _mockAWS;
 
         public GroupControllerTest()
         {
@@ -26,9 +28,17 @@ namespace Capstone.UnitTest
             _mockLogger = new Mock<ILogger<GroupController>>();
             _mockRedis = new Mock<IRedis>();
             _mockConfig = new Mock<IConfiguration>();
+            _mockAWS = new Mock<IAWS>();
+            
             _mockConfig.Setup(c => c["Frontend:BaseUrl"]).Returns("http://frontend.test");
 
-            _controller = new GroupController(_mockLogger.Object, _mockRepo.Object, _mockRedis.Object, _mockConfig.Object);
+            _controller = new GroupController(
+                _mockLogger.Object, 
+                _mockRepo.Object, 
+                _mockRedis.Object, 
+                _mockConfig.Object, 
+                _mockAWS.Object
+            );
             
             // Setup HttpContext with User Claims for AccountId
             var claims = new List<Claim>

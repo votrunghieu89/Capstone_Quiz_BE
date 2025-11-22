@@ -2,10 +2,12 @@
 using Capstone.Database;
 using Capstone.DTOs;
 using Capstone.DTOs.Quizzes;
+using Capstone.Repositories;
 using Capstone.Repositories.Quizzes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Security.Claims;
 using System.Text.Json;
 using Xunit;
 
@@ -19,6 +21,7 @@ namespace Capstone.UnitTest
         private readonly Mock<IRedis> _mockRedis;
         private readonly Mock<IConfiguration> _mockConfig;
         private readonly Mock<IWebHostEnvironment> _mockEnv;
+        private readonly Mock<IAWS> _mockAWS;
 
         public QuizControllerTest()
         {
@@ -27,15 +30,35 @@ namespace Capstone.UnitTest
             _mockRedis = new Mock<IRedis>();
             _mockConfig = new Mock<IConfiguration>();
             _mockEnv = new Mock<IWebHostEnvironment>();
+            _mockAWS = new Mock<IAWS>();
+            
             _mockEnv.Setup(e => e.ContentRootPath).Returns(Directory.GetCurrentDirectory());
 
-            _controller = new QuizController(_mockLogger.Object, _mockRepo.Object, _mockRedis.Object, _mockConfig.Object, _mockEnv.Object);
+            _controller = new QuizController(
+                _mockLogger.Object, 
+                _mockRepo.Object, 
+                _mockRedis.Object, 
+                _mockConfig.Object, 
+                _mockEnv.Object, 
+                _mockAWS.Object
+            );
+            
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
             };
             _controller.ControllerContext.HttpContext.Request.Scheme = "http";
             _controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
+            
+            // Setup user claims for authorized endpoints
+            var claims = new List<Claim>
+            {
+                new Claim("AccountId", "1"),
+                new Claim(ClaimTypes.Role, "Teacher")
+            };
+            var identity = new ClaimsIdentity(claims, "TestAuth");
+            var claimsPrincipal = new ClaimsPrincipal(identity);
+            _controller.ControllerContext.HttpContext.User = claimsPrincipal;
         }
 
         #region GetQuizById
@@ -61,16 +84,16 @@ namespace Capstone.UnitTest
             Assert.IsType<OkObjectResult>(result);
         }
 
-        //[Fact]
-        //public async Task GetQuizById_InvalidCache_Returns500()
-        //{
-        //    _mockRedis.Setup(r => r.GetStringAsync("quiz_questions_1")).ReturnsAsync("not-json");
+        [Fact]
+        public async Task GetQuizById_WhenCacheNull_AndRepoReturnsNull_ReturnsNotFound()
+        {
+            _mockRedis.Setup(r => r.GetStringAsync("quiz_questions_1")).ReturnsAsync((string)null);
+            _mockRepo.Setup(r => r.GetAllQuestionEachQuiz(1)).ReturnsAsync((List<getQuizQuestionWithoutAnswerDTO>)null);
 
-        //    var result = await _controller.GetQuestionOfQuiz_cache(1);
+            var result = await _controller.GetQuestionOfQuiz_cache(1);
 
-        //    var obj = Assert.IsType<ObjectResult>(result);
-        //    Assert.Equal(500, obj.StatusCode);
-        //}
+            Assert.IsType<NotFoundObjectResult>(result);
+        }
         #endregion
 
         #region getDetailOfAQuiz
@@ -83,17 +106,58 @@ namespace Capstone.UnitTest
         }
 
         [Fact]
-        public async Task GetDetailOfAQuiz_Found_ReturnsOk_WithTransformedUrl()
+        public async Task GetDetailOfAQuiz_Found_ReturnsOk_WithS3Url()
         {
-            var dto = new ViewDetailDTO { QuizId = 1, Title = "T", AvatarURL = "QuizImage\\abc.jpg" };
+            var dto = new ViewDetailDTO { QuizId = 1, Title = "T", AvatarURL = "quiz/abc.jpg" };
+            _mockRepo.Setup(r => r.getDetailOfAQuiz(1)).ReturnsAsync(dto);
+            _mockAWS.Setup(a => a.ReadImage("quiz/abc.jpg")).ReturnsAsync("https://s3.amazonaws.com/bucket/quiz/abc.jpg");
+
+            var result = await _controller.getDetailOfAQuiz(1);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var val = Assert.IsType<ViewDetailDTO>(ok.Value);
+            Assert.StartsWith("https://s3.amazonaws.com", val.AvatarURL);
+        }
+
+        [Fact]
+        public async Task GetDetailOfAQuiz_NoAvatar_ReturnsOk_WithEmptyUrl()
+        {
+            var dto = new ViewDetailDTO { QuizId = 1, Title = "T", AvatarURL = null };
             _mockRepo.Setup(r => r.getDetailOfAQuiz(1)).ReturnsAsync(dto);
 
             var result = await _controller.getDetailOfAQuiz(1);
 
             var ok = Assert.IsType<OkObjectResult>(result);
             var val = Assert.IsType<ViewDetailDTO>(ok.Value);
-            Assert.StartsWith("http://localhost/", val.AvatarURL);
-            Assert.DoesNotContain("\\", val.AvatarURL);
+            Assert.Equal(string.Empty, val.AvatarURL);
+        }
+        #endregion
+
+        #region getDetailofAHPQuiz
+        [Fact]
+        public async Task GetDetailofAHPQuiz_Found_ReturnsOk_WithS3Url()
+        {
+            var dto = new QuizDetailHPDTO { QuizId = 1, Title = "T", AvatarURL = "quiz/test.jpg" };
+            _mockRepo.Setup(r => r.getDetailOfQuizHP(1)).ReturnsAsync(dto);
+            _mockAWS.Setup(a => a.ReadImage("quiz/test.jpg")).ReturnsAsync("https://s3.amazonaws.com/bucket/quiz/test.jpg");
+
+            var result = await _controller.getDetailofAHPQuiz(1);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            var val = Assert.IsType<QuizDetailHPDTO>(ok.Value);
+            Assert.StartsWith("https://s3.amazonaws.com", val.AvatarURL);
+        }
+
+        [Fact]
+        public async Task GetDetailofAHPQuiz_NoAvatar_ReturnsOk()
+        {
+            var dto = new QuizDetailHPDTO { QuizId = 1, Title = "T", AvatarURL = null };
+            _mockRepo.Setup(r => r.getDetailOfQuizHP(1)).ReturnsAsync(dto);
+
+            var result = await _controller.getDetailofAHPQuiz(1);
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<QuizDetailHPDTO>(ok.Value);
         }
         #endregion
 
@@ -106,19 +170,22 @@ namespace Capstone.UnitTest
         }
 
         [Fact]
-        public async Task GetAllQuizzes_FromCache_ReturnsOk()
+        public async Task GetAllQuizzes_FromRepo_ReturnsOk_WithS3Urls()
         {
-            var list = new List<ViewAllQuizDTO> { new ViewAllQuizDTO { AvatarURL = "A/B.jpg" } };
-            _mockRedis.Setup(r => r.GetStringAsync("all_quizzes_page_1_size_10")).ReturnsAsync(JsonSerializer.Serialize(list));
+            var list = new List<ViewAllQuizDTO> { new ViewAllQuizDTO { QuizId = 1, AvatarURL = "quiz/image.jpg" } };
+            _mockRepo.Setup(r => r.getAllQuizzes(1, 10)).ReturnsAsync(list);
+            _mockAWS.Setup(a => a.ReadImage("quiz/image.jpg")).ReturnsAsync("https://s3.amazonaws.com/bucket/quiz/image.jpg");
 
             var res = await _controller.GetAllQuizzes(new PaginationDTO { page = 1, pageSize = 10 });
-            Assert.IsType<OkObjectResult>(res);
+            
+            var ok = Assert.IsType<OkObjectResult>(res);
+            var val = Assert.IsType<List<ViewAllQuizDTO>>(ok.Value);
+            Assert.StartsWith("https://s3.amazonaws.com", val[0].AvatarURL);
         }
 
         [Fact]
         public async Task GetAllQuizzes_FromRepo_ReturnsNotFoundWhenEmpty()
         {
-            _mockRedis.Setup(r => r.GetStringAsync("all_quizzes_page_1_size_10")).ReturnsAsync((string)null);
             _mockRepo.Setup(r => r.getAllQuizzes(1, 10)).ReturnsAsync(new List<ViewAllQuizDTO>());
 
             var res = await _controller.GetAllQuizzes(new PaginationDTO { page = 1, pageSize = 10 });
@@ -164,14 +231,90 @@ namespace Capstone.UnitTest
         }
         #endregion
 
+        #region UploadImage
+        [Fact]
+        public async Task UploadImage_NoFile_ReturnsDefaultImage()
+        {
+            var dto = new QuizCreateFormDTO { AvatarURL = null };
+            
+            var res = await _controller.UploadImage(dto);
+            
+            var ok = Assert.IsType<OkObjectResult>(res);
+            Assert.Contains("quiz/Default.jpg", ok.Value.ToString());
+        }
+
+        [Fact]
+        public async Task UploadImage_WithFile_ReturnsS3Url()
+        {
+            var mockFile = new Mock<IFormFile>();
+            mockFile.Setup(f => f.Length).Returns(1024);
+            mockFile.Setup(f => f.FileName).Returns("test.jpg");
+            
+            var dto = new QuizCreateFormDTO { AvatarURL = mockFile.Object };
+            _mockAWS.Setup(a => a.UploadQuizImageToS3(It.IsAny<IFormFile>())).ReturnsAsync("quiz/uploaded-image.jpg");
+
+            var res = await _controller.UploadImage(dto);
+            
+            var ok = Assert.IsType<OkObjectResult>(res);
+            Assert.Contains("quiz/uploaded-image.jpg", ok.Value.ToString());
+        }
+        #endregion
+
         #region UpdateImage
         [Fact]
         public async Task UpdateImage_NoNewFile_ReturnsOldImage()
         {
-            _mockRepo.Setup(r => r.getOrlAvatarURL(1)).ReturnsAsync("QuizImage/old.jpg");
+            _mockRepo.Setup(r => r.getOrlAvatarURL(1)).ReturnsAsync("quiz/old.jpg");
             var res = await _controller.UpdateImage(new QuizUpdateImageDTO { QuizId = 1, AvatarURL = null });
             var ok = Assert.IsType<OkObjectResult>(res);
-            Assert.Contains("QuizImage/old.jpg", ok.Value.ToString());
+            Assert.Contains("quiz/old.jpg", ok.Value.ToString());
+        }
+
+        [Fact]
+        public async Task UpdateImage_WithNewFile_DeletesOldAndReturnsNewUrl()
+        {
+            var mockFile = new Mock<IFormFile>();
+            mockFile.Setup(f => f.Length).Returns(1024);
+            mockFile.Setup(f => f.FileName).Returns("new.jpg");
+            
+            _mockRepo.Setup(r => r.getOrlAvatarURL(1)).ReturnsAsync("quiz/old.jpg");
+            _mockAWS.Setup(a => a.UploadQuizImageToS3(It.IsAny<IFormFile>())).ReturnsAsync("quiz/new.jpg");
+            _mockAWS.Setup(a => a.DeleteImage("quiz/old.jpg")).ReturnsAsync(true);
+
+            var res = await _controller.UpdateImage(new QuizUpdateImageDTO { QuizId = 1, AvatarURL = mockFile.Object });
+            
+            var ok = Assert.IsType<OkObjectResult>(res);
+            Assert.Contains("quiz/new.jpg", ok.Value.ToString());
+            _mockAWS.Verify(a => a.DeleteImage("quiz/old.jpg"), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateImage_FileTooLarge_ReturnsBadRequest()
+        {
+            var mockFile = new Mock<IFormFile>();
+            mockFile.Setup(f => f.Length).Returns(3 * 1024 * 1024); // 3MB
+            mockFile.Setup(f => f.FileName).Returns("large.jpg");
+            
+            _mockRepo.Setup(r => r.getOrlAvatarURL(1)).ReturnsAsync("quiz/old.jpg");
+
+            var res = await _controller.UpdateImage(new QuizUpdateImageDTO { QuizId = 1, AvatarURL = mockFile.Object });
+            
+            Assert.IsType<BadRequestObjectResult>(res);
+        }
+
+        [Fact]
+        public async Task UpdateImage_DefaultImage_NotDeleted()
+        {
+            var mockFile = new Mock<IFormFile>();
+            mockFile.Setup(f => f.Length).Returns(1024);
+            
+            _mockRepo.Setup(r => r.getOrlAvatarURL(1)).ReturnsAsync("quiz/Default.jpg");
+            _mockAWS.Setup(a => a.UploadQuizImageToS3(It.IsAny<IFormFile>())).ReturnsAsync("quiz/new.jpg");
+
+            var res = await _controller.UpdateImage(new QuizUpdateImageDTO { QuizId = 1, AvatarURL = mockFile.Object });
+            
+            var ok = Assert.IsType<OkObjectResult>(res);
+            _mockAWS.Verify(a => a.DeleteImage(It.IsAny<string>()), Times.Never);
         }
         #endregion
 
@@ -184,6 +327,65 @@ namespace Capstone.UnitTest
             var res = await _controller.UpdateQuiz(new QuizzUpdateControllerDTO());
             var obj = Assert.IsType<ObjectResult>(res);
             Assert.Equal(500, obj.StatusCode);
+        }
+
+        [Fact]
+        public async Task UpdateQuiz_Success_ReturnsOk_AndClearsCache()
+        {
+            var dto = new QuizzUpdateControllerDTO { QuizId = 1 };
+            _mockRepo.Setup(r => r.UpdateQuiz(It.IsAny<QuizUpdateDTO>(), It.IsAny<string>(), It.IsAny<int>()))
+                     .ReturnsAsync(new QuizUpdateDTO());
+
+            var res = await _controller.UpdateQuiz(dto);
+            
+            Assert.IsType<OkObjectResult>(res);
+            _mockRedis.Verify(r => r.DeleteKeysByPatternAsync($"quiz_questions_1*"), Times.Once);
+        }
+        #endregion
+
+        #region DeleteQuiz
+        [Fact]
+        public async Task DeleteQuiz_NotFound_ReturnsNotFound()
+        {
+            _mockRepo.Setup(r => r.DeleteQuiz(1, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync((string)null);
+            
+            var res = await _controller.DeleteQuiz(1);
+            
+            Assert.IsType<NotFoundObjectResult>(res);
+        }
+
+        [Fact]
+        public async Task DeleteQuiz_DefaultImage_ReturnsOk_WithoutDeletingS3()
+        {
+            _mockRepo.Setup(r => r.DeleteQuiz(1, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync("quiz/Default.jpg");
+            
+            var res = await _controller.DeleteQuiz(1);
+            
+            Assert.IsType<OkObjectResult>(res);
+            _mockAWS.Verify(a => a.DeleteImage(It.IsAny<string>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteQuiz_CustomImage_ReturnsOk_AndDeletesFromS3()
+        {
+            _mockRepo.Setup(r => r.DeleteQuiz(1, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync("quiz/custom.jpg");
+            _mockAWS.Setup(a => a.DeleteImage("quiz/custom.jpg")).ReturnsAsync(true);
+            
+            var res = await _controller.DeleteQuiz(1);
+            
+            Assert.IsType<OkObjectResult>(res);
+            _mockAWS.Verify(a => a.DeleteImage("quiz/custom.jpg"), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteQuiz_S3DeleteFails_ReturnsBadRequest()
+        {
+            _mockRepo.Setup(r => r.DeleteQuiz(1, It.IsAny<int>(), It.IsAny<string>())).ReturnsAsync("quiz/custom.jpg");
+            _mockAWS.Setup(a => a.DeleteImage("quiz/custom.jpg")).ReturnsAsync(false);
+            
+            var res = await _controller.DeleteQuiz(1);
+            
+            Assert.IsType<BadRequestObjectResult>(res);
         }
         #endregion
 
@@ -211,6 +413,7 @@ namespace Capstone.UnitTest
         {
             var res = await _controller.ClearQuizCache(1);
             Assert.IsType<OkObjectResult>(res);
+            _mockRedis.Verify(r => r.DeleteKeysByPatternAsync("quiz_questions_1*"), Times.Once);
         }
         #endregion
     }

@@ -126,7 +126,7 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetResult_WhenFound_ReturnsOk()
         {
-            //_mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ReturnsAsync(new OfflineResultViewDTO { QuizId = 2 });
+            _mockRepo.Setup(r => r.GetOfflineResult(1, 2, null)).ReturnsAsync(new OfflineResultDetailViewDTO { QuizId = 2 });   
 
             var result = await _controller.GetResult(1, 2, null);
 
@@ -136,7 +136,7 @@ namespace Capstone.UnitTest
         [Fact]
         public async Task GetResult_WhenNotFound_ReturnsNotFound()
         {
-            //_mockRepo.Setup(r => r.GetOfflineResult(1, 2)).ReturnsAsync((OfflineResultViewDTO)null);
+            _mockRepo.Setup(r => r.GetOfflineResult(1, 2, null)).ReturnsAsync((OfflineResultDetailViewDTO)null);
 
             var result = await _controller.GetResult(1, 2 , null);
 

@@ -1,6 +1,7 @@
 ﻿using Capstone.Database;
 using Capstone.DTOs.Group;
 using Capstone.Model;
+using Capstone.Repositories;
 using Capstone.Repositories.Groups;
 using DocumentFormat.OpenXml.Math;
 using Microsoft.AspNetCore.Authorization;
@@ -16,13 +17,15 @@ namespace Capstone.Controllers
         private readonly IGroupRepository _groupRepository;
         private readonly IRedis _redis;
         private readonly IConfiguration _configuration;
+        private readonly IAWS _S3;
 
-        public GroupController(ILogger<GroupController> logger, IGroupRepository groupRepository, IRedis redis, IConfiguration configuration)
+        public GroupController(ILogger<GroupController> logger, IGroupRepository groupRepository, IRedis redis, IConfiguration configuration, IAWS S3)
         {
             _logger = logger;
             _groupRepository = groupRepository;
             _redis = redis;
             _configuration = configuration;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====
@@ -54,7 +57,7 @@ namespace Capstone.Controllers
                 List<ViewStudentDTO> students = await _groupRepository.GetAllStudentsByGroupId(groupId);
                 foreach (var student in students) {
                     if (student.Avatar != null) {
-                        student.Avatar = $"{Request.Scheme}://{Request.Host}/{student.Avatar.Replace("\\", "/")}";
+                        student.Avatar = await _S3.ReadImage(student.Avatar);
                     }
                 }
                 _logger.LogInformation("GetAllStudentsByGroupId: Retrieved {Count} students for GroupId={GroupId}", students?.Count ?? 0, groupId);
@@ -104,7 +107,7 @@ namespace Capstone.Controllers
                 {
                     if(quiz.DeliveredQuiz.AvatarURL != null)
                     {
-                        quiz.DeliveredQuiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.DeliveredQuiz.AvatarURL.Replace("\\", "/")}";
+                        quiz.DeliveredQuiz.AvatarURL = await _S3.ReadImage(quiz.DeliveredQuiz.AvatarURL);
                     }
                 }
                 var FronendURL = _configuration["Frontend:BaseUrl"];

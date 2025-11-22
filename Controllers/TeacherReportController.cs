@@ -2,6 +2,7 @@
 using Capstone.DTOs.Reports.Teacher.OfflineReport;
 using Capstone.DTOs.Reports.Teacher.OnlineReport;
 using Capstone.ENUMs;
+using Capstone.Repositories;
 using Capstone.Repositories.Histories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +16,13 @@ namespace Capstone.Controllers
     {
         private readonly ILogger<TeacherReportController> _logger;
         private readonly ITeacherReportRepository _historyTeacherService;
+        private readonly IAWS _S3;
 
-        public TeacherReportController(ILogger<TeacherReportController> logger, ITeacherReportRepository historyTeacherService)
+        public TeacherReportController(ILogger<TeacherReportController> logger, ITeacherReportRepository historyTeacherService, IAWS S3)
         {
             _logger = logger;
             _historyTeacherService = historyTeacherService;
+            _S3 = S3;
         }
 
         // ===== GET METHODS =====

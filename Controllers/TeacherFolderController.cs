@@ -15,11 +15,13 @@ namespace Capstone.Controllers
     {
         private readonly ITeacherFolder _repoFolder;
         private readonly ILogger<TeacherFolderController> _logger;
+        private readonly IAWS _S3;
 
-        public TeacherFolderController(ITeacherFolder repoFolder, ILogger<TeacherFolderController> logger)
+        public TeacherFolderController(ITeacherFolder repoFolder, ILogger<TeacherFolderController> logger, IAWS s3)
         {
             _repoFolder = repoFolder;
             _logger = logger;
+            _S3 = s3;
         }
 
         // ------------------------- CREATE FOLDER -------------------------
@@ -87,7 +89,7 @@ namespace Capstone.Controllers
                 {
                    if(quiz.AvatarURL != null)
                     {
-                        quiz.AvatarURL = $"{Request.Scheme}://{Request.Host}/{quiz.AvatarURL.Replace("\\", "/")}";
+                        quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
                     }
                 }
               
