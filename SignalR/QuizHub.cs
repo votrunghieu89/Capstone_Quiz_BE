@@ -34,20 +34,20 @@ namespace Capstone.SignalR
                 {
                     var (roomCode, studentId) = info;
 
-        
+
                     if (Rooms.TryGetValue(roomCode, out var studentsInRoom))
                     {
-                
+
                         if (studentsInRoom.TryRemove(studentId, out var studentName))
                         {
                             _logger.LogInformation("Student {StudentName} ({StudentId}) disconnected from room {RoomCode}",
                                 studentName, studentId, roomCode);
 
-                        
+
                             await Clients.Group(roomCode).SendAsync("UpdateStudentList", studentsInRoom.Values, studentsInRoom.Count);
                         }
 
-                
+
                         if (studentsInRoom.IsEmpty)
                         {
                             Rooms.TryRemove(roomCode, out _);
@@ -66,7 +66,7 @@ namespace Capstone.SignalR
                 }
             }
             catch (Exception ex)
-            {  
+            {
                 _logger.LogError(ex, "Error while disconnecting student with ConnectionId {ConnectionId}", Context.ConnectionId);
             }
             finally
@@ -85,7 +85,7 @@ namespace Capstone.SignalR
             } while (await _redis.KeyExistsAsync($"quiz_room_{roomCode}"));
             //int totalQuestions = await _dbContext.questions.Where(q => q.QuizId == quizId).CountAsync();
             Rooms[roomCode] = new ConcurrentDictionary<string, string>();
-            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode); 
+            await Groups.AddToGroupAsync(Context.ConnectionId, roomCode);
             CreateRoomRedisDTO createRoomRedis = new CreateRoomRedisDTO()
             {
                 QuizId = quizId,
@@ -96,7 +96,7 @@ namespace Capstone.SignalR
                 StartDate = DateTime.Now
             };
             string jsonData = JsonConvert.SerializeObject(createRoomRedis);
-            await _redis.SetStringAsync($"quiz:room:{roomCode}",jsonData, TimeSpan.FromHours(3));
+            await _redis.SetStringAsync($"quiz:room:{roomCode}", jsonData, TimeSpan.FromHours(3));
             return roomCode;
         }
         public async Task<string> JoinRoom(string roomCode, string studentName, int totalQuestion)
@@ -140,7 +140,7 @@ namespace Capstone.SignalR
             CreateRoomRedisDTO joinRoomDe = new CreateRoomRedisDTO();
             if (!string.IsNullOrEmpty(joinRoom))
             {
-                 joinRoomDe = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(joinRoom);
+                joinRoomDe = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(joinRoom);
                 // Sử dụng joinRoomDe tiếp theo
             }
             return JsonConvert.SerializeObject(new
@@ -158,7 +158,7 @@ namespace Capstone.SignalR
             var roomData = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(roomJson);
             if (Rooms.ContainsKey(roomCode))
             {
-                await Clients.Group(roomCode).SendAsync("GameStarted",roomData.QuizId);
+                await Clients.Group(roomCode).SendAsync("GameStarted", roomData.QuizId);
             }
             int totalStudents = Rooms[roomCode].Count;
             if (!string.IsNullOrEmpty(roomJson))
@@ -175,8 +175,10 @@ namespace Capstone.SignalR
                 await _redis.SetStringAsync($"quiz:room:{roomCode}", JsonConvert.SerializeObject(createRoomRedis), TimeSpan.FromHours(3));
                 var teacherConnectionId = roomData?.TeacherConnectionId;
 
-                //if (!string.IsNullOrEmpty(teacherConnectionId))
-                //    await Clients.Client(teacherConnectionId).SendAsync("GameStarted",createRoomRedis.QuizId);
+                if (!string.IsNullOrEmpty(teacherConnectionId))
+                    await Clients.Client(teacherConnectionId).SendAsync("GameStarted", createRoomRedis.QuizId);
+                //if (Istring.IsNullOrEmpty (teacherConnectionId))
+                //await Clients.Client(teacherConnectionId).SendAsync("GameStarted",createRoomRedis.QuizId);
                 return JsonConvert.SerializeObject(new
                 {
                     quizId = createRoomRedis.QuizId,
@@ -200,13 +202,13 @@ namespace Capstone.SignalR
             {
                 _logger.LogInformation("Ending game for room {RoomCode}", roomCode);
 
-               
+
                 await Clients.Group(roomCode).SendAsync("EndBeforeStartGame", $"Room {roomCode} has ended.");
 
-              
+
                 await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}*");
 
-            
+
                 Rooms.TryRemove(roomCode, out _);
 
                 var connectionsToRemove = StudentConnections
@@ -271,7 +273,7 @@ namespace Capstone.SignalR
         {
             try
             {
-              
+
                 await _redis.DeleteKeysByPatternAsync($"quiz:room:{roomCode}*");
                 var connectionsToRemove = StudentConnections
                     .Where(kv => kv.Value.RoomCode == roomCode)
@@ -307,13 +309,13 @@ namespace Capstone.SignalR
             await _redis.HSetAsync(detailKey, "Rank", rank.ToString(), TimeSpan.FromHours(3));
             // 1. Lấy thông tin phòng
             var jsonRoomRedis = await _redis.GetStringAsync($"quiz:room:{roomCode}");
-            if (string.IsNullOrEmpty(jsonRoomRedis)) return ;
+            if (string.IsNullOrEmpty(jsonRoomRedis)) return;
             var roomRedis = JsonConvert.DeserializeObject<CreateRoomRedisDTO>(jsonRoomRedis);
-            if (roomRedis == null) return ;
+            if (roomRedis == null) return;
 
             // 2. Lấy danh sách câu hỏi, đáp án
             var jsonlistQuestion = await _redis.GetStringAsync($"quiz_questions_{roomRedis.QuizId}_Answer");
-            if (string.IsNullOrEmpty(jsonlistQuestion)) return ;
+            if (string.IsNullOrEmpty(jsonlistQuestion)) return;
 
             var listQuestion = JsonConvert.DeserializeObject<List<GetQuizQuestionsDTO>>(jsonlistQuestion);
 
@@ -336,7 +338,7 @@ namespace Capstone.SignalR
                     OptionId = o.OptionId,
                     OptionContent = o.OptionContent,
                     IsCorrect = o.IsCorrect,
-                    IsSelectedWrong = wrong != null && wrong.SelectedOptionId == o.OptionId 
+                    IsSelectedWrong = wrong != null && wrong.SelectedOptionId == o.OptionId
                 }).ToList();
 
                 resultQuestions.Add(new QuestionResultDTO
