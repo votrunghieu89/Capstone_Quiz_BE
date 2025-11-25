@@ -722,11 +722,11 @@ namespace Capstone.Services
             try
             {
 
-                string? groupName = await _appDbContext.groups
+                var groupName = await _appDbContext.groups
                     .Where(g => g.GroupId == groupId)
-                    .Select(g => g.GroupName)
+                    .Select(g => new { g.GroupName, g.TeacherId })
                     .FirstOrDefaultAsync();
-
+                
                 if (groupName == null)
                 {
 
@@ -752,7 +752,7 @@ namespace Capstone.Services
                             {
 
                                 SenderId = studentId,
-                                ReceiverId = teacherId,
+                                ReceiverId = groupName.TeacherId,
                                 Message = message
                             };
 
@@ -761,7 +761,7 @@ namespace Capstone.Services
                             if (!isInsertSuccess)
                             {
                                 // FIX 3: Change Log Message
-                                _logger.LogError("LeaveGroup: Failed to insert notification for TeacherId={TeacherId}", teacherId);
+                                _logger.LogError("LeaveGroup: Failed to insert notification for TeacherId={TeacherId}", groupName.TeacherId);
                                 await transaction.RollbackAsync();
                                 return false;
                             }
@@ -781,7 +781,7 @@ namespace Capstone.Services
                             await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
 
 
-                            await _hubContext.Clients.User(teacherId.ToString()).SendAsync("GroupNotification", message);
+                            await _hubContext.Clients.User(groupName.TeacherId.ToString()).SendAsync("GroupNotification", message);
 
                             _logger.LogInformation("LeaveGroup: Success - StudentId={StudentId}, GroupId={GroupId}", studentId, groupId);
                             return true;

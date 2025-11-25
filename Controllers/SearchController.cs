@@ -63,6 +63,13 @@ namespace Capstone.Controllers
                 }
 
                 var topicList =await _repo.FilterByTopic(topic, pages.page, pages.pageSize);
+                foreach (var quiz in topicList)
+                {
+                    if (quiz.AvatarURL != null)
+                    {
+                        quiz.AvatarURL = await _S3.ReadImage(quiz.AvatarURL);
+                    }
+                }
                 _logger.LogInformation("Retrieved topic list: Page={Page}, PageSize={PageSize}, Count={Count}",
                      pages.page, pages.pageSize, topicList);
                 return Ok(topicList);
