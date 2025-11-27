@@ -70,7 +70,7 @@ namespace Capstone.Controllers
                             2. **Identify Correct Answers:** If an option is marked with an asterisk `*` before/after it, or contains the keyword ""CORRECT ANSWER"", treat it as the correct answer.
                             3. **Generate Additional Questions (If Needed):** If the number of extracted questions is less than {input.NumberOfQuestion}, generate additional questions from the remaining content to reach a total of {input.NumberOfQuestion} questions. Each newly generated question must have 4 options and **must not duplicate any existing question content**.
                             4. **Output Format:** Return **ONLY** a valid JSON object, **no explanations, comments, or markdown**.
-
+                            5. **Shuffle Answer Options: For each question, the answer options must be randomized so that correct answers are not always in the same position (e.g., not all correct answers are A).**
                             REQUIRED JSON FORMAT:
                             {{
                               ""questions"": [

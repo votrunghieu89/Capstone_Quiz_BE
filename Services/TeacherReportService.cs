@@ -427,7 +427,9 @@ namespace Capstone.Services
             {
                 var result = await _context.onlineResults
                            .Where(or => or.QuizId == quizId && or.OnlineReportId == OnlineReportId)
+                           .OrderBy(s => s.Rank)
                            .Select(s => new ViewOnlineStudentReportEachQuizDTO
+
                            {
                                StudentName = s.StudentName,
                                Score = s.Score,

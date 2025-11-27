@@ -56,10 +56,10 @@ namespace Capstone.Services
                     .Select(q => q.TopicName)
                     .FirstOrDefault();
 
-                var query = _dbContext.quizzes.Where(q => q.TopicId == topic);
+                var query = _dbContext.quizzes.Where(q => q.TopicId == topic && q.IsPrivate == false).OrderByDescending(q=>q.CreateAt);
                 var topicAll = await query
                     .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    .Take(pageSize)               
                     .Select(a => new ViewAllQuizDTO
                     {
                         QuizId = a.QuizId,

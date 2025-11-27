@@ -104,7 +104,7 @@ namespace Capstone.Services
                 FinalScore = result.Score,
                 Rank = result.RANK,
                 StartDate = result.StartDate,
-                CompletedAt = result.CreateAt,
+                CompletedAt = result.EndDate,
                 CreatedBy = quiz.CreatedBy,
                 QuestionDetails = questions
             };
