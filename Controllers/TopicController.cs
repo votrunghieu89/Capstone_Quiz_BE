@@ -19,7 +19,7 @@ namespace Capstone.Controllers
         }
 
         [HttpGet("getAllTopic")]
-        [Authorize(Roles = "Teacher,Student,Admin")]
+    
         public async Task<IActionResult> getAllTopic()
         {
             try
@@ -32,7 +32,7 @@ namespace Capstone.Controllers
             }
         }
         [HttpGet("getTopicName")]
-        [Authorize(Roles = "Teacher,Student,Admin")]
+      
         public async Task<IActionResult> getTopicname(int topicId)
         {
             try

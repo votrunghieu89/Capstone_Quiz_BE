@@ -39,65 +39,60 @@ namespace Capstone.Services
             }
         }
 
-        //public async Task<bool> DeleteQuizImage(string key)
-        //{
-        //    var deleteObject = new DeleteObjectRequest
-        //    {
-        //        BucketName = _bucketName,
-        //        Key = key
-        //    };
-        //    try
-        //    {
-        //        var response = await _s3Client.DeleteObjectAsync(deleteObject);
-        //        return true; // xoá thành công
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine("Error deleting file: " + ex.Message);
-        //        return false;
-        //    }
-        //}
 
         public async Task<string> UploadProfileImageToS3(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File không hợp lệ");
 
-            string key = $"profile/{Guid.NewGuid()}_{file.FileName}";
-
-            using var stream = file.OpenReadStream();
-
-            var request = new PutObjectRequest
+            try
             {
-                BucketName = _bucketName,
-                Key = key,
-                InputStream = stream,
-                ContentType = file.ContentType
-            };
+                string key = $"profile/{Guid.NewGuid()}_{file.FileName}";
 
-            await _s3Client.PutObjectAsync(request);
-            return key;
+                using var stream = file.OpenReadStream();
+
+                var request = new PutObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = key,
+                    InputStream = stream,
+                    ContentType = file.ContentType
+                };
+
+                await _s3Client.PutObjectAsync(request);
+                return key; // OK
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ UploadProfileImageToS3 FAILED: {ex.Message}");
+                return null;
+            }
         }
 
         public async Task<string> UploadQuizImageToS3(IFormFile file)
         {
-            if (file == null || file.Length == 0)
-                throw new ArgumentException("File không hợp lệ");
-
-            string key = $"quiz/{Guid.NewGuid()}_{file.FileName}";
-
-            using var stream = file.OpenReadStream();
-
-            var request = new PutObjectRequest
+            try
             {
-                BucketName = _bucketName,
-                Key = key,
-                InputStream = stream,
-                ContentType = file.ContentType
-            };
+                string key = $"quiz/{Guid.NewGuid()}_{file.FileName}";
 
-            await _s3Client.PutObjectAsync(request);
-            return key;
+                using var stream = file.OpenReadStream();
+
+                var request = new PutObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = key,
+                    InputStream = stream,
+                    ContentType = file.ContentType
+                };
+
+                await _s3Client.PutObjectAsync(request);
+                return key;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ UploadQuizImageToS3 FAILED: {ex.Message}");
+                return null;
+            }
         }
         public async Task<string> ReadImage(string key)
         {

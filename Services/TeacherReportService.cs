@@ -152,6 +152,7 @@ namespace Capstone.Services
                                                                    join gq in _context.quizzGroups on g.GroupId equals gq.GroupId
                                                                    join r in _context.offlinereports on gq.QGId equals r.QGId
                                                                    where g.GroupId == groupId
+                                                                   orderby gq.CreateAt descending
                                                                    select new DeliveredQuizzDetailDTO
                                                                    {
                                                                        OfflineReportId = r.OfflineReportId,
@@ -192,6 +193,7 @@ namespace Capstone.Services
                                   join gq in _context.quizzGroups on r.QGId equals gq.QGId
                                   join g in _context.groups on gq.GroupId equals g.GroupId
                                   where r.OfflineReportId == OfflineReportId && r.QuizId == quizzId
+                                  
                                   select new
                                   {
                                       gq.QGId,
@@ -355,6 +357,7 @@ namespace Capstone.Services
             {
                 List<ViewAllOnlineReportDTO> result = await _context.onlinereports
                                                             .Where(or => or.TeacherId == teacherId)
+                                                            .OrderByDescending(or => or.CreateAt)
                                                             .Select(or => new ViewAllOnlineReportDTO
                                                             {
                                                                 OnlineReportId = or.OnlineReportId,
