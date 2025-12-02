@@ -157,6 +157,7 @@ namespace Capstone.Services
                                                                    {
                                                                        OfflineReportId = r.OfflineReportId,
                                                                        QuizzId = gq.QuizId,
+                                                                       QGId = gq.QGId,
                                                                        ReportName = r.ReportName,
                                                                        TotalParticipants = r.TotalParticipants,
                                                                        EndTime = gq.ExpiredTime,

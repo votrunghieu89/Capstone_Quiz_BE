@@ -10,6 +10,7 @@
     {
         public int OfflineReportId { get; set; }
         public int QuizzId { get; set; }
+        public int QGId { get; set; }
         public string ReportName { get; set; } = string.Empty;
         public int TotalParticipants { get; set; }
         public DateTime EndTime { get; set; }
