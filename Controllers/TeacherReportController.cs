@@ -331,9 +331,7 @@ namespace Capstone.Controllers
                     _logger.LogWarning("CheckExpiredTime: Invalid parameters - QuizId={QuizId}, QGId={QGId}", request?.QuizId, request?.QGId);
                     return BadRequest(new { message = "Invalid quiz ID or QG ID" });
                 }
-
-
-                var isExpired = await _historyTeacherService.checkExpiredTime(request.QuizId, request.QGId);
+                var isExpired = await _historyTeacherService.checkExpiredTime(request.QGId, request.QuizId);
                 _logger.LogInformation("CheckExpiredTime: Quiz expired status={IsExpired} for QuizId={QuizId}, QGId={QGId}",
                     isExpired, request.QuizId, request.QGId);
                 return Ok(new { isExpired, message = isExpired ? "Bài kiểm tra đã hết hạn và trạng thái đã được cập nhật" : "Bài kiểm tra vẫn còn hoạt động" });

@@ -23,27 +23,41 @@ namespace Capstone.Services
             _connectionString = configuration.GetConnectionString("DefaultConnection") ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
         }
 
-     
 
-        public async Task<bool> checkExpiredTime(int QGId, int groupId)
+
+        public async Task<bool> checkExpiredTime(int QGId, int QuizId)
         {
             try
             {
                 var quizzGroup = await _context.quizzGroups
-                    .Where(qg => qg.QGId == QGId && qg.GroupId == groupId)
+                    .Where(qg => qg.QGId == QGId && qg.QuizId == QuizId)
                     .FirstOrDefaultAsync();
+
                 if (quizzGroup == null)
+                {
+                    _logger.LogWarning("QuizzGroup not found with QGId={QGId}, QuizId={QuizId}", QGId, QuizId);
                     return false;
-                if (quizzGroup.ExpiredTime <= DateTime.Now)
+                }
+
+                _logger.LogWarning(
+                    "Debug ExpiredTime: DB={dbTime:o} (Kind={kind}), UtcNow={utc:o}, LocalNow={local:o}",
+                    quizzGroup.ExpiredTime,
+                    quizzGroup.ExpiredTime.Kind,
+                    DateTime.UtcNow,
+                    DateTime.Now
+                );
+
+                if (quizzGroup.ExpiredTime <= DateTime.UtcNow) // Dùng UTC để đúng timezone
                 {
                     int isUpdate = await _context.quizzGroups
-                        .Where(qg => qg.QGId == QGId && qg.GroupId == groupId)
+                        .Where(qg => qg.QGId == QGId && qg.QuizId == QuizId)
                         .ExecuteUpdateAsync(u => u.SetProperty(qg => qg.Status, "Completed"));
-                    _logger.LogInformation("QuizId {quizzId} in GroupId {groupId} has expired and status updated to Completed", QGId, groupId);
+
+                    _logger.LogInformation("QuizId={QuizId}, QGId={QGId} expired → Updated to Completed", QuizId, QGId);
                     return true;
                 }
-                return false;
 
+                return false;
             }
             catch (Exception ex)
             {
@@ -51,6 +65,7 @@ namespace Capstone.Services
                 return false;
             }
         }
+
         public async Task<bool> EndNow(int groupId, int quizzId)
         {
             try
