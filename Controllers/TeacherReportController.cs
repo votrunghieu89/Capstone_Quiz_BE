@@ -332,6 +332,7 @@ namespace Capstone.Controllers
                     return BadRequest(new { message = "Invalid quiz ID or QG ID" });
                 }
 
+
                 var isExpired = await _historyTeacherService.checkExpiredTime(request.QuizId, request.QGId);
                 _logger.LogInformation("CheckExpiredTime: Quiz expired status={IsExpired} for QuizId={QuizId}, QGId={QGId}",
                     isExpired, request.QuizId, request.QGId);

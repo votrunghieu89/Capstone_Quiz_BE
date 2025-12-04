@@ -24,6 +24,7 @@ namespace Capstone.Services
         }
 
      
+
         public async Task<bool> checkExpiredTime(int QGId, int groupId)
         {
             try
