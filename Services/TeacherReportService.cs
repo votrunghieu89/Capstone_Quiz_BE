@@ -32,7 +32,17 @@ namespace Capstone.Services
                 var quizzGroup = await _context.quizzGroups
                     .Where(qg => qg.QGId == QGId && qg.QuizId == QuizId)
                     .FirstOrDefaultAsync();
+                TimeZoneInfo vnTimeZone;
+                try
+                {
+                    vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                }
+                catch
+                {
+                    vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                }
 
+                var vietnamNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vnTimeZone);
                 if (quizzGroup == null)
                 {
                     _logger.LogWarning("QuizzGroup not found with QGId={QGId}, QuizId={QuizId}", QGId, QuizId);
@@ -47,7 +57,7 @@ namespace Capstone.Services
                     DateTime.Now
                 );
 
-                if (quizzGroup.ExpiredTime <= DateTime.UtcNow) // Dùng UTC để đúng timezone
+                if (quizzGroup.ExpiredTime <= vietnamNow) 
                 {
                     int isUpdate = await _context.quizzGroups
                         .Where(qg => qg.QGId == QGId && qg.QuizId == QuizId)
