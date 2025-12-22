@@ -51,7 +51,7 @@ namespace Capstone.Services
                         return CheckStartOfflineQuizz.Failed;
                     }
                     _logger.LogWarning("Thời gian làm (QGId: {Starttime})  hết hạn {ExpiredTime}", dto.StartTime, qg.ExpiredTime);
-                    if (dto.StartTime> qg.ExpiredTime)
+                    if (dto.StartTime > qg.ExpiredTime)
                     {
                         _logger.LogWarning("Attempt to start quiz (QGId: {QGId}) failed: Quiz has expired. Expired at: {ExpiredTime}", dto.QGId, qg.ExpiredTime);
                         return CheckStartOfflineQuizz.QuizExpired; // đã quá hạn
@@ -284,7 +284,7 @@ namespace Capstone.Services
                     // Lưu kết quả (OfflineResult) trước để lấy ID
                     await _context.SaveChangesAsync();
                     int offResultId = currentResult.OffResultId;
-                    //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
+                    //  LƯU CÁC CÂU TRẢ LỜI SAI MỚI TỪ CACHE
                     var wrongAnswerEntities = cache.WrongAnswers.Select(wa => new OfflineWrongAnswerModel
                     {
                         OffResultId = offResultId,
@@ -387,8 +387,9 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = accountId,
-                        Action = "Insert offline quiz result",
-                        Description = $"Student ID:{accountId} submitted quiz ID:{dto.QuizId} (Group Quiz ID: {dto.QGId ?? 0}) with score: {score}%",
+                        Action = "Nộp bài kiểm tra offline",
+                        Description = $"Học sinh có ID:{accountId} đã nộp bài kiểm tra có ID:{dto.QuizId} (ID bài kiểm tra nhóm: {dto.QGId ?? 0}) với điểm số: {score}%",
+
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };

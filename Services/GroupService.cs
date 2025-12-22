@@ -49,8 +49,8 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = groupModel.TeacherId,
-                        Action = "Create a group",
-                        Description = $"A group with ID:{groupModel.GroupId} has been created by account with ID:{groupModel.TeacherId}",
+                        Action = "Tạo nhóm",
+                        Description = $"Nhóm có ID:{groupModel.GroupId} đã được tạo bởi tài khoản có ID:{groupModel.TeacherId}",
                         CreatAt = groupModel.CreateAt,
                         IpAddress = ipAddress
                     };
@@ -94,7 +94,7 @@ namespace Capstone.Services
                                       .Where(or => or.GroupId == groupId && or.QGId != null && QgIdList.Contains(or.QGId.Value))
                                       .ExecuteUpdateAsync(setters => setters
                                           .SetProperty(or => or.GroupId, (int?)null)
-                                          .SetProperty(or => or.QGId, (int ?)null)
+                                          .SetProperty(or => or.QGId, (int?)null)
                                       );
                     _logger.LogInformation("DeleteGroup: Deleted {Count} reports related to GroupId={GroupId}", deletedReports, groupId);
                 }
@@ -113,7 +113,7 @@ namespace Capstone.Services
                 int isDelete = await _appDbContext.groups
                     .Where(g => g.GroupId == groupId)
                     .ExecuteDeleteAsync();
-               
+
                 if (isDelete > 0)
                 {
                     await transaction.CommitAsync();
@@ -121,14 +121,14 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = accountId,
-                        Action = "Delete a group",
-                        Description = $"A group with ID:{groupId} has been deleted by account with ID:{accountId}",
+                        Action = "Xóa nhóm",
+                        Description = $"Nhóm có ID:{groupId} đã được xóa bởi tài khoản có ID:{accountId}",
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
-                    string message = $"Group {groupName} has been deleted";
-                   foreach(var studentId in StudentIdList)
+                    string message = $"Nhóm {groupName} đã bị xóa";
+                    foreach (var studentId in StudentIdList)
                     {
                         InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
                         {
@@ -175,8 +175,8 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = accountId,
-                        Action = "Update group details",
-                        Description = $"Group with ID:{groupModel.GroupId} has been updated by account with ID:{accountId}",
+                        Action = "Cập nhật thông tin nhóm",
+                        Description = $"Nhóm có ID:{groupModel.GroupId} đã được cập nhật bởi tài khoản có ID:{accountId}",
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
@@ -294,14 +294,14 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = accountId, // TeacherId đang thêm học sinh
-                        Action = "Add student to group",
-                        Description = $"Student ID:{StudentId} (Unique ID: {IdUnique}) has been added to Group ID:{groupId} by account ID:{accountId}",
+                        Action = "Thêm học sinh vào nhóm",
+                        Description = $"Học sinh có ID:{StudentId} (Mã định danh: {IdUnique}) đã được thêm vào Nhóm có ID:{groupId} bởi tài khoản có ID:{accountId}",
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
                     await _rabbitMQ.SendMessageAsync(Newtonsoft.Json.JsonConvert.SerializeObject(log));
                 }
-                string message = $"You have been joined into the group '{groupName}'.";
+                string message = $"Bạn đã được thêm vào nhóm '{groupName}'.";
 
                 InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
                 {
@@ -350,7 +350,7 @@ namespace Capstone.Services
                         if (rowsDeleted > 0)
                         {
 
-                            string message = $"You have been removed from the group '{groupName}'.";
+                            string message = $"Bạn đã bị xóa khỏi nhóm '{groupName}'.";
 
                             InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
                             {
@@ -375,8 +375,8 @@ namespace Capstone.Services
                             var log = new AuditLogModel()
                             {
                                 AccountId = teacherId,
-                                Action = "Remove student from group",
-                                Description = $"Student ID:{studentId} has been removed from Group ID:{groupId} by Teacher ID:{teacherId}",
+                                Action = "Xóa học sinh khỏi nhóm",
+                                Description = $"Học sinh có ID:{studentId} đã bị xóa khỏi Nhóm có ID:{groupId} bởi Giáo viên có ID:{teacherId}",
                                 CreatAt = DateTime.Now,
                                 IpAddress = ipAddress
                             };
@@ -501,7 +501,7 @@ namespace Capstone.Services
                             .Select(sg => sg.StudentId)
                             .ToListAsync();
                         var groupName = await _appDbContext.groups.Where(g => g.GroupId == insertQuiz.GroupId).Select(g => g.GroupName).FirstOrDefaultAsync();
-                        string message = $"A new quiz has been created in {groupName} group";
+                        string message = $"Một bài kiểm tra mới đã được tạo trong nhóm {groupName}";
 
                         foreach (var student in studentId)
                         {
@@ -520,8 +520,8 @@ namespace Capstone.Services
                         var log = new AuditLogModel()
                         {
                             AccountId = accountId,
-                            Action = "Insert quiz to group",
-                            Description = $"Quiz ID:{insertQuiz.QuizId} has been delivered to Group ID:{insertQuiz.GroupId} by account ID:{accountId}",
+                            Action = "Giao bài kiểm tra cho nhóm",
+                            Description = $"Bài kiểm tra có ID:{insertQuiz.QuizId} đã được giao cho Nhóm có ID:{insertQuiz.GroupId} bởi tài khoản có ID:{accountId}",
                             CreatAt = DateTime.Now,
                             IpAddress = ipAddress
                         };
@@ -530,8 +530,8 @@ namespace Capstone.Services
 
                         // gửi tin realtime 
                         foreach (var student in studentId)
-                        {    
-                                await _hubContext.Clients.User(student.ToString()).SendAsync("GroupNotification", message);
+                        {
+                            await _hubContext.Clients.User(student.ToString()).SendAsync("GroupNotification", message);
                         }
 
                         _logger.LogInformation(
@@ -589,8 +589,8 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = accountId,
-                        Action = "Remove quiz from group",
-                        Description = $"Quiz ID:{QgID} has been removed from Group ID:{groupId} by Account ID:{accountId}",
+                        Action = "Xóa bài kiểm tra khỏi nhóm",
+                        Description = $"Bài kiểm tra có ID:{QgID} đã bị xóa khỏi Nhóm có ID:{groupId} bởi Tài khoản có ID:{accountId}",
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };
@@ -726,7 +726,7 @@ namespace Capstone.Services
                     .Where(g => g.GroupId == groupId)
                     .Select(g => new { g.GroupName, g.TeacherId })
                     .FirstOrDefaultAsync();
-                
+
                 if (groupName == null)
                 {
 
@@ -742,11 +742,14 @@ namespace Capstone.Services
                         int rowsDeleted = await _appDbContext.studentGroups
                             .Where(sg => sg.GroupId == groupId && sg.StudentId == studentId)
                             .ExecuteDeleteAsync();
-
+                        string? studentName = await _appDbContext.studentProfiles
+                         .Where(sp => sp.StudentId == studentId)
+                         .Select(sp => sp.FullName)
+                         .FirstOrDefaultAsync();
 
                         if (rowsDeleted > 0)
                         {
-                            string message = $"Student ID {studentId} has left the group '{groupName}'.";
+                            string message = $"Học sinh có ID {studentName} đã rời khỏi nhóm '{groupName.GroupName}'.";
 
                             InsertNewNotificationDTO newNotificationDTO = new InsertNewNotificationDTO
                             {
@@ -773,8 +776,8 @@ namespace Capstone.Services
                             var log = new AuditLogModel()
                             {
                                 AccountId = studentId,
-                                Action = "Leave group",
-                                Description = $"Student ID:{studentId} has left Group ID:{groupId}",
+                                Action = "Rời khỏi nhóm",
+                                Description = $"Học sinh có ID:{studentId} đã rời khỏi Nhóm có ID:{groupId}",
                                 CreatAt = DateTime.Now,
                                 IpAddress = ipAddress
                             };
@@ -847,12 +850,12 @@ namespace Capstone.Services
 
                 if (result > 0)
                 {
-                    
+
                     var log = new AuditLogModel()
                     {
                         AccountId = studentId,
-                        Action = "Join group by invite code",
-                        Description = $"Student ID:{studentId} joined Group ID:{group.GroupId} using invite code",
+                        Action = "Tham gia nhóm bằng mã mời",
+                        Description = $"Học sinh có ID:{studentId} đã tham gia Nhóm có ID:{group.GroupId} bằng mã mời",
                         CreatAt = DateTime.Now,
                         IpAddress = ipAddress
                     };

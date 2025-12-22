@@ -85,8 +85,8 @@ namespace Capstone.Services
                 var log = new AuditLogModel()
                 {
                     AccountId = accountId,
-                    Action = "Update teacher profile",
-                    Description = $"Teacher profile for ID:{accountId} has been updated.",
+                    Action = "Cập nhật hồ sơ giáo viên",
+                    Description = $"Hồ sơ giáo viên có ID:{accountId} đã được cập nhật.",
                     CreatAt = DateTime.Now,
                     IpAddress = ipAddress
                 };

@@ -1,4 +1,4 @@
-﻿ using Capstone.Database;
+﻿using Capstone.Database;
 using Capstone.DTOs.Group;
 using Capstone.DTOs.Quizzes;
 using Capstone.Model;
@@ -97,8 +97,9 @@ namespace Capstone.Services
                     var log = new AuditLogModel()
                     {
                         AccountId = newQuiz.TeacherId,
-                        Action = "Create a quiz",
-                        Description = $"A quiz with ID:{newQuiz.QuizId} has been created by account with ID:{newQuiz.TeacherId}",
+                        Action = "Tạo bài kiểm tra",
+                        Description = $"Bài kiểm tra có ID:{newQuiz.QuizId} đã được tạo bởi tài khoản có ID:{newQuiz.TeacherId}",
+
                         CreatAt = newQuiz.CreateAt,
                         IpAddress = IpAddress
                     };
@@ -178,8 +179,9 @@ namespace Capstone.Services
                 var log = new AuditLogModel()
                 {
                     AccountId = accountId,
-                    Action = "Delete a quiz",
-                    Description = $"A quiz with ID:{quizId} has been deleted by account with ID:{accountId}",
+                    Action = "Xóa bài kiểm tra",
+                    Description = $"Bài kiểm tra có ID:{quizId} đã được xóa bởi tài khoản có ID:{accountId}",
+
                     CreatAt = DateTime.Now,
                     IpAddress = IpAddress
                 };
@@ -194,7 +196,7 @@ namespace Capstone.Services
                 return null;
             }
         }
-        
+
 
         public async Task<QuizUpdateDTO> UpdateQuiz(QuizUpdateDTO dto, string IpAddress, int accountId)
         {
@@ -312,8 +314,8 @@ namespace Capstone.Services
             var log = new AuditLogModel()
             {
                 AccountId = accountId,
-                Action = "Delete a quiz",
-                Description = $"A quiz with ID:{dto.QuizId} has been updated by account with ID:{accountId}",
+                Action = "Cập nhật bài kiểm tra",
+                Description = $"Bài kiểm tra có ID:{dto.QuizId} đã được cập nhật bởi tài khoản có ID:{accountId}",
                 CreatAt = DateTime.Now,
                 IpAddress = IpAddress
             };
@@ -377,7 +379,7 @@ namespace Capstone.Services
                     }).ToList()
                 }).ToList();
 
-             
+
                 var cacheWithoutAnswer = result.Select(q => new getQuizQuestionWithoutAnswerDTO
                 {
                     QuestionId = q.QuestionId,
@@ -395,10 +397,10 @@ namespace Capstone.Services
                 var TTL = totalTime + 200;
 
                 await _redis.SetStringAsync(
-                    $"quiz_questions_{quizId}_withoutAnswer",JsonSerializer.Serialize(cacheWithoutAnswer),TimeSpan.FromSeconds(TTL)
+                    $"quiz_questions_{quizId}_withoutAnswer", JsonSerializer.Serialize(cacheWithoutAnswer), TimeSpan.FromSeconds(TTL)
                 );
                 await _redis.SetStringAsync($"quiz_questions_{quizId}_Answer", JsonSerializer.Serialize(result), TimeSpan.FromSeconds(TTL));
-            
+
                 foreach (var q in result)
                 {
                     await _redis.SetStringAsync($"quiz_questions_{quizId}:question_{q.QuestionId}_Score", q.Score.ToString(), TimeSpan.FromSeconds(TTL));
@@ -604,7 +606,7 @@ namespace Capstone.Services
                     .CountAsync();
                 var quizDetail = await (from q in _context.quizzes
                                         join tp in _context.authModels on q.TeacherId equals tp.AccountId
-                                        where q.QuizId == quizId 
+                                        where q.QuizId == quizId
                                         select new QuizDetailHPDTO
                                         {
                                             QuizId = quizId,
@@ -616,13 +618,13 @@ namespace Capstone.Services
                                             CreateBy = tp.Email,
                                             CreatedDate = q.CreateAt
                                         }).FirstOrDefaultAsync();
-                if(quizDetail == null)
+                if (quizDetail == null)
                 {
                     return null;
                 }
                 _logger.LogInformation("Get Detail of quiz in folder teacher successfully");
                 return quizDetail;
-             
+
             }
             catch (Exception ex)
             {

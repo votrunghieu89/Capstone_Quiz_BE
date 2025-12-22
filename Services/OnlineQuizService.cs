@@ -133,8 +133,8 @@ namespace Capstone.Services
                         var log = new AuditLogModel()
                         {
                             AccountId = accountId,
-                            Action = "Insert online quiz report",
-                            Description = $"Online Report ID:{onlineReportId} for Quiz ID:{insertOnlineReportDTO.QuizId} created by Account ID:{accountId}",
+                            Action = "Thêm báo cáo bài kiểm tra trực tuyến",
+                            Description = $"Báo cáo trực tuyến có ID:{onlineReportId} cho Bài kiểm tra có ID:{insertOnlineReportDTO.QuizId} được tạo bởi Tài khoản có ID:{accountId}",
                             CreatAt = DateTime.Now,
                             IpAddress = ipAddress
                         };
@@ -190,7 +190,7 @@ namespace Capstone.Services
             }
             foreach (var ld in leaderboard)
             {
-               Console.WriteLine($"ID:{ld.StudentId} || Name: {ld.StudentName} || Score: {ld.Score} || Rank: {ld.Rank}");
+                Console.WriteLine($"ID:{ld.StudentId} || Name: {ld.StudentName} || Score: {ld.Score} || Rank: {ld.Rank}");
             }
             await _quizHub.Clients.Client(roomData.TeacherConnectionId)
                             .SendAsync("ReceiveLeaderboard", leaderboard);
